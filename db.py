@@ -3,11 +3,11 @@ from mysql.connector import Error
 import os
 
 DB_CONFIG = {
-    'host':     os.environ.get('DB_HOST', '127.0.0.1'),
-    'user':     os.environ.get('DB_USER', 'root'),
-    'password': os.environ.get('DB_PASSWORD', 'sqlbook123'),
-    'database': os.environ.get('DB_NAME', 'raidlink_db'),
-    'port':     int(os.environ.get('DB_PORT', 3306))
+    'host':     os.environ.get('MYSQLHOST',     os.environ.get('DB_HOST',     '127.0.0.1')),
+    'user':     os.environ.get('MYSQLUSER',     os.environ.get('DB_USER',     'root')),
+    'password': os.environ.get('MYSQLPASSWORD', os.environ.get('DB_PASSWORD', 'sqlbook123')),
+    'database': os.environ.get('MYSQLDATABASE', os.environ.get('DB_NAME',     'raidlink_db')),
+    'port':     int(os.environ.get('MYSQLPORT', os.environ.get('DB_PORT',     3306)))
 }
 
 def get_db():
