@@ -120,6 +120,14 @@ def init_db():
         except Exception:
             pass  # column already exists
 
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS Driver_Skipped_Trips (
+                driver_name VARCHAR(100) NOT NULL,
+                trip_id     INT          NOT NULL,
+                PRIMARY KEY (driver_name, trip_id)
+            )
+        """)
+
         conn.commit()
         cursor.close()
         conn.close()

@@ -29,7 +29,10 @@ def save_file(file, prefix):
     return None
 
 # ── Initialise DB on startup ──────────────────────────────────
-init_db()
+try:
+    init_db()
+except Exception as e:
+    print(f"[STARTUP] DB init skipped: {e}")
 
 
 # ── Helpers ──────────────────────────────────────────────────
