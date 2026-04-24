@@ -20,22 +20,10 @@ def get_db():
         return None
 
 def init_db():
-    """Create database and tables if they don't exist."""
+    """Create tables if they don't exist."""
     try:
-        conn = mysql.connector.connect(
-            host=DB_CONFIG['host'],
-            user=DB_CONFIG['user'],
-            password=DB_CONFIG['password'],
-            port=DB_CONFIG['port']
-        )
+        conn = mysql.connector.connect(**DB_CONFIG)
         cursor = conn.cursor()
-
-        db_name = DB_CONFIG['database']
-        cursor.execute(
-            f"CREATE DATABASE IF NOT EXISTS `{db_name}` "
-            "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
-        )
-        cursor.execute(f"USE `{db_name}`")
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS Rider_Details (

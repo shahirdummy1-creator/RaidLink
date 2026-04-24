@@ -1,4 +1,4 @@
-flask
-mysql-connector-python
-werkzeug
-gunicorn
+flask==3.0.3
+mysql-connector-python==8.4.0
+werkzeug==3.0.3
+gunicorn==22.0.0
