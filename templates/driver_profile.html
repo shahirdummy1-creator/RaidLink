@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Profile</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<nav class="navbar navbar-dark bg-primary">
+    <div class="container justify-content-center">
+        <a class="navbar-brand fw-bold text-center" href="{{ url_for('welcome') }}">RaidLink Technologies</a>
+    </div>
+</nav>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-lg p-4">
+                <div class="text-center mb-4">
+                    <img src="https://via.placeholder.com/150" alt="Driver Photo" class="rounded-circle border border-3 border-primary mb-3" width="150" height="150">
+                    <h2>Arjun Patel</h2>
+                    <p class="text-muted">Professional Driver</p>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title text-muted">Personal Information</h6>
+                                <p class="mb-1"><strong>Name:</strong> Arjun Patel</p>
+                                <p class="mb-1"><strong>Age:</strong> 32</p>
+                                <p class="mb-1"><strong>Email:</strong> arjun.patel@example.com</p>
+                                <p class="mb-1"><strong>Phone:</strong> +1 (555) 123-4567</p>
+                                <p class="mb-0"><strong>License Number:</strong> DL123456789</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title text-muted">Vehicle Information</h6>
+                                <p class="mb-1"><strong>Vehicle:</strong> Toyota Camry</p>
+                                <p class="mb-1"><strong>License Plate:</strong> ABC-1234</p>
+                                <p class="mb-1"><strong>Color:</strong> Silver</p>
+                                <p class="mb-1"><strong>Year:</strong> 2020</p>
+                                <p class="mb-0"><strong>Capacity:</strong> 4 passengers</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title text-muted">Performance Stats</h6>
+                                <div class="row text-center">
+                                    <div class="col-md-3">
+                                        <h4 class="text-primary">4.8</h4>
+                                        <p class="mb-0">Rating</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <h4 class="text-success">1,250</h4>
+                                        <p class="mb-0">Total Rides</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <h4 class="text-info">98%</h4>
+                                        <p class="mb-0">Completion Rate</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <h4 class="text-warning">2 years</h4>
+                                        <p class="mb-0">Experience</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center mt-4">
+                    <a href="{{ url_for('driver_home') }}" class="btn btn-secondary me-2">Back to Dashboard</a>
+                    <button class="btn btn-primary">Edit Profile</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

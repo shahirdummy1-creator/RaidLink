@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RaidLink Technologies</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body { background: #f0f2f7; font-family: 'Segoe UI', sans-serif; }
+
+        .hero-banner {
+            background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+            color: #fff;
+            padding: 60px 0 40px;
+        }
+        .hero-banner h1 { font-size: 2.6rem; font-weight: 800; }
+        .hero-banner p  { font-size: 1rem; opacity: .85; }
+
+        .live-dot {
+            display: inline-block;
+            width: 9px; height: 9px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: blink 1.4s ease-in-out infinite;
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+
+        /* Section cards */
+        .section-title {
+            font-size: .7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .12em;
+            color: #6b7280;
+            margin-bottom: 12px;
+            padding-left: 4px;
+        }
+        .nav-card {
+            background: #fff;
+            border-radius: 14px;
+            border: none;
+            box-shadow: 0 1px 8px rgba(0,0,0,0.07);
+            padding: 18px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            text-decoration: none;
+            color: inherit;
+            transition: transform .18s, box-shadow .18s;
+        }
+        .nav-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(13,110,253,0.13);
+            color: inherit;
+        }
+        .nav-icon {
+            width: 46px; height: 46px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+        .nav-card-title { font-size: .9rem; font-weight: 700; color: #111827; }
+        .nav-card-sub   { font-size: .75rem; color: #6b7280; }
+        .nav-arrow { margin-left: auto; color: #d1d5db; font-size: 1rem; }
+        .nav-card:hover .nav-arrow { color: #0d6efd; }
+    </style>
+</head>
+<body>
+
+<!-- Hero Banner -->
+<div class="hero-banner">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-7">
+                <div class="mb-2">
+                    <span class="live-dot"></span>
+                    <span style="font-size:.8rem;font-weight:600;opacity:.9;">Service Online</span>
+                </div>
+                <h1 class="mb-2">RaidLink Technologies</h1>
+                <p class="mb-4">Fast, safe and reliable taxi booking platform.</p>
+                <a href="{{ url_for('welcome') }}" class="btn btn-light fw-bold px-4 py-2">
+                    <i class="bi bi-arrow-right-circle me-2"></i>Enter App
+                </a>
+            </div>
+            <div class="col-lg-5 text-center d-none d-lg-block">
+                <img src="{{ url_for('static', filename='images/car.png') }}"
+                     alt="RaidLink Car" style="max-height:200px;object-fit:contain;">
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container py-5">
+    <div class="row g-4">
+
+        <!-- Rider Section -->
+        <div class="col-lg-4">
+            <div class="section-title">Rider</div>
+            <div class="d-flex flex-column gap-2">
+                <a href="{{ url_for('rider_login') }}" class="nav-card">
+                    <div class="nav-icon" style="background:#f0fdf4;">
+                        <i class="bi bi-person text-success"></i>
+                    </div>
+                    <div>
+                        <div class="nav-card-title">Rider Login</div>
+                        <div class="nav-card-sub">Sign in to your rider account</div>
+                    </div>
+                    <i class="bi bi-chevron-right nav-arrow"></i>
+                </a>
+                <a href="{{ url_for('rider_signup') }}" class="nav-card">
+                    <div class="nav-icon" style="background:#f0fdf4;">
+                        <i class="bi bi-person-plus text-success"></i>
+                    </div>
+                    <div>
+                        <div class="nav-card-title">Rider Signup</div>
+                        <div class="nav-card-sub">Create a new rider account</div>
+                    </div>
+                    <i class="bi bi-chevron-right nav-arrow"></i>
+                </a>
+                <a href="{{ url_for('book') }}" class="nav-card">
+                    <div class="nav-icon" style="background:#f0fdf4;">
+                        <i class="bi bi-taxi-front text-success"></i>
+                    </div>
+                    <div>
+                        <div class="nav-card-title">Book a Ride</div>
+                        <div class="nav-card-sub">Book your taxi instantly</div>
+                    </div>
+                    <i class="bi bi-chevron-right nav-arrow"></i>
+                </a>
+                <a href="{{ url_for('rider_bookings') }}" class="nav-card">
+                    <div class="nav-icon" style="background:#f0fdf4;">
+                        <i class="bi bi-journal-text text-success"></i>
+                    </div>
+                    <div>
+                        <div class="nav-card-title">My Bookings</div>
+                        <div class="nav-card-sub">View confirmed & completed trips</div>
+                    </div>
+                    <i class="bi bi-chevron-right nav-arrow"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Driver Section -->
+        <div class="col-lg-4">
+            <div class="section-title">Driver</div>
+            <div class="d-flex flex-column gap-2">
+                <a href="{{ url_for('driver_login') }}" class="nav-card">
+                    <div class="nav-icon" style="background:#eff6ff;">
+                        <i class="bi bi-person-badge text-primary"></i>
+                    </div>
+                    <div>
+                        <div class="nav-card-title">Driver Login</div>
+                        <div class="nav-card-sub">Sign in to your driver account</div>
+                    </div>
+                    <i class="bi bi-chevron-right nav-arrow"></i>
+                </a>
+                <a href="{{ url_for('driver_signup') }}" class="nav-card">
+                    <div class="nav-icon" style="background:#eff6ff;">
+                        <i class="bi bi-person-plus text-primary"></i>
+                    </div>
+                    <div>
+                        <div class="nav-card-title">Driver Signup</div>
+                        <div class="nav-card-sub">Register as a new driver</div>
+                    </div>
+                    <i class="bi bi-chevron-right nav-arrow"></i>
+                </a>
+                <a href="{{ url_for('driver_home') }}" class="nav-card">
+                    <div class="nav-icon" style="background:#eff6ff;">
+                        <i class="bi bi-speedometer2 text-primary"></i>
+                    </div>
+                    <div>
+                        <div class="nav-card-title">Driver Dashboard</div>
+                        <div class="nav-card-sub">View and accept ride requests</div>
+                    </div>
+                    <i class="bi bi-chevron-right nav-arrow"></i>
+                </a>
+                <a href="{{ url_for('driver_profile') }}" class="nav-card">
+                    <div class="nav-icon" style="background:#eff6ff;">
+                        <i class="bi bi-person-circle text-primary"></i>
+                    </div>
+                    <div>
+                        <div class="nav-card-title">Driver Profile</div>
+                        <div class="nav-card-sub">View your profile details</div>
+                    </div>
+                    <i class="bi bi-chevron-right nav-arrow"></i>
+                </a>
+                <a href="{{ url_for('driver_trips') }}" class="nav-card">
+                    <div class="nav-icon" style="background:#eff6ff;">
+                        <i class="bi bi-map text-primary"></i>
+                    </div>
+                    <div>
+                        <div class="nav-card-title">Completed Trips</div>
+                        <div class="nav-card-sub">View your trip history</div>
+                    </div>
+                    <i class="bi bi-chevron-right nav-arrow"></i>
+                </a>
+                <a href="{{ url_for('driver_earnings') }}" class="nav-card">
+                    <div class="nav-icon" style="background:#eff6ff;">
+                        <i class="bi bi-currency-rupee text-primary"></i>
+                    </div>
+                    <div>
+                        <div class="nav-card-title">Earnings</div>
+                        <div class="nav-card-sub">View your earnings summary</div>
+                    </div>
+                    <i class="bi bi-chevron-right nav-arrow"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Admin Section -->
+        <div class="col-lg-4">
+            <div class="section-title">Admin</div>
+            <div class="d-flex flex-column gap-2">
+                <a href="{{ url_for('admin_login') }}" class="nav-card">
+                    <div class="nav-icon" style="background:#fefce8;">
+                        <i class="bi bi-shield-lock text-warning"></i>
+                    </div>
+                    <div>
+                        <div class="nav-card-title">Admin Login</div>
+                        <div class="nav-card-sub">Sign in to admin console</div>
+                    </div>
+                    <i class="bi bi-chevron-right nav-arrow"></i>
+                </a>
+                <a href="{{ url_for('admin_dashboard') }}" class="nav-card">
+                    <div class="nav-icon" style="background:#fefce8;">
+                        <i class="bi bi-grid-1x2 text-warning"></i>
+                    </div>
+                    <div>
+                        <div class="nav-card-title">Admin Dashboard</div>
+                        <div class="nav-card-sub">Overview of all activity</div>
+                    </div>
+                    <i class="bi bi-chevron-right nav-arrow"></i>
+                </a>
+                <a href="{{ url_for('admin_drivers') }}" class="nav-card">
+                    <div class="nav-icon" style="background:#fefce8;">
+                        <i class="bi bi-person-badge text-warning"></i>
+                    </div>
+                    <div>
+                        <div class="nav-card-title">Driver Management</div>
+                        <div class="nav-card-sub">Manage all registered drivers</div>
+                    </div>
+                    <i class="bi bi-chevron-right nav-arrow"></i>
+                </a>
+                <a href="{{ url_for('admin_riders') }}" class="nav-card">
+                    <div class="nav-icon" style="background:#fefce8;">
+                        <i class="bi bi-people text-warning"></i>
+                    </div>
+                    <div>
+                        <div class="nav-card-title">Rider Management</div>
+                        <div class="nav-card-sub">Manage all registered riders</div>
+                    </div>
+                    <i class="bi bi-chevron-right nav-arrow"></i>
+                </a>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

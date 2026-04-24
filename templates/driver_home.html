@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* Pulse dots */
+        .search-dots span {
+            display: inline-block;
+            width: 8px; height: 8px;
+            margin: 0 4px;
+            background: #0d6efd;
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: pulse-dot 1s infinite ease-in-out;
+        }
+        .search-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .search-dots span:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 0.3; transform: translateY(0); }
+            50%       { opacity: 1;   transform: translateY(-4px); }
+        }
+
+        /* Live dot */
+        .live-dot {
+            display: inline-block;
+            width: 9px; height: 9px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: blink 1.4s ease-in-out infinite;
+            vertical-align: middle;
+        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+
+        /* Refresh button */
+        .btn-refresh {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 7px 16px; border-radius: 8px;
+            font-size: .82rem; font-weight: 600;
+            border: 1.5px solid #0d6efd; color: #0d6efd; background: transparent;
+            cursor: pointer; transition: all .18s;
+        }
+        .btn-refresh:hover { background: #0d6efd; color: #fff; }
+        .btn-refresh.spinning i { animation: spin .6s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Last updated */
+        #lastUpdated { font-size: .75rem; color: #9ca3af; }
+
+        /* New booking flash */
+        @keyframes flash-in {
+            from { opacity: 0; transform: translateY(-10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        #bookingRequestCard { animation: flash-in .35s ease; }
+
+        /* Profile card */
+        .driver-profile-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: #f8faff;
+            border: 1px solid #e0e7ff;
+            border-radius: 14px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+        }
+        .driver-avatar-img {
+            width: 64px; height: 64px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #0d6efd;
+            flex-shrink: 0;
+        }
+        .driver-avatar-initials {
+            width: 64px; height: 64px;
+            border-radius: 50%;
+            background: #0d6efd;
+            color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.6rem; font-weight: 700;
+            border: 3px solid #0d6efd;
+            flex-shrink: 0;
+        }
+        .driver-profile-name { font-size: 1.05rem; font-weight: 700; color: #111827; }
+        .driver-profile-meta { font-size: .78rem; color: #6b7280; margin-top: 2px; }
+
+        /* OTP input */
+        #otpInput { font-family: monospace; font-weight: bold; }
+        #otpInput:focus { border-color: #198754; box-shadow: 0 0 0 0.2rem rgba(25,135,84,.25); }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-dark bg-primary">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="{{ url_for('welcome') }}">RaidLink Technologies</a>
+        <div class="d-flex align-items-center gap-3">
+            <span class="text-white fw-semibold">
+                <i class="bi bi-person-circle me-1"></i>{{ driver_name }}
+            </span>
+            <a href="{{ url_for('driver_logout', username=driver_name) }}" class="btn btn-sm btn-outline-light">Logout</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <div class="card shadow-sm p-4">
+
+        <!-- Top bar: menu + refresh -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex align-items-center gap-3">
+                <span class="live-dot"></span>
+                <span id="lastUpdated">Checking for orders…</span>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn-refresh" id="refreshBtn" onclick="fetchBooking(true)">
+                    <i class="bi bi-arrow-clockwise"></i> Refresh
+                </button>
+                <div class="dropdown ms-1">
+                    <button class="btn btn-primary" type="button" id="driverMenuButton"
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-three-dots-vertical"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="driverMenuButton">
+                        <li><a class="dropdown-item" href="{{ url_for('driver_profile') }}">Driver Profile</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('driver_earnings') }}">Earnings</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('driver_trips') }}">Completed Trips</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Driver profile card -->
+        <div class="driver-profile-card">
+            {% if driver_photo %}
+            <img src="{{ url_for('static', filename=driver_photo) }}"
+                 alt="{{ driver_name }}" class="driver-avatar-img">
+            {% else %}
+            <div class="driver-avatar-initials">{{ driver_name[0] | upper }}</div>
+            {% endif %}
+            <div>
+                <div class="driver-profile-name">{{ driver_name }}</div>
+                {% if driver_car %}
+                <div class="driver-profile-meta"><i class="bi bi-car-front me-1"></i>{{ driver_car }}</div>
+                {% endif %}
+                {% if driver_reg %}
+                <div class="driver-profile-meta"><i class="bi bi-card-text me-1"></i>{{ driver_reg }}</div>
+                {% endif %}
+            </div>
+            <a href="{{ url_for('driver_profile') }}" class="btn btn-sm btn-outline-primary ms-auto">
+                <i class="bi bi-pencil"></i> Edit Profile
+            </a>
+        </div>
+
+        <!-- Driver status toggle -->
+        <div class="d-flex align-items-center justify-content-between py-3 px-3 rounded-3 border mb-4">
+            <div>
+                <h5 class="mb-1">Driver Status</h5>
+                <p id="statusText" class="mb-0 text-success">Online</p>
+            </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="driverStatusSwitch" checked>
+                <label class="form-check-label" for="driverStatusSwitch">Active</label>
+            </div>
+        </div>
+
+        <!-- Searching card -->
+        <div class="card border-info mb-4 p-3" id="searchingOrdersCard">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <div class="spinner-border text-info me-3" role="status">
+                        <span class="visually-hidden">Loading…</span>
+                    </div>
+                    <div>
+                        <h5 class="mb-1">Searching for orders</h5>
+                        <p class="mb-0 text-muted search-dots">Waiting for new rides
+                            <span></span><span></span><span></span>
+                        </p>
+                    </div>
+                </div>
+                <small class="text-muted" id="autoRefreshCountdown"></small>
+            </div>
+        </div>
+
+        <!-- Booking request card (rendered by JS) -->
+        <div id="bookingArea"></div>
+
+        <!-- OTP Modal -->
+        <div class="modal fade" id="otpModal" tabindex="-1" aria-labelledby="otpModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-success text-white">
+                        <h5 class="modal-title" id="otpModalLabel">Enter OTP to Start Trip</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-3">Enter the 4-digit OTP from the rider to start the trip.</p>
+                        <div class="text-center">
+                            <input type="text" id="otpInput" class="form-control form-control-lg text-center"
+                                   maxlength="4" placeholder="0000"
+                                   style="font-size:2rem;letter-spacing:.5rem;">
+                        </div>
+                        <div class="text-center mt-3">
+                            <small class="text-muted">Didn't receive OTP?
+                                <a href="#" onclick="resendOTP()">Resend</a>
+                            </small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-success" onclick="verifyOTP()">Start Trip</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <a href="{{ url_for('driver_home', username=driver_name) }}" class="btn btn-secondary">Back to Home</a>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden accept form (populated by JS) -->
+<form id="acceptTripForm" method="POST" action="{{ url_for('accept_trip') }}">
+    <input type="hidden" name="trip_id"     id="formTripId">
+    <input type="hidden" name="driver_name" value="{{ driver_name }}">
+</form>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const DRIVER_ONLINE_KEY = 'driverOnline';
+    const AUTO_REFRESH_SEC  = 5;
+    const DRIVER_USERNAME   = '{{ driver_name }}';
+
+    const statusSwitch        = document.getElementById('driverStatusSwitch');
+    const statusText          = document.getElementById('statusText');
+    const searchingOrdersCard = document.getElementById('searchingOrdersCard');
+    const bookingArea         = document.getElementById('bookingArea');
+    const lastUpdatedEl       = document.getElementById('lastUpdated');
+    const countdownEl         = document.getElementById('autoRefreshCountdown');
+    const refreshBtn          = document.getElementById('refreshBtn');
+
+    let currentBookingId  = null;
+    let countdownVal      = AUTO_REFRESH_SEC;
+    let countdownInterval = null;
+
+    // ── Check account status from DB ───────────────────────
+    function checkAccountStatus(callback) {
+        fetch(`/api/driver-status/${DRIVER_USERNAME}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.status === 'Suspended') {
+                    stopPolling();
+                    statusSwitch.checked  = false;
+                    statusSwitch.disabled = true;
+                    statusText.textContent = 'Account Suspended';
+                    statusText.className   = 'mb-0 text-danger fw-bold';
+                    searchingOrdersCard.style.display = 'none';
+                    bookingArea.innerHTML = `
+                        <div class="alert alert-danger d-flex align-items-center gap-2">
+                            <i class="bi bi-slash-circle"></i>
+                            <strong>Your account has been suspended by admin.</strong>
+                            Please contact support.
+                        </div>`;
+                } else if (callback) {
+                    callback();
+                }
+            })
+            .catch(() => { if (callback) callback(); });
+    }
+
+    // ── Status toggle ──────────────────────────────────────
+    function updateStatus() {
+        const online = statusSwitch.checked;
+        statusText.textContent = online ? 'Online' : 'Offline';
+        statusText.className   = online ? 'mb-0 text-success' : 'mb-0 text-danger';
+        searchingOrdersCard.style.display = online ? 'block' : 'none';
+        if (online) {
+            currentBookingId = null;   // reset so latest booking always renders fresh
+            bookingArea.innerHTML = '';
+            startPolling();
+        } else {
+            stopPolling();
+            bookingArea.innerHTML = '';
+        }
+        localStorage.setItem(DRIVER_ONLINE_KEY, online);
+    }
+    statusSwitch.addEventListener('change', updateStatus);
+
+    // Restore toggle state — default to Online if never set
+    const savedOnline = localStorage.getItem(DRIVER_ONLINE_KEY);
+    if (savedOnline === 'false') {
+        statusSwitch.checked = false;
+    } else {
+        statusSwitch.checked = true;
+    }
+    // Check account status first, then initialise
+    checkAccountStatus(updateStatus);
+
+    // ── Fetch latest booking via API ───────────────────────
+    function fetchBooking(manual = false) {
+        if (!statusSwitch.checked) return;
+        // Re-check account status on every fetch
+        checkAccountStatus(() => {
+            if (!statusSwitch.checked) return;
+
+        if (manual) refreshBtn.classList.add('spinning');
+
+        fetch(`/api/latest-booking?driver=${DRIVER_USERNAME}`)
+            .then(r => r.json())
+            .then(data => {
+                refreshBtn.classList.remove('spinning');
+                lastUpdatedEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
+                countdownVal = AUTO_REFRESH_SEC;
+
+                const b = data.booking;
+
+                if (b) {
+                    // New or different booking — render immediately
+                    if (b.id !== currentBookingId) {
+                        currentBookingId = b.id;
+                        renderBookingCard(b);
+                        if (!manual) notifyNewBooking();
+                    }
+                } else if (data.picked && currentBookingId !== null) {
+                    currentBookingId = null;
+                    bookingArea.innerHTML = `
+                        <div class="alert alert-warning d-flex align-items-center justify-content-between" id="pickedAlert">
+                            <div>
+                                <i class="bi bi-exclamation-circle me-2"></i>
+                                <strong>Booking picked by another driver.</strong> Searching for new orders…
+                            </div>
+                            <button type="button" class="btn-close" onclick="document.getElementById('pickedAlert').remove()"></button>
+                        </div>`;
+                } else {
+                    // No booking available — only clear card if we weren't showing one
+                    if (currentBookingId === null) {
+                        bookingArea.innerHTML = `
+                            <div class="alert alert-info d-flex align-items-center gap-2">
+                                <i class="bi bi-info-circle"></i>
+                                No pending booking requests at the moment.
+                            </div>`;
+                    }
+                }
+            })
+            .catch(() => {
+                refreshBtn.classList.remove('spinning');
+                lastUpdatedEl.textContent = 'Connection error — retrying…';
+            });
+        }); // end checkAccountStatus
+    }
+
+    // ── Render booking card ────────────────────────────────
+    function renderBookingCard(b) {
+        bookingArea.innerHTML = `
+        <div class="card border-primary mb-3 shadow-sm" id="bookingRequestCard" style="max-width:50%;margin:0;font-size:.8rem;">
+            <div class="card-header bg-primary text-white py-1 px-2 d-flex justify-content-between align-items-center">
+                <span class="fw-bold" style="font-size:.8rem;">New Booking Request</span>
+                <span class="badge bg-light text-primary" style="font-size:.7rem;">LIVE</span>
+            </div>
+            <div class="card-body py-2 px-3">
+                <div class="row g-1 mb-1">
+                    <div class="col-6">
+                        <small class="text-muted d-block">Order ID</small>
+                        <strong>#${b.id}</strong>
+                    </div>
+                    <div class="col-6 text-end">
+                        <small class="text-muted d-block">Fare</small>
+                        <strong class="text-success">${b.fare || 'N/A'}</strong>
+                    </div>
+                </div>
+                <div class="row g-1 mb-1">
+                    <div class="col-6">
+                        <small class="text-muted d-block">Rider</small>
+                        <strong><i class="bi bi-person-fill text-primary me-1"></i>${b.rider_name || 'N/A'}</strong>
+                    </div>
+                    <div class="col-6 text-end">
+                        <small class="text-muted d-block">Mobile</small>
+                        <strong><a href="tel:${b.rider_mobile}" class="text-decoration-none"><i class="bi bi-telephone-fill text-success me-1"></i>${b.rider_mobile || 'N/A'}</a></strong>
+                    </div>
+                </div>
+                <div class="mb-1">
+                    <small class="text-muted d-block">Pickup</small>
+                    <span class="badge bg-light text-dark" style="font-size:.75rem;">
+                        <i class="bi bi-geo-alt-fill text-danger"></i>
+                        ${capitalize(b.pickup_location)}
+                    </span>
+                </div>
+                <div class="mb-1">
+                    <small class="text-muted d-block">Drop</small>
+                    <span class="badge bg-light text-dark" style="font-size:.75rem;">
+                        <i class="bi bi-flag-fill text-success"></i>
+                        ${capitalize(b.drop_location)}
+                    </span>
+                </div>
+                <div class="row g-1 mb-2">
+                    <div class="col-6">
+                        <small class="text-muted d-block">Distance</small>
+                        <span>${b.distance_km} km</span>
+                    </div>
+                    <div class="col-6 text-end">
+                        <small class="text-muted d-block">Scheduled</small>
+                        <span>${b.ride_date} ${b.ride_time}</span>
+                    </div>
+                </div>
+                <div class="d-flex gap-2 justify-content-center">
+                    <button type="button" class="btn btn-outline-danger btn-sm fw-bold px-3"
+                            onclick="cancelBooking()">
+                        <i class="bi bi-x-circle me-1"></i> Cancel
+                    </button>
+                    <button type="button" class="btn btn-success btn-sm fw-bold px-3"
+                            onclick="acceptBooking()">
+                        <i class="bi bi-check-circle me-1"></i> Accept
+                    </button>
+                </div>
+            </div>
+            <div class="card-footer py-1 px-2 d-flex justify-content-between">
+                <small class="text-muted">Booking ID: #${b.id}</small>
+                <small class="text-muted">${b.status}</small>
+            </div>
+        </div>`;
+        document.getElementById('formTripId').value = b.id;
+    }
+
+    // ── Polling ────────────────────────────────────────────
+    function startPolling() {
+        // Fetch immediately on start
+        fetchBooking();
+        if (countdownInterval) clearInterval(countdownInterval);
+        countdownVal = AUTO_REFRESH_SEC;
+
+        countdownInterval = setInterval(() => {
+            countdownVal--;
+            countdownEl.textContent = `Auto-refresh in ${countdownVal}s`;
+            if (countdownVal <= 0) {
+                fetchBooking();
+                countdownVal = AUTO_REFRESH_SEC;
+            }
+        }, 1000);
+    }
+
+    function stopPolling() {
+        if (countdownInterval) clearInterval(countdownInterval);
+        countdownEl.textContent   = '';
+        lastUpdatedEl.textContent = 'Driver is offline';
+    }
+
+    // ── Booking actions ────────────────────────────────────
+    function acceptBooking() {
+        stopPolling();
+        document.getElementById('acceptTripForm').submit();
+    }
+
+    function cancelBooking() {
+        if (confirm('Are you sure you want to cancel this booking request?')) {
+            const tripId = document.getElementById('formTripId').value;
+            fetch('/api/skip-booking', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ trip_id: tripId, driver_name: DRIVER_USERNAME })
+            }).finally(() => {
+                currentBookingId = null;
+                fetchBooking();
+            });
+        }
+    }
+
+    function verifyOTP() {
+        const otp = document.getElementById('otpInput').value.trim();
+        if (otp.length !== 4 || !/^\d{4}$/.test(otp)) {
+            alert('Please enter a valid 4-digit OTP.');
+            return;
+        }
+        const tripId = document.getElementById('formTripId').value;
+        // Verify OTP against database
+        fetch('/api/verify-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ trip_id: tripId, otp: otp })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.valid) {
+                bootstrap.Modal.getInstance(document.getElementById('otpModal')).hide();
+                stopPolling();
+                document.getElementById('acceptTripForm').submit();
+            } else {
+                document.getElementById('otpInput').classList.add('is-invalid');
+                document.getElementById('otpInput').value = '';
+                document.getElementById('otpInput').placeholder = 'Wrong OTP, try again';
+                setTimeout(() => {
+                    document.getElementById('otpInput').classList.remove('is-invalid');
+                    document.getElementById('otpInput').placeholder = '0000';
+                }, 2000);
+            }
+        })
+        .catch(() => alert('Verification failed. Please try again.'));
+    }
+
+    function resendOTP() {
+        alert("OTP resent to rider's phone.");
+    }
+
+    function capitalize(str) {
+        return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
+    }
+
+    function notifyNewBooking() {
+        let original = document.title;
+        let flashing = setInterval(() => {
+            document.title = document.title === '*** NEW ORDER ***' ? original : '*** NEW ORDER ***';
+        }, 600);
+        setTimeout(() => { clearInterval(flashing); document.title = original; }, 5000);
+    }
+</script>
+</body>
+</html>

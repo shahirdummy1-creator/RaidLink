@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+static/uploads/
+bookings.json
+drivers.json
+riders.json
+show_riders.py
+setup_db.py
+python notes/

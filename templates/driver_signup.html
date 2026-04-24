@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Signup</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar navbar-dark bg-primary">
+    <div class="container justify-content-center">
+        <a class="navbar-brand fw-bold text-center" href="{{ url_for('welcome') }}">RaidLink Technologies</a>
+    </div>
+</nav>
+
+<section class="hero-section py-5">
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-12">
+                <div class="card shadow-lg p-4 rounded-4 driver-signup-card" style="width:60vw;max-width:60vw;margin:0 auto;">
+                    <h3 class="text-center mb-4 fw-bold">Driver Signup</h3>
+                    {% if error %}
+                    <div class="alert alert-danger py-2">{{ error }}</div>
+                    {% endif %}
+                    <form method="POST" action="{{ url_for('driver_signup') }}" enctype="multipart/form-data">
+
+                        <!-- Profile Photo Upload - Prominent at top -->
+                        <div class="text-center mb-4">
+                            <div style="position:relative;display:inline-block;">
+                                <img id="photoPreview"
+                                     src="https://ui-avatars.com/api/?name=Driver&background=0d6efd&color=fff&size=120&rounded=true"
+                                     alt="Profile Preview"
+                                     style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:4px solid #0d6efd;cursor:pointer;"
+                                     onclick="document.getElementById('profile_photo').click()">
+                                <label for="profile_photo"
+                                       style="position:absolute;bottom:4px;right:4px;width:32px;height:32px;background:#0d6efd;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid #fff;">
+                                    <i class="bi bi-camera-fill text-white" style="font-size:.85rem;"></i>
+                                </label>
+                                <input type="file" class="d-none" id="profile_photo" name="profile_photo"
+                                       accept="image/*" onchange="previewPhoto(this)">
+                            </div>
+                            <div class="mt-2 text-muted" style="font-size:.8rem;">Click photo to upload profile picture</div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3 text-start">
+                                <label for="username" class="form-label">Username</label>
+                                <input type="text" class="form-control" id="username" name="username" placeholder="Enter username" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                        <div class="row">
+                            <div class="col-md-6 mb-3 text-start">
+                                <label for="mobile" class="form-label">Mobile Number</label>
+                                <input type="tel" class="form-control" id="mobile" name="mobile" placeholder="Enter mobile number" required>
+                            </div>
+                            <div class="col-md-6 mb-3 text-start">
+                                <label for="email" class="form-label">Email ID</label>
+                                <input type="email" class="form-control" id="email" name="email" placeholder="Enter email" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3 text-start">
+                                <label for="password" class="form-label">Create Password</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="password" name="password" placeholder="Create password" minlength="8" required>
+                                    <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('password', this)">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3 text-start">
+                                <label for="car_make" class="form-label">Car Make</label>
+                                <input type="text" class="form-control" id="car_make" name="car_make" placeholder="e.g. Toyota" required>
+                            </div>
+                            <div class="col-md-6 mb-3 text-start">
+                                <label for="car_model" class="form-label">Car Model</label>
+                                <input type="text" class="form-control" id="car_model" name="car_model" placeholder="e.g. Innova" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3 text-start">
+                                <label for="reg_number" class="form-label">Registration Number</label>
+                                <input type="text" class="form-control" id="reg_number" name="reg_number" placeholder="Enter registration number" required>
+                            </div>
+                            <div class="col-md-6 mb-3 text-start">
+                                <label for="aadhaar_number" class="form-label">Aadhaar Number</label>
+                                <input type="text" class="form-control" id="aadhaar_number" name="aadhaar_number" placeholder="Enter 12-digit Aadhaar" pattern="\d{12}" maxlength="12" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3 text-start">
+                                <label for="licence_img" class="form-label">Licence Image</label>
+                                <input type="file" class="form-control" id="licence_img" name="licence_img" accept="image/*" required>
+                            </div>
+                            <div class="col-md-4 mb-3 text-start">
+                                <label for="rc_img" class="form-label">RC Image</label>
+                                <input type="file" class="form-control" id="rc_img" name="rc_img" accept="image/*" required>
+                            </div>
+                            <div class="col-md-4 mb-3 text-start">
+                                <label for="aadhaar_img" class="form-label">Aadhaar Image</label>
+                                <input type="file" class="form-control" id="aadhaar_img" name="aadhaar_img" accept="image/*" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3 text-start">
+                                <label for="permit_img" class="form-label">Permit Image</label>
+                                <input type="file" class="form-control" id="permit_img" name="permit_img" accept="image/*" required>
+                            </div>
+                            <div class="col-md-6 mb-3 text-start">
+                                <label for="pollution_img" class="form-label">Pollution Certificate Image</label>
+                                <input type="file" class="form-control" id="pollution_img" name="pollution_img" accept="image/*" required>
+                            </div>
+                        </div>
+                        <hr class="my-3">
+                        <h6 class="fw-bold mb-3 text-start text-muted">Document Validity Dates</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3 text-start">
+                                <label for="licence_validity" class="form-label">Licence Validity</label>
+                                <input type="date" class="form-control" id="licence_validity" name="licence_validity" required>
+                            </div>
+                            <div class="col-md-6 mb-3 text-start">
+                                <label for="fitness_validity" class="form-label">Fitness Validity</label>
+                                <input type="date" class="form-control" id="fitness_validity" name="fitness_validity" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3 text-start">
+                                <label for="pollution_validity" class="form-label">Pollution Validity</label>
+                                <input type="date" class="form-control" id="pollution_validity" name="pollution_validity" required>
+                            </div>
+                            <div class="col-md-6 mb-3 text-start">
+                                <label for="permit_validity" class="form-label">Permit Validity</label>
+                                <input type="date" class="form-control" id="permit_validity" name="permit_validity" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 fw-bold py-2">Create Account</button>
+                    </form>
+                    <div class="text-center mt-4">
+                        <p class="mb-1 text-muted">Already registered?</p>
+                        <a href="{{ url_for('driver_login') }}" class="btn btn-outline-primary">Driver Login</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function togglePassword(id, btn) {
+    const input = document.getElementById(id);
+    const icon  = btn.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'bi bi-eye-slash';
+    } else {
+        input.type = 'password';
+        icon.className = 'bi bi-eye';
+    }
+}
+
+function previewPhoto(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('photoPreview').src = e.target.result;
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+</script>
+</body>
+</html>
