@@ -108,8 +108,8 @@
         const dist = parseFloat(document.getElementById('distance').value);
         const rate = parseFloat(document.getElementById('price_per_km').value);
         if (!isNaN(dist) && !isNaN(rate) && dist > 0 && rate > 0) {
-            const calculated = dist * rate;
-            document.getElementById('fare').value = '₹' + (calculated < 200 ? 200 : calculated).toFixed(2);
+            const fareVal = Math.max(dist * rate, 200);
+            document.getElementById('fare').value = fareVal.toFixed(2);
         } else {
             document.getElementById('fare').value = '';
         }

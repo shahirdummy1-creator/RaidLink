@@ -197,10 +197,9 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('distance').addEventListener('input', function () {
         const d = parseFloat(this.value);
         if (!isNaN(d) && d > 0) {
-            const calculated = 25 * d;
-            const fare = '&#8377;' + (calculated < 200 ? 200 : calculated).toFixed(2);
-            document.getElementById('fare').value = fare;
-            document.getElementById('fare-display').innerHTML = fare;
+            const fareVal = Math.max(25 * d, 200);
+            document.getElementById('fare').value = fareVal.toFixed(2);
+            document.getElementById('fare-display').textContent = '\u20b9' + fareVal.toFixed(2);
         } else {
             document.getElementById('fare').value = '';
             document.getElementById('fare-display').textContent = '—';
@@ -221,9 +220,9 @@ function setDistanceFare(km) {
     km = parseFloat(km).toFixed(1);
     document.getElementById('distance').value = km;
     const calculated = 25 * km;
-    const fare = '&#8377;' + (calculated < 200 ? 200 : calculated).toFixed(2);
-    document.getElementById('fare').value = fare;
-    document.getElementById('fare-display').innerHTML = fare;
+    const fareVal = calculated < 200 ? 200 : calculated;
+    document.getElementById('fare').value = fareVal.toFixed(2);
+    document.getElementById('fare-display').textContent = '\u20b9' + fareVal.toFixed(2);
     document.getElementById('map-distance-label').textContent = km + ' km (road)';
 }
 
