@@ -207,6 +207,7 @@ def driver_signup():
         password           = request.form.get('password')
         car_make           = request.form.get('car_make')
         car_model          = request.form.get('car_model')
+        car_color          = request.form.get('car_color') or None
         reg_number         = request.form.get('reg_number')
         aadhaar_number     = request.form.get('aadhaar_number')
         licence_validity   = request.form.get('licence_validity') or None
@@ -234,13 +235,13 @@ def driver_signup():
                 try:
                     cur.execute(
                         """INSERT INTO Driver_Details
-                           (username, mobile, email, password_hash, car_make, car_model,
+                           (username, mobile, email, password_hash, car_make, car_model, car_color,
                             reg_number, aadhaar_number, licence_validity, fitness_validity,
                             pollution_validity, permit_validity,
                             licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo)
-                           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                         (username, mobile, email, hash_password(password),
-                         car_make, car_model, reg_number, aadhaar_number,
+                         car_make, car_model, car_color, reg_number, aadhaar_number,
                          licence_validity, fitness_validity, pollution_validity, permit_validity,
                          licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo)
                     )
