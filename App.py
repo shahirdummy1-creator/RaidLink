@@ -655,9 +655,15 @@ def admin_login():
     error = None
     if request.method == 'POST':
         if request.form.get('user_id') == 'shahirsd' and request.form.get('password') == 'k7M#q9x2L':
+            session['admin'] = True
             return redirect(url_for('admin_dashboard'))
         error = 'Invalid Admin ID or password.'
     return render_template('admin_login.html', error=error)
+
+@app.route('/admin-logout')
+def admin_logout():
+    session.pop('admin', None)
+    return redirect(url_for('admin_login'))
 
 
 def _load_admin_data():
