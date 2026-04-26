@@ -609,7 +609,8 @@ def rider_logout(username):
 def book(username):
     if not get_rider_id(username):
         return redirect(url_for('rider_login'))
-    return render_template('booking.html', username=username)
+    mappls_key = os.environ.get('MAPPLS_KEY', '')
+    return render_template('booking.html', username=username, mappls_key=mappls_key)
 
 @app.route('/outstation/<username>')
 def outstation(username):
