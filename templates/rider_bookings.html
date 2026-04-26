@@ -166,16 +166,24 @@
                         </div>
                         <div class="col-md-2 text-center">
                             {% if b.accepted_by %}
-                            <div class="p-2 rounded-3 bg-success bg-opacity-10 border border-success">
-                                <small class="text-muted d-block">Driver Assigned</small>
-                                <strong class="text-success d-block"><i class="bi bi-person-fill me-1"></i>{{ b.accepted_by }}</strong>
+                            <div class="p-2 rounded-3 bg-success bg-opacity-10 border border-success text-start">
+                                <div class="fw-bold text-success mb-1"><i class="bi bi-person-fill me-1"></i>{{ b.accepted_by }}</div>
                                 {% if b.driver_mobile %}
-                                <a href="tel:{{ b.driver_mobile }}" class="text-decoration-none">
-                                    <small><i class="bi bi-telephone-fill text-success me-1"></i>{{ b.driver_mobile }}</small>
-                                </a>
+                                <div class="small"><i class="bi bi-telephone-fill text-success me-1"></i>
+                                    <a href="tel:{{ b.driver_mobile }}" class="text-decoration-none text-dark">{{ b.driver_mobile }}</a>
+                                </div>
+                                {% endif %}
+                                {% if b.driver_car_make %}
+                                <div class="small"><i class="bi bi-car-front text-primary me-1"></i>{{ b.driver_car_make }} {{ b.driver_car_model }}</div>
+                                {% endif %}
+                                {% if b.driver_reg %}
+                                <div class="small"><i class="bi bi-card-text text-secondary me-1"></i>{{ b.driver_reg }}</div>
+                                {% endif %}
+                                {% if b.driver_car_color %}
+                                <div class="small"><i class="bi bi-palette text-warning me-1"></i>{{ b.driver_car_color }}</div>
                                 {% endif %}
                                 {% if b.otp %}
-                                <div class="mt-2 pt-2 border-top">
+                                <div class="mt-2 pt-2 border-top text-center">
                                     <div class="otp-label">Trip OTP</div>
                                     <div class="otp-digits" style="font-size:1.2rem;letter-spacing:.2rem;">{{ b.otp }}</div>
                                 </div>

@@ -67,6 +67,7 @@ def init_db():
             ('permit_img',         'VARCHAR(255) DEFAULT NULL'),
             ('pollution_img',      'VARCHAR(255) DEFAULT NULL'),
             ('profile_photo',      'VARCHAR(255) DEFAULT NULL'),
+            ('car_color',          'VARCHAR(50) DEFAULT NULL'),
         ]:
             try:
                 cursor.execute(f"ALTER TABLE Driver_Details ADD COLUMN {col} {definition}")

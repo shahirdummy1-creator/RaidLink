@@ -630,7 +630,9 @@ def rider_bookings(username):
     if conn:
         cur = conn.cursor()
         cur.execute("""
-            SELECT t.*, d.mobile AS driver_mobile
+            SELECT t.*, d.mobile AS driver_mobile, d.car_make AS driver_car_make,
+                   d.car_model AS driver_car_model, d.reg_number AS driver_reg,
+                   d.car_color AS driver_car_color
             FROM Trip_Details t
             LEFT JOIN Driver_Details d ON d.username = t.accepted_by
             WHERE t.rider_id=%s ORDER BY t.id DESC
