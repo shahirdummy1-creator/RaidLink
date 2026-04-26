@@ -19,8 +19,8 @@ def get_db():
         return None
 
 def init_db():
+    conn = None
     try:
-        # Connect with database directly (Railway pre-creates it)
         conn = mysql.connector.connect(**DB_CONFIG)
         cursor = conn.cursor()
 
@@ -56,6 +56,11 @@ def init_db():
             )
         """)
 
+        ALLOWED_COLS = {
+            'licence_validity', 'fitness_validity', 'pollution_validity', 'permit_validity',
+            'licence_img', 'rc_img', 'aadhaar_img', 'permit_img', 'pollution_img',
+            'profile_photo', 'car_color'
+        }
         for col, definition in [
             ('licence_validity',   'DATE DEFAULT NULL'),
             ('fitness_validity',   'DATE DEFAULT NULL'),
@@ -69,8 +74,10 @@ def init_db():
             ('profile_photo',      'VARCHAR(255) DEFAULT NULL'),
             ('car_color',          'VARCHAR(50) DEFAULT NULL'),
         ]:
+            if col not in ALLOWED_COLS:
+                continue
             try:
-                cursor.execute(f"ALTER TABLE Driver_Details ADD COLUMN {col} {definition}")
+                cursor.execute(f"ALTER TABLE Driver_Details ADD COLUMN `{col}` {definition}")
                 conn.commit()
             except Exception:
                 pass
@@ -92,13 +99,16 @@ def init_db():
             )
         """)
 
+        ALLOWED_TRIP_COLS = {'rider_id', 'accepted_by', 'otp'}
         for col, definition in [
             ('rider_id',    'INT DEFAULT NULL AFTER id'),
             ('accepted_by', 'VARCHAR(100) DEFAULT NULL AFTER ride_time'),
             ('otp',         'CHAR(4) DEFAULT NULL AFTER accepted_by'),
         ]:
+            if col not in ALLOWED_TRIP_COLS:
+                continue
             try:
-                cursor.execute(f"ALTER TABLE Trip_Details ADD COLUMN {col} {definition}")
+                cursor.execute(f"ALTER TABLE Trip_Details ADD COLUMN `{col}` {definition}")
                 conn.commit()
             except Exception:
                 pass
@@ -118,3 +128,9 @@ def init_db():
         print("[DB] Database initialised successfully.")
     except Error as e:
         print(f"[DB INIT ERROR] {e}")
+    finally:
+        try:
+            if conn and conn.is_connected():
+                conn.close()
+        except Exception:
+            pass

@@ -8,7 +8,7 @@ import random
 from datetime import timedelta
 
 app = Flask(__name__)
-app.secret_key = 'raidlink_secret_2024'
+app.secret_key = os.environ.get('SECRET_KEY', 'raidlink_secret_2024')
 app.permanent_session_lifetime = timedelta(days=7)
 
 UPLOAD_FOLDER = os.path.join('static', 'uploads', 'drivers')
@@ -67,10 +67,7 @@ def get_rider_id(username):
     return None
 
 def get_driver(username):
-    """Return driver dict for username from session store or DB."""
-    drivers = session.setdefault('drivers', {})
-    if username in drivers:
-        return drivers[username]
+    """Always verify from DB — never serve suspended driver from cache."""
     conn = get_db()
     if conn:
         cur = conn.cursor()
@@ -82,9 +79,11 @@ def get_driver(username):
         cur.close(); conn.close()
         if row:
             d = {'id': row[0], 'username': row[1], 'car': f"{row[2]} {row[3]}", 'reg': row[4], 'photo': row[5] or ''}
-            drivers[username] = d
+            session.setdefault('drivers', {})[username] = d
             session.modified = True
             return d
+    session.get('drivers', {}).pop(username, None)
+    session.modified = True
     return None
 
 
@@ -624,21 +623,28 @@ def submit():
     rider_id  = get_rider_id(username)
     if not rider_id:
         return redirect(url_for('rider_login'))
-    pickup    = request.form['pickup']
-    drop      = request.form['drop']
-    distance  = request.form['distance']
-    fare_str  = request.form['fare']
-    ride_date = request.form['ride_date']
-    ride_time = request.form['ride_time']
+    import re
+    pickup    = re.sub(r'<[^>]*>', '', request.form.get('pickup', '')).strip()
+    drop      = re.sub(r'<[^>]*>', '', request.form.get('drop', '')).strip()
+    distance  = request.form.get('distance', '')
+    fare_str  = request.form.get('fare', '')
+    ride_date = request.form.get('ride_date', '')
+    ride_time = request.form.get('ride_time', '')
     fare_val  = parse_fare(fare_str)
     otp       = str(random.randint(1000, 9999))
+    try:
+        dist_val = float(distance)
+        if dist_val != dist_val or dist_val <= 0:
+            raise ValueError
+    except (ValueError, TypeError):
+        return redirect(url_for('book', username=username))
     conn = get_db()
     order_id = None
     if conn:
         cur = conn.cursor()
         cur.execute(
             "INSERT INTO Trip_Details (rider_id, pickup_location, drop_location, distance_km, fare, ride_date, ride_time, otp) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
-            (rider_id, pickup, drop, float(distance), fare_val, ride_date, ride_time, otp)
+            (rider_id, pickup, drop, dist_val, fare_val, ride_date, ride_time, otp)
         )
         conn.commit()
         order_id = cur.lastrowid
@@ -656,7 +662,7 @@ def clear_bookings():
         conn = get_db()
         if conn:
             cur = conn.cursor()
-            cur.execute("DELETE FROM Trip_Details WHERE rider_id=%s", (rider_id,))
+            cur.execute("DELETE FROM Trip_Details WHERE rider_id=%s AND status='Cancelled'", (rider_id,))
             conn.commit()
             cur.close(); conn.close()
     return redirect(url_for('rider_bookings', username=username))
@@ -727,7 +733,9 @@ def rider_bookings(username):
 def admin_login():
     error = None
     if request.method == 'POST':
-        if request.form.get('user_id') == 'shahirsd' and request.form.get('password') == 'k7M#q9x2L':
+        admin_user = os.environ.get('ADMIN_USER', 'shahirsd')
+        admin_pass = os.environ.get('ADMIN_PASS', 'k7M#q9x2L')
+        if request.form.get('user_id') == admin_user and request.form.get('password') == admin_pass:
             session['admin'] = True
             return redirect(url_for('admin_dashboard'))
         error = 'Invalid Admin ID or password.'
@@ -781,7 +789,24 @@ def _load_admin_data():
     return drivers, riders, trips
 
 
+def admin_required(f):
+    from functools import wraps
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get('admin'):
+            return redirect(url_for('admin_login'))
+        return f(*args, **kwargs)
+    return decorated
+
+def safe_redirect(next_url, fallback):
+    from urllib.parse import urlparse
+    parsed = urlparse(next_url or '')
+    if next_url and not parsed.scheme and not parsed.netloc:
+        return redirect(next_url)
+    return redirect(fallback)
+
 @app.route('/admin-dashboard')
+@admin_required
 def admin_dashboard():
     drivers, riders, trips = _load_admin_data()
     completed = [t for t in trips if t.get('status') == 'Completed']
@@ -805,6 +830,7 @@ def admin_dashboard():
 
 
 @app.route('/admin-drivers')
+@admin_required
 def admin_drivers():
     drivers, _, trips = _load_admin_data()
     completed = [t for t in trips if t.get('status') == 'Completed']
@@ -820,6 +846,7 @@ def admin_drivers():
 
 
 @app.route('/admin-riders')
+@admin_required
 def admin_riders():
     _, riders, trips = _load_admin_data()
     completed = [t for t in trips if t.get('status') == 'Completed']
@@ -834,6 +861,7 @@ def admin_riders():
 
 
 @app.route('/admin-toggle-driver', methods=['POST'])
+@admin_required
 def admin_toggle_driver():
     driver_id = int(request.form.get('driver_id'))
     action    = request.form.get('action')
@@ -844,10 +872,11 @@ def admin_toggle_driver():
         cur.execute("UPDATE Driver_Details SET account_status=%s WHERE id=%s", (new_status, driver_id))
         conn.commit()
         cur.close(); conn.close()
-    return redirect(request.form.get('next', url_for('admin_dashboard')))
+    return safe_redirect(request.form.get('next'), url_for('admin_dashboard'))
 
 
 @app.route('/admin-toggle-rider', methods=['POST'])
+@admin_required
 def admin_toggle_rider():
     rider_id  = int(request.form.get('rider_id'))
     action    = request.form.get('action')
@@ -858,8 +887,8 @@ def admin_toggle_rider():
         cur.execute("UPDATE Rider_Details SET account_status=%s WHERE id=%s", (new_status, rider_id))
         conn.commit()
         cur.close(); conn.close()
-    return redirect(request.form.get('next', url_for('admin_dashboard')))
+    return safe_redirect(request.form.get('next'), url_for('admin_dashboard'))
 
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    app.run(debug=os.environ.get('FLASK_DEBUG', 'false').lower() == 'true')
