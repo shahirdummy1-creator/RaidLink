@@ -197,7 +197,8 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('distance').addEventListener('input', function () {
         const d = parseFloat(this.value);
         if (!isNaN(d) && d > 0) {
-            const fare = '&#8377;' + (25 * d).toFixed(2);
+            const calculated = 25 * d;
+            const fare = '&#8377;' + (calculated < 200 ? 200 : calculated).toFixed(2);
             document.getElementById('fare').value = fare;
             document.getElementById('fare-display').innerHTML = fare;
         } else {
@@ -219,7 +220,8 @@ function haversineKm(lat1, lon1, lat2, lon2) {
 function setDistanceFare(km) {
     km = parseFloat(km).toFixed(1);
     document.getElementById('distance').value = km;
-    const fare = '&#8377;' + (25 * km).toFixed(2);
+    const calculated = 25 * km;
+    const fare = '&#8377;' + (calculated < 200 ? 200 : calculated).toFixed(2);
     document.getElementById('fare').value = fare;
     document.getElementById('fare-display').innerHTML = fare;
     document.getElementById('map-distance-label').textContent = km + ' km (road)';
