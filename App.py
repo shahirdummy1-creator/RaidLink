@@ -29,10 +29,7 @@ def save_file(file, prefix):
     return None
 
 # ── Initialise DB on startup ──────────────────────────────────
-try:
-    init_db()
-except Exception as e:
-    print(f"[STARTUP] DB init skipped: {e}")
+init_db()
 
 
 # ── Helpers ──────────────────────────────────────────────────
@@ -96,15 +93,13 @@ def get_driver(username):
 # ════════════════════════════════════════════════════════════
 
 @app.route('/')
-def home():
+@app.route('/welcome')
+@app.route('/index')
+def welcome():
     return render_template('welcome.html')
 
-@app.route('/index')
-def index():
-    return render_template('index.html')
-
-@app.route('/welcome')
-def welcome():
+@app.route('/home')
+def home():
     return render_template('welcome.html')
 
 
@@ -442,15 +437,93 @@ def complete_trip():
 
 @app.route('/driver-profile')
 def driver_profile():
-    return render_template('driver_profile.html')
+    username = request.args.get('username', '')
+    if not username:
+        return redirect(url_for('driver_login'))
+    conn = get_db()
+    driver = None
+    completed_trips = 0
+    if conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM Driver_Details WHERE username=%s", (username,))
+        row = cur.fetchone()
+        if row:
+            driver = row_to_dict(cur, row)
+        cur.execute("SELECT COUNT(*) FROM Trip_Details WHERE accepted_by=%s AND status='Completed'", (username,))
+        completed_trips = cur.fetchone()[0]
+        cur.close(); conn.close()
+    if not driver:
+        return redirect(url_for('driver_login'))
+    return render_template('driver_profile.html', driver=driver, completed_trips=completed_trips)
 
 @app.route('/driver-earnings')
 def driver_earnings():
-    return render_template('driver_earnings.html')
+    username = request.args.get('username', '')
+    driver = get_driver(username)
+    if not driver:
+        return redirect(url_for('driver_login'))
+    conn = get_db()
+    trips = []
+    daily = weekly = monthly = total = 0.0
+    if conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT t.*, r.username AS rider_name,
+                   CURDATE() AS today,
+                   DATEDIFF(CURDATE(), DATE(t.ride_date)) AS days_ago
+            FROM Trip_Details t
+            LEFT JOIN Rider_Details r ON r.id = t.rider_id
+            WHERE t.status='Completed' AND t.accepted_by=%s
+            ORDER BY t.id DESC
+        """, (username,))
+        for row in cur.fetchall():
+            t = row_to_dict(cur, row)
+            fare_val = parse_fare(str(t['fare']))
+            t['fare_val'] = fare_val
+            t['fare']      = f"\u20b9{t['fare']}"
+            t['ride_date'] = str(t['ride_date'])
+            t['ride_time'] = str(t['ride_time'])
+            days_ago = t.get('days_ago', 999)
+            if days_ago == 0:  daily   += fare_val
+            if days_ago <= 6:  weekly  += fare_val
+            if days_ago <= 29: monthly += fare_val
+            total += fare_val
+            trips.append(t)
+        cur.close(); conn.close()
+    return render_template('driver_earnings.html',
+        driver_name     = username,
+        trips           = trips,
+        total_earnings  = f"\u20b9{total:,.2f}",
+        daily_earnings  = f"\u20b9{daily:,.2f}",
+        weekly_earnings = f"\u20b9{weekly:,.2f}",
+        monthly_earnings= f"\u20b9{monthly:,.2f}"
+    )
 
 @app.route('/driver-trips')
 def driver_trips():
-    return render_template('driver_trips.html')
+    username = request.args.get('username', '')
+    driver = get_driver(username)
+    if not driver:
+        return redirect(url_for('driver_login'))
+    conn = get_db()
+    trips = []
+    if conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT t.*, r.username AS rider_name
+            FROM Trip_Details t
+            LEFT JOIN Rider_Details r ON r.id = t.rider_id
+            WHERE t.status='Completed' AND t.accepted_by=%s
+            ORDER BY t.id DESC
+        """, (username,))
+        for row in cur.fetchall():
+            t = row_to_dict(cur, row)
+            t['fare'] = f"\u20b9{t['fare']}"
+            t['ride_date'] = str(t['ride_date'])
+            t['ride_time'] = str(t['ride_time'])
+            trips.append(t)
+        cur.close(); conn.close()
+    return render_template('driver_trips.html', driver_name=username, trips=trips)
 
 
 # ── Booking ──────────────────────────────────────────────────
