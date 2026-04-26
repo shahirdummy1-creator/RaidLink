@@ -3,14 +3,14 @@ from mysql.connector import Error
 import os
 
 DB_CONFIG = {
-    'host':     os.environ.get('DB_HOST', '127.0.0.1'),
-    'user':     os.environ.get('DB_USER', 'root'),
-    'password': os.environ.get('DB_PASSWORD', 'sqlbook123'),
-    'database': os.environ.get('DB_NAME', 'raidlink_db')
+    'host':     os.environ.get('MYSQLHOST',     os.environ.get('DB_HOST',     '127.0.0.1')),
+    'port': int(os.environ.get('MYSQLPORT',     os.environ.get('DB_PORT',     '3306'))),
+    'user':     os.environ.get('MYSQLUSER',     os.environ.get('DB_USER',     'root')),
+    'password': os.environ.get('MYSQLPASSWORD', os.environ.get('DB_PASSWORD', 'sqlbook123')),
+    'database': os.environ.get('MYSQLDATABASE', os.environ.get('DB_NAME',     'raidlink_db'))
 }
 
 def get_db():
-    """Return a new MySQL connection."""
     try:
         conn = mysql.connector.connect(**DB_CONFIG)
         return conn
@@ -19,27 +19,16 @@ def get_db():
         return None
 
 def init_db():
-    """Create database and tables if they don't exist."""
     try:
-        conn = mysql.connector.connect(
-            host=DB_CONFIG['host'],
-            user=DB_CONFIG['user'],
-            password=DB_CONFIG['password']
-        )
+        # Connect with database directly (Railway pre-creates it)
+        conn = mysql.connector.connect(**DB_CONFIG)
         cursor = conn.cursor()
-
-        db_name = DB_CONFIG['database']
-        cursor.execute(
-            f"CREATE DATABASE IF NOT EXISTS `{db_name}` "
-            "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
-        )
-        cursor.execute(f"USE `{db_name}`")
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS Rider_Details (
                 id             INT          AUTO_INCREMENT PRIMARY KEY,
                 username       VARCHAR(100) NOT NULL,
-                mobile         BIGINT  NOT NULL,
+                mobile         BIGINT       NOT NULL,
                 email          VARCHAR(150) NOT NULL UNIQUE,
                 password_hash  VARCHAR(255) NOT NULL,
                 account_status ENUM('Active','Suspended') NOT NULL DEFAULT 'Active',
@@ -63,11 +52,10 @@ def init_db():
                 pollution_validity DATE         DEFAULT NULL,
                 permit_validity    DATE         DEFAULT NULL,
                 account_status     ENUM('Active','Suspended') NOT NULL DEFAULT 'Active',
-                registered_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                registered_at      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
         """)
 
-        # Add validity columns to existing tables if missing
         for col, definition in [
             ('licence_validity',   'DATE DEFAULT NULL'),
             ('fitness_validity',   'DATE DEFAULT NULL'),
@@ -89,6 +77,7 @@ def init_db():
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS Trip_Details (
                 id              INT           AUTO_INCREMENT PRIMARY KEY,
+                rider_id        INT           DEFAULT NULL,
                 pickup_location VARCHAR(255)  NOT NULL,
                 drop_location   VARCHAR(255)  NOT NULL,
                 distance_km     DECIMAL(8,2)  NOT NULL,
@@ -96,27 +85,22 @@ def init_db():
                 ride_date       DATE          NOT NULL,
                 ride_time       TIME          NOT NULL,
                 accepted_by     VARCHAR(100)  DEFAULT NULL,
+                otp             CHAR(4)       DEFAULT NULL,
                 status          ENUM('Confirmed','Completed','Cancelled') NOT NULL DEFAULT 'Confirmed',
-                created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+                created_at      DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
         """)
 
-        # Add columns if they don't exist (for existing tables)
-        try:
-            cursor.execute("ALTER TABLE Trip_Details ADD COLUMN accepted_by VARCHAR(100) DEFAULT NULL AFTER ride_time")
-            conn.commit()
-        except Exception:
-            pass
-        try:
-            cursor.execute("ALTER TABLE Trip_Details ADD COLUMN rider_id INT DEFAULT NULL AFTER id")
-            conn.commit()
-        except Exception:
-            pass
-        try:
-            cursor.execute("ALTER TABLE Trip_Details ADD COLUMN otp CHAR(4) DEFAULT NULL AFTER accepted_by")
-            conn.commit()
-        except Exception:
-            pass  # column already exists
+        for col, definition in [
+            ('rider_id',    'INT DEFAULT NULL AFTER id'),
+            ('accepted_by', 'VARCHAR(100) DEFAULT NULL AFTER ride_time'),
+            ('otp',         'CHAR(4) DEFAULT NULL AFTER accepted_by'),
+        ]:
+            try:
+                cursor.execute(f"ALTER TABLE Trip_Details ADD COLUMN {col} {definition}")
+                conn.commit()
+            except Exception:
+                pass
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS Driver_Skipped_Trips (
@@ -130,6 +114,6 @@ def init_db():
         conn.commit()
         cursor.close()
         conn.close()
-        print("[DB] RaidLink_DB initialised successfully.")
+        print("[DB] Database initialised successfully.")
     except Error as e:
         print(f"[DB INIT ERROR] {e}")
