@@ -199,59 +199,103 @@ def driver_login():
 
 @app.route('/driver-signup', methods=['GET', 'POST'])
 def driver_signup():
+    return redirect(url_for('driver_signup_step1'))
+
+@app.route('/driver-signup/step1', methods=['GET', 'POST'])
+def driver_signup_step1():
+    error = None
+    form  = session.get('signup_step1', {})
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        mobile   = request.form.get('mobile', '').strip()
+        email    = request.form.get('email', '').strip()
+        password = request.form.get('password', '')
+        conn = get_db()
+        if conn:
+            cur = conn.cursor()
+            cur.execute("SELECT id FROM Driver_Details WHERE username=%s", (username,))
+            if cur.fetchone():
+                error = 'Username already taken. Please choose another.'
+                cur.close(); conn.close()
+            else:
+                cur.close(); conn.close()
+                profile_photo = save_file(request.files.get('profile_photo'), f"{secure_filename(username)}_profile")
+                session['signup_step1'] = {
+                    'username': username, 'mobile': mobile,
+                    'email': email, 'password': hash_password(password),
+                    'profile_photo': profile_photo
+                }
+                session.modified = True
+                return redirect(url_for('driver_signup_step2'))
+        else:
+            error = 'Database connection failed.'
+    return render_template('driver_signup_step1.html', error=error, form=form)
+
+@app.route('/driver-signup/step2', methods=['GET', 'POST'])
+def driver_signup_step2():
+    if 'signup_step1' not in session:
+        return redirect(url_for('driver_signup_step1'))
+    error = None
+    form  = session.get('signup_step2', {})
+    if request.method == 'POST':
+        session['signup_step2'] = {
+            'car_make':      request.form.get('car_make', '').strip(),
+            'car_model':     request.form.get('car_model', '').strip(),
+            'car_color':     request.form.get('car_color', '').strip() or None,
+            'reg_number':    request.form.get('reg_number', '').strip(),
+            'aadhaar_number':request.form.get('aadhaar_number', '').strip()
+        }
+        session.modified = True
+        return redirect(url_for('driver_signup_step3'))
+    return render_template('driver_signup_step2.html', error=error, form=form)
+
+@app.route('/driver-signup/step3', methods=['GET', 'POST'])
+def driver_signup_step3():
+    if 'signup_step1' not in session or 'signup_step2' not in session:
+        return redirect(url_for('driver_signup_step1'))
     error = None
     if request.method == 'POST':
-        username           = request.form.get('username')
-        mobile             = request.form.get('mobile')
-        email              = request.form.get('email')
-        password           = request.form.get('password')
-        car_make           = request.form.get('car_make')
-        car_model          = request.form.get('car_model')
-        car_color          = request.form.get('car_color') or None
-        reg_number         = request.form.get('reg_number')
-        aadhaar_number     = request.form.get('aadhaar_number')
+        s1 = session['signup_step1']
+        s2 = session['signup_step2']
+        prefix = secure_filename(s1['username'])
         licence_validity   = request.form.get('licence_validity') or None
         fitness_validity   = request.form.get('fitness_validity') or None
         pollution_validity = request.form.get('pollution_validity') or None
         permit_validity    = request.form.get('permit_validity') or None
-
-        prefix = secure_filename(username)
-        profile_photo = save_file(request.files.get('profile_photo'), f"{prefix}_profile")
+        profile_photo = s1.get('profile_photo') or save_file(request.files.get('profile_photo'), f"{prefix}_profile")
         licence_img   = save_file(request.files.get('licence_img'),   f"{prefix}_licence")
         rc_img        = save_file(request.files.get('rc_img'),         f"{prefix}_rc")
         aadhaar_img   = save_file(request.files.get('aadhaar_img'),    f"{prefix}_aadhaar")
         permit_img    = save_file(request.files.get('permit_img'),     f"{prefix}_permit")
         pollution_img = save_file(request.files.get('pollution_img'),  f"{prefix}_pollution")
-
         conn = get_db()
         if conn:
             cur = conn.cursor()
-            # Check username uniqueness
-            cur.execute("SELECT id FROM Driver_Details WHERE username=%s", (username,))
-            if cur.fetchone():
-                error = 'ID already taken. Please choose another username.'
+            try:
+                cur.execute(
+                    """INSERT INTO Driver_Details
+                       (username, mobile, email, password_hash, car_make, car_model, car_color,
+                        reg_number, aadhaar_number, licence_validity, fitness_validity,
+                        pollution_validity, permit_validity,
+                        licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo)
+                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                    (s1['username'], s1['mobile'], s1['email'], s1['password'],
+                     s2['car_make'], s2['car_model'], s2['car_color'],
+                     s2['reg_number'], s2['aadhaar_number'],
+                     licence_validity, fitness_validity, pollution_validity, permit_validity,
+                     licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo)
+                )
+                conn.commit()
                 cur.close(); conn.close()
-            else:
-                try:
-                    cur.execute(
-                        """INSERT INTO Driver_Details
-                           (username, mobile, email, password_hash, car_make, car_model, car_color,
-                            reg_number, aadhaar_number, licence_validity, fitness_validity,
-                            pollution_validity, permit_validity,
-                            licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo)
-                           VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-                        (username, mobile, email, hash_password(password),
-                         car_make, car_model, car_color, reg_number, aadhaar_number,
-                         licence_validity, fitness_validity, pollution_validity, permit_validity,
-                         licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo)
-                    )
-                    conn.commit()
-                    cur.close(); conn.close()
-                    return redirect(url_for('driver_login'))
-                except Exception:
-                    error = 'Email or registration number already exists.'
-                    cur.close(); conn.close()
-    return render_template('driver_signup.html', error=error)
+                session.pop('signup_step1', None)
+                session.pop('signup_step2', None)
+                return redirect(url_for('driver_login'))
+            except Exception:
+                error = 'Email or registration number already exists.'
+                cur.close(); conn.close()
+        else:
+            error = 'Database connection failed.'
+    return render_template('driver_signup_step3.html', error=error)
 
 
 # ── Driver App ───────────────────────────────────────────────

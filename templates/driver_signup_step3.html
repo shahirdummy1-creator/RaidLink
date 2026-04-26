@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Signup – Step 3</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        body { background: #f0f4f8; font-family: 'Segoe UI', sans-serif; }
+        .step-card { max-width: 620px; margin: 48px auto; background: #fff; border-radius: 20px; box-shadow: 0 4px 24px rgba(0,0,0,.08); padding: 40px; }
+        .step-indicator { display: flex; align-items: center; justify-content: center; gap: 0; margin-bottom: 32px; }
+        .step-dot { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .82rem; font-weight: 700; }
+        .step-dot.active  { background: #0d6efd; color: #fff; }
+        .step-dot.done    { background: #198754; color: #fff; }
+        .step-dot.pending { background: #e5e7eb; color: #9ca3af; }
+        .step-line { width: 60px; height: 3px; background: #e5e7eb; }
+        .step-line.done { background: #198754; }
+        .step-title { font-size: 1.3rem; font-weight: 700; color: #111827; margin-bottom: 6px; }
+        .step-sub   { font-size: .85rem; color: #6b7280; margin-bottom: 28px; }
+        .section-label { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #6b7280; margin-bottom: 12px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-dark bg-primary">
+    <div class="container justify-content-center">
+        <a class="navbar-brand fw-bold" href="{{ url_for('welcome') }}">RaidLink Technologies</a>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="step-card">
+        <div class="step-indicator">
+            <div class="step-dot done"><i class="bi bi-check"></i></div>
+            <div class="step-line done"></div>
+            <div class="step-dot done"><i class="bi bi-check"></i></div>
+            <div class="step-line done"></div>
+            <div class="step-dot active">3</div>
+        </div>
+
+        <div class="step-title">Documents & Validity</div>
+        <div class="step-sub">Step 3 of 3 — Upload documents and enter validity dates</div>
+
+        {% if error %}
+        <div class="alert alert-danger py-2">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('driver_signup_step3') }}" enctype="multipart/form-data">
+
+            <div class="section-label"><i class="bi bi-upload me-1"></i>Document Uploads</div>
+            <div class="row g-3 mb-2">
+                <div class="col-6">
+                    <label class="form-label fw-semibold">Licence Image</label>
+                    <input type="file" class="form-control" name="licence_img" accept="image/*" required>
+                </div>
+                <div class="col-6">
+                    <label class="form-label fw-semibold">RC Image</label>
+                    <input type="file" class="form-control" name="rc_img" accept="image/*" required>
+                </div>
+                <div class="col-6">
+                    <label class="form-label fw-semibold">Aadhaar Image</label>
+                    <input type="file" class="form-control" name="aadhaar_img" accept="image/*" required>
+                </div>
+                <div class="col-6">
+                    <label class="form-label fw-semibold">Permit Image</label>
+                    <input type="file" class="form-control" name="permit_img" accept="image/*" required>
+                </div>
+                <div class="col-6">
+                    <label class="form-label fw-semibold">Pollution Certificate</label>
+                    <input type="file" class="form-control" name="pollution_img" accept="image/*" required>
+                </div>
+                <div class="col-6">
+                    <label class="form-label fw-semibold">Profile Photo</label>
+                    <input type="file" class="form-control" name="profile_photo" accept="image/*">
+                </div>
+            </div>
+
+            <div class="section-label"><i class="bi bi-calendar-check me-1"></i>Validity Dates</div>
+            <div class="row g-3 mb-4">
+                <div class="col-6">
+                    <label class="form-label fw-semibold">Licence Validity</label>
+                    <input type="date" class="form-control" name="licence_validity" required>
+                </div>
+                <div class="col-6">
+                    <label class="form-label fw-semibold">Fitness Validity</label>
+                    <input type="date" class="form-control" name="fitness_validity" required>
+                </div>
+                <div class="col-6">
+                    <label class="form-label fw-semibold">Pollution Validity</label>
+                    <input type="date" class="form-control" name="pollution_validity" required>
+                </div>
+                <div class="col-6">
+                    <label class="form-label fw-semibold">Permit Validity</label>
+                    <input type="date" class="form-control" name="permit_validity" required>
+                </div>
+            </div>
+
+            <div class="d-flex gap-3">
+                <a href="{{ url_for('driver_signup_step2') }}" class="btn btn-outline-secondary w-50 fw-bold py-2">
+                    <i class="bi bi-arrow-left me-1"></i> Back
+                </a>
+                <button type="submit" class="btn btn-success w-50 fw-bold py-2">
+                    <i class="bi bi-check-circle me-1"></i> Create Account
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
