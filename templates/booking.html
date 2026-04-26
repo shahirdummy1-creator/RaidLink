@@ -182,17 +182,29 @@ document.addEventListener('DOMContentLoaded', function () {
         attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
     }).addTo(map);
 
-    // Map click handler
+    // Map click — always active, only acts when mode is set
     map.on('click', function (e) {
         if (!mapClickMode) return;
-        const { lat, lng } = e.latlng;
-        reverseGeocode(lat, lng, mapClickMode);
+        reverseGeocode(e.latlng.lat, e.latlng.lng, mapClickMode);
     });
 
     // Default date/time
     const now = new Date();
     document.getElementById('ride_date').value = now.toISOString().split('T')[0];
     document.getElementById('ride_time').value = now.toTimeString().substring(0, 5);
+
+    // Manual distance → update fare
+    document.getElementById('distance').addEventListener('input', function () {
+        const d = parseFloat(this.value);
+        if (!isNaN(d) && d > 0) {
+            const fare = '&#8377;' + (25 * d).toFixed(2);
+            document.getElementById('fare').value = fare;
+            document.getElementById('fare-display').innerHTML = fare;
+        } else {
+            document.getElementById('fare').value = '';
+            document.getElementById('fare-display').textContent = '—';
+        }
+    });
 });
 
 // ── Haversine fallback ────────────────────────────────────
@@ -254,17 +266,12 @@ function setMapMode(type) {
     const hint = document.getElementById('map-mode-hint');
     const btnP = document.getElementById('btn-pickup-mode');
     const btnD = document.getElementById('btn-drop-mode');
-    if (type === 'pickup') {
-        hint.textContent = '📍 Click on the map to set Pickup location';
-        btnP.classList.replace('btn-outline-success', 'btn-success');
-        btnD.classList.replace('btn-danger', 'btn-outline-danger');
-        map.getContainer().style.cursor = 'crosshair';
-    } else {
-        hint.textContent = '🏁 Click on the map to set Drop location';
-        btnD.classList.replace('btn-outline-danger', 'btn-danger');
-        btnP.classList.replace('btn-success', 'btn-outline-success');
-        map.getContainer().style.cursor = 'crosshair';
-    }
+    btnP.className = 'btn btn-sm w-50 fw-semibold ' + (type === 'pickup' ? 'btn-success' : 'btn-outline-success');
+    btnD.className = 'btn btn-sm w-50 fw-semibold ' + (type === 'drop'   ? 'btn-danger'  : 'btn-outline-danger');
+    hint.innerHTML = type === 'pickup'
+        ? '<span class="text-success fw-semibold">&#128205; Click anywhere on the map to set Pickup</span>'
+        : '<span class="text-danger fw-semibold">&#127937; Click anywhere on the map to set Drop</span>';
+    if (map) map.getContainer().style.cursor = 'crosshair';
 }
 
 async function reverseGeocode(lat, lng, type) {
@@ -296,7 +303,7 @@ async function reverseGeocode(lat, lng, type) {
     }
     // Reset mode
     mapClickMode = null;
-    map.getContainer().style.cursor = '';
+    if (map) map.getContainer().style.cursor = '';
     document.getElementById('map-mode-hint').textContent = '';
     document.getElementById('btn-pickup-mode').className = 'btn btn-sm btn-outline-success w-50 fw-semibold';
     document.getElementById('btn-drop-mode').className   = 'btn btn-sm btn-outline-danger w-50 fw-semibold';
@@ -375,21 +382,6 @@ function closeList(type) {
     list.classList.remove('show');
     list.innerHTML = '';
 }
-
-// Manual distance → update fare
-document.addEventListener('DOMContentLoaded', function () {
-    document.getElementById('distance').addEventListener('input', function () {
-        const d = parseFloat(this.value);
-        if (!isNaN(d) && d > 0) {
-            const fare = '&#8377;' + (25 * d).toFixed(2);
-            document.getElementById('fare').value = fare;
-            document.getElementById('fare-display').innerHTML = fare;
-        } else {
-            document.getElementById('fare').value = '';
-            document.getElementById('fare-display').textContent = '—';
-        }
-    });
-});
 
 // Close dropdown on outside click
 document.addEventListener('click', e => {
