@@ -36,6 +36,13 @@ init_db()
 def hash_password(pw):
     return hashlib.sha256(pw.encode()).hexdigest()
 
+def format_fare(val):
+    """Format fare with ₹ symbol and apply minimum ₹200."""
+    try:
+        return f"\u20b9{max(float(val or 0), 200.0):.2f}"
+    except (ValueError, TypeError):
+        return "\u20b9200.00"
+
 def parse_fare(fare_str):
     try:
         val = float(str(fare_str).replace('₹', '').replace(',', '').strip())
@@ -337,7 +344,7 @@ def api_latest_booking():
         row = cur.fetchone()
         if row:
             b = row_to_dict(cur, row)
-            b['fare']      = f"\u20b9{b['fare']}"
+            b['fare']      = format_fare(b['fare'])
             b['ride_date'] = str(b['ride_date'])
             b['ride_time'] = str(b['ride_time'])
             cur.close(); conn.close()
@@ -372,7 +379,7 @@ def driver_home(username):
         row = cur.fetchone()
         if row:
             booking = row_to_dict(cur, row)
-            booking['fare']      = f"\u20b9{booking['fare']}"
+            booking['fare']      = format_fare(booking['fare'])
             booking['ride_date'] = str(booking['ride_date'])
             booking['ride_time'] = str(booking['ride_time'])
         cur.close(); conn.close()
@@ -445,7 +452,7 @@ def accept_trip():
         row = cur.fetchone()
         if row:
             booking = row_to_dict(cur, row)
-            booking['fare'] = f"\u20b9{booking['fare']}"
+            booking['fare'] = format_fare(booking['fare'])
         cur.close(); conn.close()
     return render_template('driver_accept.html', booking=booking, driver_name=driver_name)
 
@@ -462,7 +469,7 @@ def start_trip(username):
         row = cur.fetchone()
         if row:
             booking = row_to_dict(cur, row)
-            booking['fare']      = f"\u20b9{booking['fare']}"
+            booking['fare']      = format_fare(booking['fare'])
             booking['ride_date'] = str(booking['ride_date'])
             booking['ride_time'] = str(booking['ride_time'])
         cur.close(); conn.close()
@@ -525,7 +532,7 @@ def driver_earnings():
             t = row_to_dict(cur, row)
             fare_val = parse_fare(str(t['fare']))
             t['fare_val'] = fare_val
-            t['fare']      = f"\u20b9{t['fare']}"
+            t['fare']      = format_fare(t['fare'])
             t['ride_date'] = str(t['ride_date'])
             t['ride_time'] = str(t['ride_time'])
             days_ago = t.get('days_ago', 999)
@@ -563,7 +570,7 @@ def driver_trips():
         """, (username,))
         for row in cur.fetchall():
             t = row_to_dict(cur, row)
-            t['fare'] = f"\u20b9{t['fare']}"
+            t['fare'] = format_fare(t['fare'])
             t['ride_date'] = str(t['ride_date'])
             t['ride_time'] = str(t['ride_time'])
             trips.append(t)
@@ -718,7 +725,8 @@ def rider_bookings(username):
         """, (rider_id,))
         for row in cur.fetchall():
             b = row_to_dict(cur, row)
-            b['fare']      = f"\u20b9{b['fare']}"
+            raw_fare = float(b['fare'] or 0)
+            b['fare']      = format_fare(raw_fare)
             b['ride_date'] = str(b['ride_date'])
             b['ride_time'] = str(b['ride_time'])
             b['otp']       = b.get('otp') or ''
@@ -771,7 +779,7 @@ def _load_admin_data():
         rows = cur.fetchall()
         for row in rows:
             t = row_to_dict(cur, row)
-            t['fare']        = f"\u20b9{t['fare']}"
+            t['fare']        = format_fare(t['fare'])
             t['ride_date']   = str(t['ride_date'])
             t['ride_time']   = str(t['ride_time'])
             t['accepted_by'] = t.get('accepted_by') or '\u2014'
