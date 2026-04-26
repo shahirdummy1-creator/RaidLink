@@ -274,8 +274,8 @@ async function nominatimFallback(query, type) {
         const suggestions = data.map(p => ({
             placeName:   p.display_name.split(',')[0],
             placeAddress:p.display_name.split(',').slice(1,3).join(','),
-            latitude:    parseFloat(p.lat),
-            longitude:   parseFloat(p.lon),
+            lat:         p.lat,
+            lon:         p.lon,
             pincode:     p.address?.postcode || ''
         }));
         renderList(suggestions, type);
@@ -301,24 +301,27 @@ function renderList(suggestions, type) {
 function selectPlace(idx, type) {
     const list  = document.getElementById(type + '-list');
     const place = list._data[idx];
-    const name  = place.placeName || '';
-    const lat   = parseFloat(place.latitude  || place.lat);
-    const lng   = parseFloat(place.longitude || place.lon);
-    const pin   = place.pincode || place.eLoc || '';
+    const name  = place.placeName || place.display_name || '';
+    // Handle both Mappls (latitude/longitude) and Nominatim (lat/lon) field names
+    const lat   = parseFloat(place.latitude  ?? place.lat);
+    const lng   = parseFloat(place.longitude ?? place.lon);
+    const pin   = place.pincode || '';
 
-    document.getElementById(type).value = name;
+    if (isNaN(lat) || isNaN(lng)) {
+        console.error('Invalid coordinates for', name, place);
+        return;
+    }
+
+    document.getElementById(type).value = name.split(',')[0];
     document.getElementById(type + '_pincode').value = pin;
     coords[type] = [lat, lng];
 
-    // Show badge
     document.getElementById(type + '-badge').innerHTML =
-        `<span class="loc-badge"><i class="bi bi-check-circle-fill"></i>${(place.placeAddress || '').split(',').slice(0,2).join(',') || name}</span>`;
+        `<span class="loc-badge"><i class="bi bi-check-circle-fill"></i>${name.split(',').slice(0,2).join(',')}</span>`;
 
     closeList(type);
     updateDistanceFare();
-
-    // Pan map to selected location
-    if (map) map.setCenter({ lat, lng });
+    if (map) { try { map.setCenter({ lat, lng }); } catch(e) {} }
 }
 
 function closeList(type) {
