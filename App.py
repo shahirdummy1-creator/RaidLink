@@ -38,9 +38,10 @@ def hash_password(pw):
 
 def parse_fare(fare_str):
     try:
-        return float(str(fare_str).replace('₹', '').replace(',', '').strip())
+        val = float(str(fare_str).replace('₹', '').replace(',', '').strip())
+        return max(val, 200.0)  # minimum fare ₹200
     except (ValueError, AttributeError):
-        return 0.0
+        return 200.0
 
 def row_to_dict(cursor, row):
     return dict(zip([c[0] for c in cursor.description], row))

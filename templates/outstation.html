@@ -107,9 +107,12 @@
     function calcFare() {
         const dist = parseFloat(document.getElementById('distance').value);
         const rate = parseFloat(document.getElementById('price_per_km').value);
-        document.getElementById('fare').value =
-            (!isNaN(dist) && !isNaN(rate) && dist > 0 && rate > 0)
-            ? '₹' + (dist * rate).toFixed(2) : '';
+        if (!isNaN(dist) && !isNaN(rate) && dist > 0 && rate > 0) {
+            const calculated = dist * rate;
+            document.getElementById('fare').value = '₹' + (calculated < 200 ? 200 : calculated).toFixed(2);
+        } else {
+            document.getElementById('fare').value = '';
+        }
     }
 </script>
 </body>
