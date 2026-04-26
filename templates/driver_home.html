@@ -356,70 +356,91 @@
     // ── Render booking card ────────────────────────────────
     function renderBookingCard(b) {
         bookingArea.innerHTML = `
-        <div class="card border-primary mb-3 shadow-sm" id="bookingRequestCard" style="max-width:65%;margin:0;font-size:.8rem;">
-            <div class="card-header bg-primary text-white py-1 px-2 d-flex justify-content-between align-items-center">
-                <span class="fw-bold" style="font-size:.8rem;">New Booking Request</span>
-                <span class="badge bg-light text-primary" style="font-size:.7rem;">LIVE</span>
+        <div id="bookingRequestCard" style="animation:flash-in .35s ease;">
+            <!-- New Order Banner -->
+            <div style="background:linear-gradient(135deg,#0d6efd,#0a58ca);border-radius:16px 16px 0 0;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <div style="width:10px;height:10px;border-radius:50%;background:#4ade80;animation:blink 1.2s infinite;"></div>
+                    <span style="color:#fff;font-weight:700;font-size:1rem;">New Booking Request</span>
+                </div>
+                <span style="background:rgba(255,255,255,.2);color:#fff;font-size:.72rem;font-weight:700;padding:3px 10px;border-radius:20px;">LIVE</span>
             </div>
-            <div class="card-body py-2 px-3">
-                <div class="row g-1 mb-1">
-                    <div class="col-6">
-                        <small class="text-muted d-block">Order ID</small>
-                        <strong>#${b.id}</strong>
+
+            <!-- Card Body -->
+            <div style="background:#fff;border:1px solid #e0e7ff;border-top:none;border-radius:0 0 16px 16px;padding:18px;box-shadow:0 4px 20px rgba(13,110,253,.1);">
+
+                <!-- Order ID + Fare -->
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                    <div>
+                        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;">Order ID</div>
+                        <div style="font-size:1.1rem;font-weight:800;color:#111827;">#${b.id}</div>
                     </div>
-                    <div class="col-6 text-end">
-                        <small class="text-muted d-block">Fare</small>
-                        <strong class="text-success">${b.fare || 'N/A'}</strong>
-                    </div>
-                </div>
-                <div class="row g-1 mb-1">
-                    <div class="col-6">
-                        <small class="text-muted d-block">Rider</small>
-                        <strong><i class="bi bi-person-fill text-primary me-1"></i>${b.rider_name || 'N/A'}</strong>
-                    </div>
-                    <div class="col-6 text-end">
-                        <small class="text-muted d-block">Mobile</small>
-                        <strong><a href="tel:${b.rider_mobile}" class="text-decoration-none"><i class="bi bi-telephone-fill text-success me-1"></i>${b.rider_mobile || 'N/A'}</a></strong>
+                    <div style="text-align:right;">
+                        <div style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;">Fare</div>
+                        <div style="font-size:1.3rem;font-weight:800;color:#059669;">${b.fare || 'N/A'}</div>
                     </div>
                 </div>
-                <div class="mb-1">
-                    <small class="text-muted d-block">Pickup</small>
-                    <span class="badge bg-light text-dark" style="font-size:.75rem;">
-                        <i class="bi bi-geo-alt-fill text-danger"></i>
-                        ${capitalize(b.pickup_location)}
-                    </span>
-                </div>
-                <div class="mb-1">
-                    <small class="text-muted d-block">Drop</small>
-                    <span class="badge bg-light text-dark" style="font-size:.75rem;">
-                        <i class="bi bi-flag-fill text-success"></i>
-                        ${capitalize(b.drop_location)}
-                    </span>
-                </div>
-                <div class="row g-1 mb-2">
-                    <div class="col-6">
-                        <small class="text-muted d-block">Distance</small>
-                        <span>${b.distance_km} km</span>
+
+                <!-- Rider Info -->
+                <div style="background:#f8faff;border:1px solid #e0e7ff;border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <div style="width:38px;height:38px;border-radius:50%;background:#0d6efd;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1rem;flex-shrink:0;">${(b.rider_name||'?')[0].toUpperCase()}</div>
+                        <div>
+                            <div style="font-weight:700;color:#111827;font-size:.9rem;">${b.rider_name || 'Rider'}</div>
+                            <div style="font-size:.75rem;color:#6b7280;">Rider</div>
+                        </div>
                     </div>
-                    <div class="col-6 text-end">
-                        <small class="text-muted d-block">Scheduled</small>
-                        <span>${b.ride_date} ${b.ride_time}</span>
+                    ${b.rider_mobile ? `<a href="tel:${b.rider_mobile}" style="display:inline-flex;align-items:center;gap:6px;background:#dcfce7;color:#166534;padding:6px 14px;border-radius:20px;font-size:.8rem;font-weight:600;text-decoration:none;"><i class="bi bi-telephone-fill"></i>${b.rider_mobile}</a>` : ''}
+                </div>
+
+                <!-- Route -->
+                <div style="margin-bottom:12px;">
+                    <div style="display:flex;align-items:stretch;gap:10px;">
+                        <div style="display:flex;flex-direction:column;align-items:center;gap:0;">
+                            <div style="width:12px;height:12px;border-radius:50%;background:#22c55e;flex-shrink:0;"></div>
+                            <div style="width:2px;flex:1;background:#e5e7eb;margin:3px 0;"></div>
+                            <div style="width:12px;height:12px;border-radius:50%;background:#ef4444;flex-shrink:0;"></div>
+                        </div>
+                        <div style="flex:1;">
+                            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;margin-bottom:6px;">
+                                <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#6b7280;">Pickup</div>
+                                <div style="font-weight:600;color:#111827;font-size:.9rem;">${capitalize(b.pickup_location)}</div>
+                            </div>
+                            <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:8px 12px;">
+                                <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#6b7280;">Drop</div>
+                                <div style="font-weight:600;color:#111827;font-size:.9rem;">${capitalize(b.drop_location)}</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="d-flex gap-2 justify-content-center">
-                    <button type="button" class="btn btn-outline-danger btn-sm fw-bold px-3"
-                            onclick="cancelBooking()">
-                        <i class="bi bi-x-circle me-1"></i> Cancel
+
+                <!-- Stats row -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+                    <div style="background:#f8faff;border:1px solid #e0e7ff;border-radius:8px;padding:8px 12px;text-align:center;">
+                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#6b7280;">Distance</div>
+                        <div style="font-weight:700;color:#1d4ed8;font-size:.95rem;">${b.distance_km} km</div>
+                    </div>
+                    <div style="background:#f8faff;border:1px solid #e0e7ff;border-radius:8px;padding:8px 12px;text-align:center;">
+                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#6b7280;">Scheduled</div>
+                        <div style="font-weight:700;color:#1d4ed8;font-size:.85rem;">${b.ride_date}<br><span style="font-size:.8rem;">${b.ride_time}</span></div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                    <button type="button" onclick="cancelBooking()"
+                        style="padding:12px;border-radius:10px;border:2px solid #dc2626;background:transparent;color:#dc2626;font-weight:700;font-size:.9rem;cursor:pointer;transition:all .18s;"
+                        onmouseover="this.style.background='#dc2626';this.style.color='#fff'"
+                        onmouseout="this.style.background='transparent';this.style.color='#dc2626'">
+                        <i class="bi bi-x-circle me-1"></i> Decline
                     </button>
-                    <button type="button" class="btn btn-success btn-sm fw-bold px-3"
-                            onclick="acceptBooking()">
+                    <button type="button" onclick="acceptBooking()"
+                        style="padding:12px;border-radius:10px;border:none;background:linear-gradient(135deg,#059669,#047857);color:#fff;font-weight:700;font-size:.9rem;cursor:pointer;box-shadow:0 4px 12px rgba(5,150,105,.35);transition:all .18s;"
+                        onmouseover="this.style.transform='translateY(-1px)'"
+                        onmouseout="this.style.transform='translateY(0)'">
                         <i class="bi bi-check-circle me-1"></i> Accept
                     </button>
                 </div>
-            </div>
-            <div class="card-footer py-1 px-2 d-flex justify-content-between">
-                <small class="text-muted">Booking ID: #${b.id}</small>
-                <small class="text-muted">${b.status}</small>
             </div>
         </div>`;
         document.getElementById('formTripId').value = b.id;
@@ -450,8 +471,7 @@
 
     // ── Booking actions ────────────────────────────────────
     function acceptBooking() {
-        stopPolling();
-        document.getElementById('acceptTripForm').submit();
+        new bootstrap.Modal(document.getElementById('otpModal')).show();
     }
 
     function cancelBooking() {
