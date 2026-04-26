@@ -273,6 +273,9 @@ function switchTab(name, btn) {
 {% if order_id %}
 // stay on Confirmed tab (default)
 {% endif %}
+
+// Auto-refresh every 10 seconds to show driver assignment updates
+setInterval(() => location.reload(), 10000);
 </script>
 </body>
 </html>

@@ -9,6 +9,6 @@ COPY . .
 
 RUN mkdir -p static/uploads/drivers
 
-EXPOSE 7860
+EXPOSE 8080
 
-CMD gunicorn --bind 0.0.0.0:${PORT:-7860} --workers 2 --timeout 120 App:app
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "2", "--timeout", "120", "App:app"]

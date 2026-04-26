@@ -3,11 +3,10 @@ from mysql.connector import Error
 import os
 
 DB_CONFIG = {
-    'host':     os.environ.get('MYSQLHOST',     os.environ.get('DB_HOST',     '127.0.0.1')),
-    'user':     os.environ.get('MYSQLUSER',     os.environ.get('DB_USER',     'root')),
-    'password': os.environ.get('MYSQLPASSWORD', os.environ.get('DB_PASSWORD', 'sqlbook123')),
-    'database': os.environ.get('MYSQLDATABASE', os.environ.get('DB_NAME',     'raidlink_db')),
-    'port':     int(os.environ.get('MYSQLPORT', os.environ.get('DB_PORT',     3306)))
+    'host':     os.environ.get('DB_HOST', '127.0.0.1'),
+    'user':     os.environ.get('DB_USER', 'root'),
+    'password': os.environ.get('DB_PASSWORD', 'sqlbook123'),
+    'database': os.environ.get('DB_NAME', 'raidlink_db')
 }
 
 def get_db():
@@ -20,10 +19,21 @@ def get_db():
         return None
 
 def init_db():
-    """Create tables if they don't exist."""
+    """Create database and tables if they don't exist."""
     try:
-        conn = mysql.connector.connect(**DB_CONFIG)
+        conn = mysql.connector.connect(
+            host=DB_CONFIG['host'],
+            user=DB_CONFIG['user'],
+            password=DB_CONFIG['password']
+        )
         cursor = conn.cursor()
+
+        db_name = DB_CONFIG['database']
+        cursor.execute(
+            f"CREATE DATABASE IF NOT EXISTS `{db_name}` "
+            "CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
+        )
+        cursor.execute(f"USE `{db_name}`")
 
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS Rider_Details (
@@ -107,14 +117,6 @@ def init_db():
             conn.commit()
         except Exception:
             pass  # column already exists
-
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS Driver_Skipped_Trips (
-                driver_name VARCHAR(100) NOT NULL,
-                trip_id     INT          NOT NULL,
-                PRIMARY KEY (driver_name, trip_id)
-            )
-        """)
 
         conn.commit()
         cursor.close()

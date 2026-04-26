@@ -17,135 +17,68 @@
 <div class="container mt-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1>Driver Earnings</h1>
-        <a href="{{ url_for('driver_home') }}" class="btn btn-secondary">Back to Dashboard</a>
+        <a href="{{ url_for('driver_home', username=driver_name) }}" class="btn btn-secondary">Back to Dashboard</a>
     </div>
 
     <div class="row g-3 mb-4">
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card border-success h-100 p-3">
                 <h6 class="text-uppercase text-muted">Daily Earnings</h6>
-                <p class="display-6 fw-bold">₹2,560</p>
-                <p class="mb-0 text-success">+12% today</p>
+                <p class="display-6 fw-bold">{{ daily_earnings }}</p>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card border-primary h-100 p-3">
                 <h6 class="text-uppercase text-muted">Weekly Earnings</h6>
-                <p class="display-6 fw-bold">₹19,600</p>
-                <p class="mb-0 text-success">+8% this week</p>
+                <p class="display-6 fw-bold">{{ weekly_earnings }}</p>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card border-warning h-100 p-3">
                 <h6 class="text-uppercase text-muted">Monthly Earnings</h6>
-                <p class="display-6 fw-bold">₹78,080</p>
-                <p class="mb-0 text-success">+18% this month</p>
+                <p class="display-6 fw-bold">{{ monthly_earnings }}</p>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-secondary h-100 p-3">
+                <h6 class="text-uppercase text-muted">Total Earnings</h6>
+                <p class="display-6 fw-bold">{{ total_earnings }}</p>
             </div>
         </div>
     </div>
 
     <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">Earnings History</h5>
-        </div>
+        <div class="card-header"><h5 class="mb-0">Earnings History</h5></div>
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-hover">
                     <thead>
                         <tr>
+                            <th>Order ID</th>
                             <th>Date</th>
-                            <th>Daily Earnings</th>
-                            <th>Trips Completed</th>
-                            <th>Average per Trip</th>
+                            <th>Time</th>
+                            <th>Pickup</th>
+                            <th>Drop</th>
+                            <th>Distance</th>
+                            <th>Fare</th>
                         </tr>
                     </thead>
                     <tbody>
+                        {% for t in trips %}
                         <tr>
-                            <td>April 17, 2026</td>
-                            <td>₹2,560</td>
-                            <td>8</td>
-                            <td>₹320</td>
+                            <td>#{{ t.id }}</td>
+                            <td>{{ t.ride_date }}</td>
+                            <td>{{ t.ride_time }}</td>
+                            <td>{{ t.pickup_location | capitalize }}</td>
+                            <td>{{ t.drop_location | capitalize }}</td>
+                            <td>{{ t.distance_km }} km</td>
+                            <td style="font-weight:600;color:#166534;">{{ t.fare }}</td>
                         </tr>
-                        <tr>
-                            <td>April 16, 2026</td>
-                            <td>₹2,280</td>
-                            <td>7</td>
-                            <td>₹326</td>
-                        </tr>
-                        <tr>
-                            <td>April 15, 2026</td>
-                            <td>₹2,450</td>
-                            <td>9</td>
-                            <td>₹272</td>
-                        </tr>
-                        <tr>
-                            <td>April 14, 2026</td>
-                            <td>₹2,180</td>
-                            <td>6</td>
-                            <td>₹363</td>
-                        </tr>
-                        <tr>
-                            <td>April 13, 2026</td>
-                            <td>₹2,720</td>
-                            <td>10</td>
-                            <td>₹272</td>
-                        </tr>
+                        {% else %}
+                        <tr><td colspan="7" class="text-center text-muted py-4">No completed trips yet.</td></tr>
+                        {% endfor %}
                     </tbody>
                 </table>
-            </div>
-        </div>
-    </div>
-
-    <div class="row mt-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="mb-0">Earnings Breakdown</h6>
-                </div>
-                <div class="card-body">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Ride Fare</span>
-                        <span>₹1,920</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Tips</span>
-                        <span>₹320</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Bonuses</span>
-                        <span>₹160</span>
-                    </div>
-                    <hr>
-                    <div class="d-flex justify-content-between fw-bold">
-                        <span>Total</span>
-                        <span>₹2,400</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="mb-0">Performance Metrics</h6>
-                </div>
-                <div class="card-body">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Acceptance Rate</span>
-                        <span class="text-success">95%</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Completion Rate</span>
-                        <span class="text-success">98%</span>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Average Rating</span>
-                        <span class="text-warning">4.8/5</span>
-                    </div>
-                    <div class="d-flex justify-content-between">
-                        <span>Online Hours</span>
-                        <span>12.5 hrs</span>
-                    </div>
-                </div>
             </div>
         </div>
     </div>

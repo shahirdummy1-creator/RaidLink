@@ -16,175 +16,58 @@
 
 <div class="container mt-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Completed Trip History</h1>
-        <a href="{{ url_for('driver_home') }}" class="btn btn-secondary">Back to Dashboard</a>
+        <h1>Completed Trips</h1>
+        <a href="{{ url_for('driver_home', username=driver_name) }}" class="btn btn-secondary">Back to Dashboard</a>
     </div>
 
     <div class="row mb-4">
         <div class="col-md-3">
             <div class="card text-center">
                 <div class="card-body">
-                    <h3 class="text-primary">1,250</h3>
+                    <h3 class="text-primary">{{ trips | length }}</h3>
                     <p class="mb-0">Total Trips</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-center">
-                <div class="card-body">
-                    <h3 class="text-success">₹3,12,000</h3>
-                    <p class="mb-0">Total Earnings</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-center">
-                <div class="card-body">
-                    <h3 class="text-info">4.8</h3>
-                    <p class="mb-0">Average Rating</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card text-center">
-                <div class="card-body">
-                    <h3 class="text-warning">98%</h3>
-                    <p class="mb-0">Completion Rate</p>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Trip Details</h5>
-            <div class="d-flex gap-2">
-                <select class="form-select form-select-sm" style="width: auto;">
-                    <option>All Trips</option>
-                    <option>This Week</option>
-                    <option>This Month</option>
-                    <option>Last Month</option>
-                </select>
-                <input type="date" class="form-control form-control-sm" style="width: auto;">
-            </div>
-        </div>
+        <div class="card-header"><h5 class="mb-0">Trip Details</h5></div>
         <div class="card-body">
             <div class="table-responsive">
                 <table class="table table-hover">
                     <thead>
                         <tr>
-                            <th>Trip ID</th>
-                            <th>Date & Time</th>
-                            <th>Pickup Location</th>
-                            <th>Drop Location</th>
+                            <th>Order ID</th>
+                            <th>Rider</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Pickup</th>
+                            <th>Drop</th>
                             <th>Distance</th>
                             <th>Fare</th>
-                            <th>Rating</th>
                             <th>Status</th>
                         </tr>
                     </thead>
                     <tbody>
+                        {% for t in trips %}
                         <tr>
-                            <td>#TRP001</td>
-                            <td>Apr 17, 2026<br><small class="text-muted">14:30</small></td>
-                            <td>Airport Terminal 1</td>
-                            <td>Downtown Hotel</td>
-                            <td>25 km</td>
-                            <td>₹2,500</td>
-                            <td><span class="badge bg-warning">4.9</span></td>
+                            <td>#{{ t.id }}</td>
+                            <td>{{ t.rider_name or '—' }}</td>
+                            <td>{{ t.ride_date }}</td>
+                            <td>{{ t.ride_time }}</td>
+                            <td>{{ t.pickup_location | capitalize }}</td>
+                            <td>{{ t.drop_location | capitalize }}</td>
+                            <td>{{ t.distance_km }} km</td>
+                            <td style="font-weight:600;color:#166534;">{{ t.fare }}</td>
                             <td><span class="badge bg-success">Completed</span></td>
                         </tr>
-                        <tr>
-                            <td>#TRP002</td>
-                            <td>Apr 17, 2026<br><small class="text-muted">12:15</small></td>
-                            <td>Central Mall</td>
-                            <td>Residential Area</td>
-                            <td>8 km</td>
-                            <td>₹800</td>
-                            <td><span class="badge bg-warning">4.7</span></td>
-                            <td><span class="badge bg-success">Completed</span></td>
-                        </tr>
-                        <tr>
-                            <td>#TRP003</td>
-                            <td>Apr 16, 2026<br><small class="text-muted">19:45</small></td>
-                            <td>Train Station</td>
-                            <td>Business District</td>
-                            <td>12 km</td>
-                            <td>₹1,200</td>
-                            <td><span class="badge bg-warning">5.0</span></td>
-                            <td><span class="badge bg-success">Completed</span></td>
-                        </tr>
-                        <tr>
-                            <td>#TRP004</td>
-                            <td>Apr 16, 2026<br><small class="text-muted">16:20</small></td>
-                            <td>Hotel Plaza</td>
-                            <td>Airport Terminal 2</td>
-                            <td>22 km</td>
-                            <td>₹2,200</td>
-                            <td><span class="badge bg-warning">4.8</span></td>
-                            <td><span class="badge bg-success">Completed</span></td>
-                        </tr>
-                        <tr>
-                            <td>#TRP005</td>
-                            <td>Apr 15, 2026<br><small class="text-muted">21:10</small></td>
-                            <td>Restaurant Zone</td>
-                            <td>Shopping Complex</td>
-                            <td>6 km</td>
-                            <td>₹600</td>
-                            <td><span class="badge bg-warning">4.6</span></td>
-                            <td><span class="badge bg-success">Completed</span></td>
-                        </tr>
-                        <tr>
-                            <td>#TRP006</td>
-                            <td>Apr 15, 2026<br><small class="text-muted">18:30</small></td>
-                            <td>Medical Center</td>
-                            <td>Home Address</td>
-                            <td>15 km</td>
-                            <td>₹1,500</td>
-                            <td><span class="badge bg-warning">4.9</span></td>
-                            <td><span class="badge bg-success">Completed</span></td>
-                        </tr>
-                        <tr>
-                            <td>#TRP007</td>
-                            <td>Apr 14, 2026<br><small class="text-muted">13:45</small></td>
-                            <td>Office Complex</td>
-                            <td>Conference Center</td>
-                            <td>10 km</td>
-                            <td>₹1,000</td>
-                            <td><span class="badge bg-warning">4.7</span></td>
-                            <td><span class="badge bg-success">Completed</span></td>
-                        </tr>
-                        <tr>
-                            <td>#TRP008</td>
-                            <td>Apr 14, 2026<br><small class="text-muted">11:20</small></td>
-                            <td>School Area</td>
-                            <td>Park & Ride</td>
-                            <td>18 km</td>
-                            <td>₹1,800</td>
-                            <td><span class="badge bg-warning">4.8</span></td>
-                            <td><span class="badge bg-success">Completed</span></td>
-                        </tr>
+                        {% else %}
+                        <tr><td colspan="9" class="text-center text-muted py-4">No completed trips yet.</td></tr>
+                        {% endfor %}
                     </tbody>
                 </table>
             </div>
-        </div>
-    </div>
-
-    <div class="row mt-4">
-        <div class="col-12">
-            <nav aria-label="Trip pagination">
-                <ul class="pagination justify-content-center">
-                    <li class="page-item disabled">
-                        <a class="page-link" href="#" tabindex="-1">Previous</a>
-                    </li>
-                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
-                    <li class="page-item"><a class="page-link" href="#">2</a></li>
-                    <li class="page-item"><a class="page-link" href="#">3</a></li>
-                    <li class="page-item">
-                        <a class="page-link" href="#">Next</a>
-                    </li>
-                </ul>
-            </nav>
         </div>
     </div>
 </div>

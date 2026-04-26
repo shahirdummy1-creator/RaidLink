@@ -148,8 +148,9 @@ document.addEventListener('DOMContentLoaded', function () {
     function updateDistanceAndFare() {
         if (coords.pickup && coords.drop) {
             const dist = haversine(coords.pickup[0], coords.pickup[1], coords.drop[0], coords.drop[1]);
-            document.getElementById('distance').value = dist.toFixed(1);
-            document.getElementById('fare').value = '₹' + (25 * dist).toFixed(2);
+            const adjustedDist = (dist + 5).toFixed(1);
+            document.getElementById('distance').value = adjustedDist;
+            document.getElementById('fare').value = '₹' + (25 * adjustedDist).toFixed(2);
         }
     }
 

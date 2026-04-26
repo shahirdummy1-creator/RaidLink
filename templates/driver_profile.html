@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Driver Profile</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
@@ -18,60 +19,73 @@
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <div class="card shadow-lg p-4">
+
+                <!-- Photo & Name -->
                 <div class="text-center mb-4">
-                    <img src="https://via.placeholder.com/150" alt="Driver Photo" class="rounded-circle border border-3 border-primary mb-3" width="150" height="150">
-                    <h2>Arjun Patel</h2>
+                    {% if driver.profile_photo %}
+                    <img src="{{ url_for('static', filename=driver.profile_photo) }}"
+                         alt="{{ driver.username }}"
+                         class="rounded-circle border border-3 border-primary mb-3"
+                         width="150" height="150" style="object-fit:cover;">
+                    {% else %}
+                    <div class="rounded-circle border border-3 border-primary mb-3 d-inline-flex align-items-center justify-content-center bg-primary text-white"
+                         style="width:150px;height:150px;font-size:3rem;font-weight:700;">
+                        {{ driver.username[0] | upper }}
+                    </div>
+                    {% endif %}
+                    <h2 class="fw-bold">{{ driver.username }}</h2>
                     <p class="text-muted">Professional Driver</p>
+                    <span class="badge {% if driver.account_status == 'Active' %}bg-success{% else %}bg-danger{% endif %}">
+                        {{ driver.account_status }}
+                    </span>
                 </div>
 
                 <div class="row g-3">
+                    <!-- Personal Info -->
                     <div class="col-md-6">
                         <div class="card h-100">
                             <div class="card-body">
                                 <h6 class="card-title text-muted">Personal Information</h6>
-                                <p class="mb-1"><strong>Name:</strong> Arjun Patel</p>
-                                <p class="mb-1"><strong>Age:</strong> 32</p>
-                                <p class="mb-1"><strong>Email:</strong> arjun.patel@example.com</p>
-                                <p class="mb-1"><strong>Phone:</strong> +1 (555) 123-4567</p>
-                                <p class="mb-0"><strong>License Number:</strong> DL123456789</p>
+                                <p class="mb-1"><strong>Username:</strong> {{ driver.username }}</p>
+                                <p class="mb-1"><strong>Mobile:</strong> {{ driver.mobile }}</p>
+                                <p class="mb-1"><strong>Email:</strong> {{ driver.email }}</p>
+                                <p class="mb-0"><strong>Aadhaar:</strong> {{ driver.aadhaar_number }}</p>
                             </div>
                         </div>
                     </div>
+                    <!-- Vehicle Info -->
                     <div class="col-md-6">
                         <div class="card h-100">
                             <div class="card-body">
                                 <h6 class="card-title text-muted">Vehicle Information</h6>
-                                <p class="mb-1"><strong>Vehicle:</strong> Toyota Camry</p>
-                                <p class="mb-1"><strong>License Plate:</strong> ABC-1234</p>
-                                <p class="mb-1"><strong>Color:</strong> Silver</p>
-                                <p class="mb-1"><strong>Year:</strong> 2020</p>
-                                <p class="mb-0"><strong>Capacity:</strong> 4 passengers</p>
+                                <p class="mb-1"><strong>Car:</strong> {{ driver.car_make }} {{ driver.car_model }}</p>
+                                <p class="mb-1"><strong>Reg Number:</strong> {{ driver.reg_number }}</p>
+                                <p class="mb-1"><strong>Licence Validity:</strong> {{ driver.licence_validity or '—' }}</p>
+                                <p class="mb-1"><strong>Fitness Validity:</strong> {{ driver.fitness_validity or '—' }}</p>
+                                <p class="mb-0"><strong>Permit Validity:</strong> {{ driver.permit_validity or '—' }}</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
+                <!-- Stats -->
                 <div class="row mt-3">
                     <div class="col-12">
                         <div class="card">
                             <div class="card-body">
                                 <h6 class="card-title text-muted">Performance Stats</h6>
                                 <div class="row text-center">
-                                    <div class="col-md-3">
-                                        <h4 class="text-primary">4.8</h4>
-                                        <p class="mb-0">Rating</p>
+                                    <div class="col-md-4">
+                                        <h4 class="text-success">{{ completed_trips }}</h4>
+                                        <p class="mb-0">Completed Trips</p>
                                     </div>
-                                    <div class="col-md-3">
-                                        <h4 class="text-success">1,250</h4>
-                                        <p class="mb-0">Total Rides</p>
+                                    <div class="col-md-4">
+                                        <h4 class="text-primary">{{ driver.account_status }}</h4>
+                                        <p class="mb-0">Account Status</p>
                                     </div>
-                                    <div class="col-md-3">
-                                        <h4 class="text-info">98%</h4>
-                                        <p class="mb-0">Completion Rate</p>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <h4 class="text-warning">2 years</h4>
-                                        <p class="mb-0">Experience</p>
+                                    <div class="col-md-4">
+                                        <h4 class="text-muted">{{ driver.registered_at | string | truncate(10, True, '') }}</h4>
+                                        <p class="mb-0">Member Since</p>
                                     </div>
                                 </div>
                             </div>
@@ -80,8 +94,9 @@
                 </div>
 
                 <div class="text-center mt-4">
-                    <a href="{{ url_for('driver_home') }}" class="btn btn-secondary me-2">Back to Dashboard</a>
-                    <button class="btn btn-primary">Edit Profile</button>
+                    <a href="{{ url_for('driver_home', username=driver.username) }}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+                    </a>
                 </div>
             </div>
         </div>
