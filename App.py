@@ -528,6 +528,32 @@ def driver_trips():
 
 # ── Booking ──────────────────────────────────────────────────
 
+@app.route('/driver-info/<username>/<int:booking_id>')
+def driver_info(username, booking_id):
+    rider_id = get_rider_id(username)
+    if not rider_id:
+        return redirect(url_for('rider_login'))
+    conn = get_db()
+    driver = None
+    if conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT t.id, t.pickup_location, t.drop_location, t.accepted_by,
+                   d.mobile AS driver_mobile, d.car_make AS driver_car_make,
+                   d.car_model AS driver_car_model, d.reg_number AS driver_reg,
+                   d.car_color AS driver_car_color
+            FROM Trip_Details t
+            LEFT JOIN Driver_Details d ON d.username = t.accepted_by
+            WHERE t.id=%s AND t.rider_id=%s
+        """, (booking_id, rider_id))
+        row = cur.fetchone()
+        if row:
+            driver = row_to_dict(cur, row)
+        cur.close(); conn.close()
+    if not driver or not driver.get('accepted_by'):
+        return redirect(url_for('rider_bookings', username=username))
+    return render_template('driver_info.html', driver=driver, rider_name=username)
+
 @app.route('/rider-logout/<username>')
 def rider_logout(username):
     riders = session.get('riders', {})
