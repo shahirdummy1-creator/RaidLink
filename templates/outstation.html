@@ -3,117 +3,352 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Outstation Booking</title>
+    <title>Outstation Booking – RaidLink</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        body { background: #f0f4f8; font-family: 'Segoe UI', sans-serif; }
+        #map { width: 100%; height: 420px; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.12); z-index: 0; }
+        .autocomplete-wrap { position: relative; }
+        .autocomplete-list {
+            position: absolute; top: 100%; left: 0; right: 0; z-index: 9999;
+            background: #fff; border: 1px solid #e5e7eb;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,.12);
+            max-height: 220px; overflow-y: auto; display: none;
+        }
+        .autocomplete-list.show { display: block; }
+        .autocomplete-item {
+            padding: 10px 14px; cursor: pointer; font-size: .88rem;
+            border-bottom: 1px solid #f3f4f6;
+            display: flex; align-items: flex-start; gap: 10px;
+        }
+        .autocomplete-item:hover { background: #eff6ff; }
+        .place-name { font-weight: 600; color: #111827; }
+        .place-addr { font-size: .75rem; color: #6b7280; margin-top: 2px; }
+        .loc-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: #f0fdf4; border: 1px solid #bbf7d0;
+            color: #166534; font-size: .78rem; font-weight: 600;
+            padding: 4px 10px; border-radius: 20px; margin-top: 4px;
+        }
+        .map-legend { display: flex; gap: 16px; margin-top: 8px; font-size: .8rem; color: #6b7280; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+        .booking-card { background: #fff; border-radius: 20px; box-shadow: 0 4px 24px rgba(0,0,0,.08); padding: 32px; }
+        .section-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #6b7280; margin-bottom: 6px; }
+        .distance-badge {
+            background: #eff6ff; border: 1px solid #bfdbfe;
+            border-radius: 10px; padding: 12px 16px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+    </style>
 </head>
 <body>
 
 <nav class="navbar navbar-dark bg-primary">
-    <div class="container justify-content-center">
-        <a class="navbar-brand fw-bold text-center" href="#">RaidLink Technologies</a>
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="{{ url_for('welcome') }}">
+            <i class="bi bi-signpost-2 me-2"></i>RaidLink Outstation
+        </a>
+        <a href="{{ url_for('rider_bookings', username=username) }}" class="btn btn-sm btn-outline-light">
+            <i class="bi bi-list-ul me-1"></i> My Bookings
+        </a>
     </div>
 </nav>
 
-<section class="py-5" style="background-color:white;">
-    <div class="container">
-        <div class="row align-items-center">
+<div class="container py-4">
+    <div class="row g-4 align-items-start">
 
-            <!-- Left -->
-            <div class="col-lg-6 text-center mb-4 mb-lg-0">
-                <h1 class="fw-bold mb-3">Outstation Booking</h1>
-                <p class="text-muted mb-4">Plan your intercity trip with ease.</p>
-                <div style="background:#fff;padding:20px;border-radius:15px;display:inline-block;">
-                    <img src="{{ url_for('static', filename='images/car.png') }}"
-                         class="img-fluid" alt="Taxi Car" style="max-width:70%;border-radius:10px;">
-                </div>
+        <!-- LEFT: Map -->
+        <div class="col-lg-6">
+            <div id="map"></div>
+            <div class="map-legend">
+                <span><span class="legend-dot" style="background:#22c55e;"></span>From City</span>
+                <span><span class="legend-dot" style="background:#ef4444;"></span>Destination</span>
+                <span id="map-distance-label" class="ms-auto fw-semibold text-primary"></span>
             </div>
+            <div class="d-flex gap-2 mt-2">
+                <button type="button" class="btn btn-sm btn-outline-success w-50 fw-semibold" onclick="setMapMode('pickup')" id="btn-pickup-mode">
+                    <i class="bi bi-geo-alt-fill me-1"></i>Set From on Map
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-danger w-50 fw-semibold" onclick="setMapMode('drop')" id="btn-drop-mode">
+                    <i class="bi bi-flag-fill me-1"></i>Set Destination on Map
+                </button>
+            </div>
+            <small id="map-mode-hint" class="text-muted d-block mt-1 text-center"></small>
+        </div>
 
-            <!-- Right -->
-            <div class="col-lg-6 d-flex justify-content-center">
-                <div class="card shadow-lg p-4 rounded-4" style="width:85%;">
-                    <h3 class="card-title text-center mb-4 fw-bold">
-                        <i class="bi bi-signpost-2 me-2 text-primary"></i>Outstation Trip
-                    </h3>
-                    <form action="/submit" method="POST">
-                        <input type="hidden" name="username" value="{{ username }}">
+        <!-- RIGHT: Booking Form -->
+        <div class="col-lg-6">
+            <div class="booking-card">
+                <h4 class="fw-bold mb-1"><i class="bi bi-signpost-2 text-warning me-2"></i>Outstation Trip</h4>
+                <p class="text-muted mb-4" style="font-size:.85rem;">Plan your intercity journey</p>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">From City</label>
-                            <input type="text" class="form-control" name="pickup"
-                                   placeholder="Enter departure city" required>
+                <form action="/submit" method="POST">
+                    <input type="hidden" name="username" value="{{ username }}">
+                    <input type="hidden" id="pickup_pincode" name="pickup_pincode">
+                    <input type="hidden" id="drop_pincode"   name="drop_pincode">
+
+                    <!-- From City -->
+                    <div class="mb-3">
+                        <div class="section-label"><i class="bi bi-geo-alt-fill text-success me-1"></i>From City</div>
+                        <div class="autocomplete-wrap">
+                            <input type="text" class="form-control" id="pickup" name="pickup"
+                                   placeholder="Search departure city..." required autocomplete="off">
+                            <div class="autocomplete-list" id="pickup-list"></div>
                         </div>
+                        <div id="pickup-badge"></div>
+                    </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Destination City</label>
-                            <input type="text" class="form-control" name="drop"
-                                   placeholder="Enter destination city" required>
+                    <!-- Destination -->
+                    <div class="mb-3">
+                        <div class="section-label"><i class="bi bi-flag-fill text-danger me-1"></i>Destination City</div>
+                        <div class="autocomplete-wrap">
+                            <input type="text" class="form-control" id="drop" name="drop"
+                                   placeholder="Search destination city..." required autocomplete="off">
+                            <div class="autocomplete-list" id="drop-list"></div>
                         </div>
+                        <div id="drop-badge"></div>
+                    </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Total Distance (km)</label>
-                            <input type="number" class="form-control" id="distance" name="distance"
-                                   placeholder="Enter total kilometers" step="0.1" min="1" required
-                                   oninput="calcFare()">
+                    <!-- Distance & Fare -->
+                    <div class="mb-3">
+                        <div class="distance-badge">
+                            <div>
+                                <div class="section-label mb-1">Total Distance</div>
+                                <div class="d-flex align-items-baseline gap-1">
+                                    <input type="number" id="distance" name="distance" step="0.1"
+                                           class="form-control form-control-sm border-0 p-0 fw-bold bg-transparent"
+                                           placeholder="—" style="width:80px;font-size:1.4rem;" required>
+                                    <span class="text-muted fw-semibold">km</span>
+                                </div>
+                                <small class="text-muted">Auto-calculated via road route</small>
+                            </div>
+                            <div class="text-end">
+                                <div class="section-label mb-1">Estimated Fare</div>
+                                <div id="fare-display" class="fw-bold text-success" style="font-size:1.4rem;">—</div>
+                                <input type="hidden" id="fare" name="fare">
+                            </div>
                         </div>
+                    </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Price per Kilometer (₹)</label>
-                            <input type="number" class="form-control" id="price_per_km"
-                                   placeholder="Enter price per km" step="0.1" min="1" required
-                                   oninput="calcFare()">
-                        </div>
+                    <!-- Price per km -->
+                    <div class="mb-3">
+                        <div class="section-label">Price per km (₹)</div>
+                        <input type="number" class="form-control" id="price_per_km"
+                               value="18" step="0.5" min="1" oninput="recalcFare()">
+                        <small class="text-muted">Default ₹18/km for outstation</small>
+                    </div>
 
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Total Fare</label>
-                            <input type="text" class="form-control" id="fare" name="fare"
-                                   placeholder="Auto-calculated" readonly>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Ride Date</label>
+                    <!-- Date & Time -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-6">
+                            <div class="section-label">Ride Date</div>
                             <input type="date" class="form-control" id="ride_date" name="ride_date" required>
                         </div>
-
-                        <div class="mb-3">
-                            <label class="form-label fw-semibold">Ride Time</label>
+                        <div class="col-6">
+                            <div class="section-label">Ride Time</div>
                             <input type="time" class="form-control" id="ride_time" name="ride_time" required>
                         </div>
+                    </div>
 
-                        <div class="d-flex gap-2">
-                            <button type="submit" class="btn btn-primary w-100 fw-bold py-2">
-                                <i class="bi bi-check-circle me-1"></i> Book Outstation
-                            </button>
-                            <a href="{{ url_for('book', username=username) }}"
-                               class="btn btn-outline-secondary w-100 fw-bold py-2">
-                                <i class="bi bi-arrow-left me-1"></i> Back
-                            </a>
-                        </div>
-                    </form>
-                </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-warning w-100 fw-bold py-2">
+                            <i class="bi bi-check-circle me-1"></i> Book Outstation
+                        </button>
+                        <a href="{{ url_for('book', username=username) }}" class="btn btn-outline-secondary w-100 fw-bold py-2">
+                            <i class="bi bi-arrow-left me-1"></i> Back
+                        </a>
+                    </div>
+                </form>
             </div>
-
         </div>
     </div>
-</section>
+</div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+const coords = { pickup: null, drop: null };
+let map, pickupMarker, dropMarker, routeLine;
+let mapClickMode = null;
+
+const greenIcon = L.icon({ iconUrl:'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png', shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png', iconSize:[25,41], iconAnchor:[12,41] });
+const redIcon   = L.icon({ iconUrl:'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',   shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png', iconSize:[25,41], iconAnchor:[12,41] });
+
+document.addEventListener('DOMContentLoaded', function () {
+    map = L.map('map').setView([20.5937, 78.9629], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
+    }).addTo(map);
+
+    map.on('click', function (e) {
+        if (!mapClickMode) return;
+        reverseGeocode(e.latlng.lat, e.latlng.lng, mapClickMode);
+    });
+
     const now = new Date();
     document.getElementById('ride_date').value = now.toISOString().split('T')[0];
     document.getElementById('ride_time').value = now.toTimeString().substring(0, 5);
 
-    function calcFare() {
-        const dist = parseFloat(document.getElementById('distance').value);
-        const rate = parseFloat(document.getElementById('price_per_km').value);
-        if (!isNaN(dist) && !isNaN(rate) && dist > 0 && rate > 0) {
-            const fareVal = Math.max(dist * rate, 200);
-            document.getElementById('fare').value = fareVal.toFixed(2);
-        } else {
-            document.getElementById('fare').value = '';
-        }
+    document.getElementById('distance').addEventListener('input', recalcFare);
+});
+
+function haversineKm(lat1, lon1, lat2, lon2) {
+    const R = 6371, r = x => x * Math.PI / 180;
+    const dLat = r(lat2-lat1), dLon = r(lon2-lon1);
+    const a = Math.sin(dLat/2)**2 + Math.cos(r(lat1))*Math.cos(r(lat2))*Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function recalcFare() {
+    const dist = parseFloat(document.getElementById('distance').value);
+    const rate = parseFloat(document.getElementById('price_per_km').value) || 18;
+    if (!isNaN(dist) && dist > 0) {
+        const fareVal = Math.max(dist * rate, 200);
+        document.getElementById('fare').value = fareVal.toFixed(2);
+        document.getElementById('fare-display').textContent = '\u20b9' + fareVal.toFixed(2);
+    } else {
+        document.getElementById('fare').value = '';
+        document.getElementById('fare-display').textContent = '\u2014';
     }
+}
+
+function setDistanceFare(km) {
+    km = parseFloat(km).toFixed(1);
+    document.getElementById('distance').value = km;
+    document.getElementById('map-distance-label').textContent = km + ' km (road)';
+    recalcFare();
+}
+
+function updateMap() {
+    if (!coords.pickup || !coords.drop) return;
+    const [plat, plng] = coords.pickup;
+    const [dlat, dlng] = coords.drop;
+
+    if (pickupMarker) map.removeLayer(pickupMarker);
+    if (dropMarker)   map.removeLayer(dropMarker);
+    if (routeLine)    map.removeLayer(routeLine);
+    pickupMarker = L.marker([plat, plng], { icon: greenIcon }).addTo(map).bindPopup('<b>From</b>').openPopup();
+    dropMarker   = L.marker([dlat, dlng], { icon: redIcon   }).addTo(map).bindPopup('<b>Destination</b>');
+    routeLine    = L.polyline([[plat, plng],[dlat, dlng]], { color:'#f59e0b', weight:3, dashArray:'8,6' }).addTo(map);
+    map.fitBounds([[plat, plng],[dlat, dlng]], { padding: [50, 50] });
+
+    document.getElementById('fare-display').textContent = '\u23f3 Calculating...';
+    document.getElementById('map-distance-label').textContent = 'Calculating...';
+
+    fetch(`https://router.project-osrm.org/route/v1/driving/${plng},${plat};${dlng},${dlat}?overview=false`)
+        .then(r => r.json())
+        .then(data => {
+            const metres = data?.routes?.[0]?.distance;
+            setDistanceFare(metres && metres > 0 ? (metres/1000).toFixed(1) : (haversineKm(plat,plng,dlat,dlng)*1.3).toFixed(1));
+        })
+        .catch(() => setDistanceFare((haversineKm(plat,plng,dlat,dlng)*1.3).toFixed(1)));
+}
+
+// ── Map click mode ────────────────────────────────────────
+function setMapMode(type) {
+    mapClickMode = type;
+    document.getElementById('btn-pickup-mode').className = 'btn btn-sm w-50 fw-semibold ' + (type==='pickup' ? 'btn-success' : 'btn-outline-success');
+    document.getElementById('btn-drop-mode').className   = 'btn btn-sm w-50 fw-semibold ' + (type==='drop'   ? 'btn-danger'  : 'btn-outline-danger');
+    document.getElementById('map-mode-hint').innerHTML   = type==='pickup'
+        ? '<span class="text-success fw-semibold">&#128205; Click map to set From City</span>'
+        : '<span class="text-danger fw-semibold">&#127937; Click map to set Destination</span>';
+    if (map) map.getContainer().style.cursor = 'crosshair';
+}
+
+async function reverseGeocode(lat, lng, type) {
+    document.getElementById(type+'-badge').innerHTML = '<span class="loc-badge"><i class="bi bi-hourglass-split"></i> Fetching...</span>';
+    try {
+        const res  = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`, { headers:{'Accept-Language':'en'} });
+        const data = await res.json();
+        const name = data.address?.city || data.address?.town || data.address?.village || data.display_name.split(',')[0];
+        const addr = data.display_name.split(',').slice(1,3).join(',').trim();
+        document.getElementById(type).value = name;
+        document.getElementById(type+'_pincode').value = data.address?.postcode || '';
+        coords[type] = [lat, lng];
+        document.getElementById(type+'-badge').innerHTML = `<span class="loc-badge"><i class="bi bi-check-circle-fill"></i>${addr||name}</span>`;
+        updateMap();
+    } catch {
+        document.getElementById(type+'-badge').innerHTML = '<span class="text-danger small">Could not fetch address</span>';
+    }
+    mapClickMode = null;
+    if (map) map.getContainer().style.cursor = '';
+    document.getElementById('map-mode-hint').textContent = '';
+    document.getElementById('btn-pickup-mode').className = 'btn btn-sm btn-outline-success w-50 fw-semibold';
+    document.getElementById('btn-drop-mode').className   = 'btn btn-sm btn-outline-danger w-50 fw-semibold';
+}
+
+// ── Autosuggest ───────────────────────────────────────────
+const timers = {};
+['pickup','drop'].forEach(type => {
+    document.getElementById(type).addEventListener('input', function () {
+        clearTimeout(timers[type]);
+        const val = this.value.trim();
+        if (val.length < 3) {
+            closeList(type);
+            coords[type] = null;
+            document.getElementById(type+'-badge').innerHTML = '';
+            document.getElementById('distance').value = '';
+            document.getElementById('fare').value = '';
+            document.getElementById('fare-display').textContent = '\u2014';
+            document.getElementById('map-distance-label').textContent = '';
+            return;
+        }
+        timers[type] = setTimeout(() => fetchSuggestions(val, type), 400);
+    });
+    document.getElementById(type).addEventListener('blur', () => setTimeout(() => closeList(type), 200));
+});
+
+async function fetchSuggestions(query, type) {
+    try {
+        const res  = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query+', India')}&format=json&limit=6&addressdetails=1`, { headers:{'Accept-Language':'en'} });
+        const data = await res.json();
+        if (!data.length) { closeList(type); return; }
+        const list = document.getElementById(type+'-list');
+        list._data = data;
+        list.innerHTML = data.map((p,i) => {
+            const name = p.display_name.split(',')[0];
+            const addr = p.display_name.split(',').slice(1,3).join(',').trim();
+            return `<div class="autocomplete-item" onmousedown="selectPlace(${i},'${type}')">
+                        <i class="bi bi-geo-alt text-warning mt-1"></i>
+                        <div><div class="place-name">${name}</div><div class="place-addr">${addr}</div></div>
+                    </div>`;
+        }).join('');
+        list.classList.add('show');
+    } catch { closeList(type); }
+}
+
+function selectPlace(idx, type) {
+    const list  = document.getElementById(type+'-list');
+    const place = list._data[idx];
+    const lat   = parseFloat(place.lat);
+    const lng   = parseFloat(place.lon);
+    if (isNaN(lat)||isNaN(lng)) return;
+    const name = place.display_name.split(',')[0];
+    const addr = place.display_name.split(',').slice(1,3).join(',').trim();
+    document.getElementById(type).value = name;
+    document.getElementById(type+'_pincode').value = place.address?.postcode || '';
+    coords[type] = [lat, lng];
+    document.getElementById(type+'-badge').innerHTML = `<span class="loc-badge"><i class="bi bi-check-circle-fill"></i>${addr||name}</span>`;
+    closeList(type);
+    updateMap();
+}
+
+function closeList(type) {
+    const list = document.getElementById(type+'-list');
+    list.classList.remove('show');
+    list.innerHTML = '';
+}
+
+document.addEventListener('click', e => {
+    ['pickup','drop'].forEach(type => {
+        const wrap = document.getElementById(type).closest('.autocomplete-wrap');
+        if (wrap && !wrap.contains(e.target)) closeList(type);
+    });
+});
 </script>
 </body>
 </html>
