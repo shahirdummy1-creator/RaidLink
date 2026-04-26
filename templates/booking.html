@@ -6,63 +6,41 @@
     <title>Book a Ride – RaidLink</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
         body { background: #f0f4f8; font-family: 'Segoe UI', sans-serif; }
-
-        /* Map container */
-        #map { width: 100%; height: 420px; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.12); }
-
-        /* Autocomplete dropdown */
+        #map { width: 100%; height: 420px; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.12); z-index: 0; }
         .autocomplete-wrap { position: relative; }
         .autocomplete-list {
-            position: absolute; top: 100%; left: 0; right: 0; z-index: 1000;
+            position: absolute; top: 100%; left: 0; right: 0; z-index: 9999;
             background: #fff; border: 1px solid #e5e7eb;
             border-radius: 0 0 10px 10px;
-            box-shadow: 0 8px 24px rgba(0,0,0,.1);
-            max-height: 220px; overflow-y: auto;
-            display: none;
+            box-shadow: 0 8px 24px rgba(0,0,0,.12);
+            max-height: 220px; overflow-y: auto; display: none;
         }
         .autocomplete-list.show { display: block; }
         .autocomplete-item {
-            padding: 10px 14px; cursor: pointer;
-            font-size: .88rem; border-bottom: 1px solid #f3f4f6;
+            padding: 10px 14px; cursor: pointer; font-size: .88rem;
+            border-bottom: 1px solid #f3f4f6;
             display: flex; align-items: flex-start; gap: 10px;
         }
-        .autocomplete-item:last-child { border-bottom: none; }
         .autocomplete-item:hover { background: #eff6ff; }
-        .autocomplete-item .place-name { font-weight: 600; color: #111827; }
-        .autocomplete-item .place-addr { font-size: .78rem; color: #6b7280; margin-top: 2px; }
-        .autocomplete-item .place-icon { color: #0d6efd; margin-top: 2px; flex-shrink: 0; }
-
-        /* Location confirmed badge */
+        .place-name { font-weight: 600; color: #111827; }
+        .place-addr { font-size: .75rem; color: #6b7280; margin-top: 2px; }
         .loc-badge {
             display: inline-flex; align-items: center; gap: 6px;
             background: #f0fdf4; border: 1px solid #bbf7d0;
             color: #166534; font-size: .78rem; font-weight: 600;
             padding: 4px 10px; border-radius: 20px; margin-top: 4px;
         }
-
-        /* Route line on map */
-        .map-legend {
-            display: flex; gap: 16px; margin-top: 10px;
-            font-size: .8rem; color: #6b7280;
-        }
+        .map-legend { display: flex; gap: 16px; margin-top: 8px; font-size: .8rem; color: #6b7280; }
         .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 4px; }
-
-        /* Card */
-        .booking-card {
-            background: #fff; border-radius: 20px;
-            box-shadow: 0 4px 24px rgba(0,0,0,.08);
-            padding: 32px;
-        }
-        .section-label {
-            font-size: .72rem; font-weight: 700; text-transform: uppercase;
-            letter-spacing: .08em; color: #6b7280; margin-bottom: 8px;
-        }
+        .booking-card { background: #fff; border-radius: 20px; box-shadow: 0 4px 24px rgba(0,0,0,.08); padding: 32px; }
+        .section-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #6b7280; margin-bottom: 6px; }
         .distance-badge {
             background: #eff6ff; border: 1px solid #bfdbfe;
-            border-radius: 10px; padding: 10px 16px;
+            border-radius: 10px; padding: 12px 16px;
             display: flex; align-items: center; justify-content: space-between;
         }
     </style>
@@ -86,7 +64,7 @@
         <!-- LEFT: Map -->
         <div class="col-lg-6">
             <div id="map"></div>
-            <div class="map-legend mt-2">
+            <div class="map-legend">
                 <span><span class="legend-dot" style="background:#22c55e;"></span>Pickup</span>
                 <span><span class="legend-dot" style="background:#ef4444;"></span>Drop</span>
                 <span id="map-distance-label" class="ms-auto fw-semibold text-primary"></span>
@@ -98,7 +76,7 @@
             <div class="booking-card">
                 <h4 class="fw-bold mb-4">Book Your Ride</h4>
 
-                <form action="/submit" method="POST" id="bookingForm">
+                <form action="/submit" method="POST">
                     <input type="hidden" name="username" value="{{ username }}">
                     <input type="hidden" id="pickup_pincode" name="pickup_pincode">
                     <input type="hidden" id="drop_pincode"   name="drop_pincode">
@@ -129,15 +107,18 @@
                     <div class="mb-3">
                         <div class="distance-badge">
                             <div>
-                                <div class="section-label mb-0">Distance</div>
-                                <input type="number" id="distance" name="distance" step="0.1"
-                                       class="form-control form-control-sm border-0 p-0 fw-bold fs-5 bg-transparent"
-                                       placeholder="—" style="width:100px;" required>
-                                <small class="text-muted">km (auto-calculated or enter manually)</small>
+                                <div class="section-label mb-1">Total Distance</div>
+                                <div class="d-flex align-items-baseline gap-1">
+                                    <input type="number" id="distance" name="distance" step="0.1"
+                                           class="form-control form-control-sm border-0 p-0 fw-bold bg-transparent"
+                                           placeholder="—" style="width:80px;font-size:1.4rem;" required>
+                                    <span class="text-muted fw-semibold">km</span>
+                                </div>
+                                <small class="text-muted">Auto-calculated via road route</small>
                             </div>
                             <div class="text-end">
-                                <div class="section-label mb-0">Estimated Fare</div>
-                                <div id="fare-display" class="fw-bold fs-5 text-success">—</div>
+                                <div class="section-label mb-1">Estimated Fare</div>
+                                <div id="fare-display" class="fw-bold text-success" style="font-size:1.4rem;">—</div>
                                 <input type="hidden" id="fare" name="fare">
                             </div>
                         </div>
@@ -167,41 +148,37 @@
     </div>
 </div>
 
-<!-- MapMyIndia (Mappls) Map SDK -->
-<script src="https://apis.mappls.com/advancedmaps/v1/{{ mappls_key }}/map_load?v=1.5&plugins=direction"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
 <script>
-const MAPPLS_KEY = '{{ mappls_key }}';
-const coords     = { pickup: null, drop: null };
-let   map, pickupMarker, dropMarker, routeLayer;
+const coords = { pickup: null, drop: null };
+let map, pickupMarker, dropMarker, routeLine;
 
-// ── Init map ──────────────────────────────────────────────
-window.addEventListener('load', function () {
-    map = new mappls.Map('map', {
-        center: [20.5937, 78.9629],
-        zoom: 5,
-        search: false
-    });
+const greenIcon = L.icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    iconSize: [25,41], iconAnchor: [12,41], popupAnchor: [1,-34]
+});
+const redIcon = L.icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+    iconSize: [25,41], iconAnchor: [12,41], popupAnchor: [1,-34]
 });
 
-// ── Haversine distance ────────────────────────────────────
-function haversine(lat1, lon1, lat2, lon2) {
-    const R = 6371, r = x => x * Math.PI / 180;
-    const dLat = r(lat2-lat1), dLon = r(lon2-lon1);
-    const a = Math.sin(dLat/2)**2 + Math.cos(r(lat1))*Math.cos(r(lat2))*Math.sin(dLon/2)**2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
+document.addEventListener('DOMContentLoaded', function () {
+    // Init map
+    map = L.map('map').setView([20.5937, 78.9629], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
+    }).addTo(map);
 
-function setDistanceFare(dist) {
-    dist = parseFloat(dist).toFixed(1);
-    document.getElementById('distance').value = dist;
-    const fare = (25 * dist).toFixed(2);
-    document.getElementById('fare').value = '\u20b9' + fare;
-    document.getElementById('fare-display').textContent = '\u20b9' + fare;
-    document.getElementById('map-distance-label').textContent = dist + ' km';
-}
+    // Default date/time
+    const now = new Date();
+    document.getElementById('ride_date').value = now.toISOString().split('T')[0];
+    document.getElementById('ride_time').value = now.toTimeString().substring(0, 5);
+});
 
+// ── Haversine fallback ────────────────────────────────────
 function haversineKm(lat1, lon1, lat2, lon2) {
     const R = 6371, r = x => x * Math.PI / 180;
     const dLat = r(lat2-lat1), dLon = r(lon2-lon1);
@@ -209,33 +186,40 @@ function haversineKm(lat1, lon1, lat2, lon2) {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
+// ── Set distance & fare ───────────────────────────────────
+function setDistanceFare(km) {
+    km = parseFloat(km).toFixed(1);
+    document.getElementById('distance').value = km;
+    const fare = '&#8377;' + (25 * km).toFixed(2);
+    document.getElementById('fare').value = fare;
+    document.getElementById('fare-display').innerHTML = fare;
+    document.getElementById('map-distance-label').textContent = km + ' km (road)';
+}
+
+// ── Update map markers + calculate distance ───────────────
 function updateDistanceFare() {
     if (!coords.pickup || !coords.drop) return;
-
-    document.getElementById('fare-display').textContent = '\u23f3 Calculating...';
-    document.getElementById('map-distance-label').textContent = 'Calculating...';
-
-    // Draw markers immediately
-    try {
-        if (pickupMarker) pickupMarker.remove();
-        if (dropMarker)   dropMarker.remove();
-        pickupMarker = new mappls.Marker({ map, position: { lat: coords.pickup[0], lng: coords.pickup[1] } });
-        dropMarker   = new mappls.Marker({ map, position: { lat: coords.drop[0],   lng: coords.drop[1]   } });
-        map.fitBounds([[coords.pickup[0], coords.pickup[1]], [coords.drop[0], coords.drop[1]]], { padding: 60 });
-    } catch(e) {}
 
     const [plat, plng] = coords.pickup;
     const [dlat, dlng] = coords.drop;
 
-    // Use haversine directly since Mappls key is expired
-    // Replace fetch block with direct calculation
-    setDistanceFare((haversineKm(plat, plng, dlat, dlng) * 1.3).toFixed(1));
+    document.getElementById('fare-display').textContent = '⏳ Calculating...';
+    document.getElementById('map-distance-label').textContent = 'Calculating...';
 
-    /* Uncomment below when Mappls key is active:
-    fetch(`https://apis.mappls.com/advancedmaps/v1/${MAPPLS_KEY}/distance_matrix/driving/${plng},${plat};${dlng},${dlat}?rtype=0&region=IND`)
+    // Update map markers
+    if (pickupMarker) map.removeLayer(pickupMarker);
+    if (dropMarker)   map.removeLayer(dropMarker);
+    if (routeLine)    map.removeLayer(routeLine);
+    pickupMarker = L.marker([plat, plng], { icon: greenIcon }).addTo(map).bindPopup('<b>Pickup</b>').openPopup();
+    dropMarker   = L.marker([dlat, dlng], { icon: redIcon   }).addTo(map).bindPopup('<b>Drop</b>');
+    routeLine    = L.polyline([[plat, plng],[dlat, dlng]], { color:'#0d6efd', weight:3, dashArray:'8,6' }).addTo(map);
+    map.fitBounds([[plat, plng],[dlat, dlng]], { padding: [50, 50] });
+
+    // OSRM free road distance API
+    fetch(`https://router.project-osrm.org/route/v1/driving/${plng},${plat};${dlng},${dlat}?overview=false`)
         .then(r => r.json())
         .then(data => {
-            const metres = data?.results?.distances?.[0]?.[1];
+            const metres = data?.routes?.[0]?.distance;
             if (metres && metres > 0) {
                 setDistanceFare((metres / 1000).toFixed(1));
             } else {
@@ -245,96 +229,12 @@ function updateDistanceFare() {
         .catch(() => {
             setDistanceFare((haversineKm(plat, plng, dlat, dlng) * 1.3).toFixed(1));
         });
-    */
 }
 
-// ── Mappls Autosuggest ────────────────────────────────────
-async function autosuggest(query, type) {
-    if (query.length < 3) { closeList(type); return; }
-    try {
-        const res  = await fetch(
-            `https://atlas.mappls.com/api/places/search/json?query=${encodeURIComponent(query)}&region=IND&access_token=${MAPPLS_KEY}`
-        );
-        const data = await res.json();
-        const suggestions = data.suggestedLocations || [];
-        renderList(suggestions, type);
-    } catch {
-        // Fallback to Nominatim if Mappls fails
-        nominatimFallback(query, type);
-    }
-}
-
-async function nominatimFallback(query, type) {
-    try {
-        const res  = await fetch(
-            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query+', India')}&format=json&limit=5&addressdetails=1`,
-            { headers: { 'Accept-Language': 'en' } }
-        );
-        const data = await res.json();
-        const suggestions = data.map(p => ({
-            placeName:   p.display_name.split(',')[0],
-            placeAddress:p.display_name.split(',').slice(1,3).join(','),
-            lat:         p.lat,
-            lon:         p.lon,
-            pincode:     p.address?.postcode || ''
-        }));
-        renderList(suggestions, type);
-    } catch { closeList(type); }
-}
-
-function renderList(suggestions, type) {
-    const list = document.getElementById(type + '-list');
-    if (!suggestions.length) { closeList(type); return; }
-    list.innerHTML = suggestions.slice(0, 6).map((s, i) => `
-        <div class="autocomplete-item" onclick="selectPlace(${i}, '${type}')">
-            <i class="bi bi-geo-alt place-icon"></i>
-            <div>
-                <div class="place-name">${s.placeName || s.placeName}</div>
-                <div class="place-addr">${s.placeAddress || ''}</div>
-            </div>
-        </div>
-    `).join('');
-    list._data = suggestions;
-    list.classList.add('show');
-}
-
-function selectPlace(idx, type) {
-    const list  = document.getElementById(type + '-list');
-    const place = list._data[idx];
-    const name  = place.placeName || place.display_name || '';
-    // Handle both Mappls (latitude/longitude) and Nominatim (lat/lon) field names
-    const lat   = parseFloat(place.latitude  ?? place.lat);
-    const lng   = parseFloat(place.longitude ?? place.lon);
-    const pin   = place.pincode || '';
-
-    if (isNaN(lat) || isNaN(lng)) {
-        console.error('Invalid coordinates for', name, place);
-        return;
-    }
-
-    document.getElementById(type).value = name.split(',')[0];
-    document.getElementById(type + '_pincode').value = pin;
-    coords[type] = [lat, lng];
-
-    document.getElementById(type + '-badge').innerHTML =
-        `<span class="loc-badge"><i class="bi bi-check-circle-fill"></i>${name.split(',').slice(0,2).join(',')}</span>`;
-
-    closeList(type);
-    updateDistanceFare();
-    if (map) { try { map.setCenter({ lat, lng }); } catch(e) {} }
-}
-
-function closeList(type) {
-    const list = document.getElementById(type + '-list');
-    list.classList.remove('show');
-    list.innerHTML = '';
-}
-
-// ── Event listeners ───────────────────────────────────────
+// ── Nominatim autosuggest ─────────────────────────────────
 const timers = {};
 ['pickup', 'drop'].forEach(type => {
-    const inp = document.getElementById(type);
-    inp.addEventListener('input', function () {
+    document.getElementById(type).addEventListener('input', function () {
         clearTimeout(timers[type]);
         const val = this.value.trim();
         if (val.length < 3) {
@@ -347,36 +247,84 @@ const timers = {};
             document.getElementById('map-distance-label').textContent = '';
             return;
         }
-        timers[type] = setTimeout(() => autosuggest(val, type), 400);
+        timers[type] = setTimeout(() => fetchSuggestions(val, type), 400);
     });
-    inp.addEventListener('blur', () => setTimeout(() => closeList(type), 200));
+    document.getElementById(type).addEventListener('blur', () => {
+        setTimeout(() => closeList(type), 200);
+    });
 });
+
+async function fetchSuggestions(query, type) {
+    try {
+        const res  = await fetch(
+            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + ', India')}&format=json&limit=6&addressdetails=1`,
+            { headers: { 'Accept-Language': 'en' } }
+        );
+        const data = await res.json();
+        if (!data.length) { closeList(type); return; }
+
+        const list = document.getElementById(type + '-list');
+        list._data = data;
+        list.innerHTML = data.map((p, i) => {
+            const name = p.display_name.split(',')[0];
+            const addr = p.display_name.split(',').slice(1, 3).join(',').trim();
+            return `<div class="autocomplete-item" onmousedown="selectPlace(${i},'${type}')">
+                        <i class="bi bi-geo-alt text-primary mt-1"></i>
+                        <div><div class="place-name">${name}</div><div class="place-addr">${addr}</div></div>
+                    </div>`;
+        }).join('');
+        list.classList.add('show');
+    } catch { closeList(type); }
+}
+
+function selectPlace(idx, type) {
+    const list  = document.getElementById(type + '-list');
+    const place = list._data[idx];
+    const lat   = parseFloat(place.lat);
+    const lng   = parseFloat(place.lon);
+    const name  = place.display_name.split(',')[0];
+    const addr  = place.display_name.split(',').slice(1, 3).join(',').trim();
+    const pin   = place.address?.postcode || '';
+
+    if (isNaN(lat) || isNaN(lng)) return;
+
+    document.getElementById(type).value = name;
+    document.getElementById(type + '_pincode').value = pin;
+    coords[type] = [lat, lng];
+
+    document.getElementById(type + '-badge').innerHTML =
+        `<span class="loc-badge"><i class="bi bi-check-circle-fill"></i>${addr || name}</span>`;
+
+    closeList(type);
+    updateDistanceFare();
+}
+
+function closeList(type) {
+    const list = document.getElementById(type + '-list');
+    list.classList.remove('show');
+    list.innerHTML = '';
+}
 
 // Manual distance → update fare
-document.getElementById('distance').addEventListener('input', function () {
-    const d = parseFloat(this.value);
-    if (!isNaN(d) && d > 0) {
-        const fare = '₹' + (25 * d).toFixed(2);
-        document.getElementById('fare').value = fare;
-        document.getElementById('fare-display').textContent = fare;
-    } else {
-        document.getElementById('fare').value = '';
-        document.getElementById('fare-display').textContent = '—';
-    }
-});
-
-// Set default date/time
 document.addEventListener('DOMContentLoaded', function () {
-    const now = new Date();
-    document.getElementById('ride_date').value = now.toISOString().split('T')[0];
-    document.getElementById('ride_time').value = now.toTimeString().substring(0, 5);
+    document.getElementById('distance').addEventListener('input', function () {
+        const d = parseFloat(this.value);
+        if (!isNaN(d) && d > 0) {
+            const fare = '&#8377;' + (25 * d).toFixed(2);
+            document.getElementById('fare').value = fare;
+            document.getElementById('fare-display').innerHTML = fare;
+        } else {
+            document.getElementById('fare').value = '';
+            document.getElementById('fare-display').textContent = '—';
+        }
+    });
 });
 
 // Close dropdown on outside click
 document.addEventListener('click', e => {
     ['pickup', 'drop'].forEach(type => {
-        if (!document.getElementById(type).contains(e.target))
-            closeList(type);
+        const wrap = document.getElementById(type).closest('.autocomplete-wrap');
+        if (wrap && !wrap.contains(e.target)) closeList(type);
     });
 });
 </script>
