@@ -195,12 +195,33 @@ function haversine(lat1, lon1, lat2, lon2) {
 
 function updateDistanceFare() {
     if (!coords.pickup || !coords.drop) return;
-    const dist = (haversine(...coords.pickup, ...coords.drop) + 5).toFixed(1);
-    document.getElementById('distance').value = dist;
-    const fare = (25 * dist).toFixed(2);
-    document.getElementById('fare').value = '₹' + fare;
-    document.getElementById('fare-display').textContent = '₹' + fare;
-    document.getElementById('map-distance-label').textContent = dist + ' km';
+    // Use Mappls Distance Matrix API for road distance
+    fetch(`https://apis.mappls.com/advancedmaps/v1/${MAPPLS_KEY}/distance_matrix/driving/${coords.pickup[1]},${coords.pickup[0]};${coords.drop[1]},${coords.drop[0]}?rtype=0&region=IND`)
+        .then(r => r.json())
+        .then(data => {
+            let dist;
+            try {
+                // Road distance in metres → km
+                dist = (data.results.distances[0][1] / 1000).toFixed(1);
+            } catch {
+                // Fallback to Haversine if API fails
+                dist = (haversine(...coords.pickup, ...coords.drop) + 5).toFixed(1);
+            }
+            document.getElementById('distance').value = dist;
+            const fare = (25 * dist).toFixed(2);
+            document.getElementById('fare').value = '₹' + fare;
+            document.getElementById('fare-display').textContent = '₹' + fare;
+            document.getElementById('map-distance-label').textContent = dist + ' km (road)';
+        })
+        .catch(() => {
+            // Haversine fallback
+            const dist = (haversine(...coords.pickup, ...coords.drop) + 5).toFixed(1);
+            document.getElementById('distance').value = dist;
+            const fare = (25 * dist).toFixed(2);
+            document.getElementById('fare').value = '₹' + fare;
+            document.getElementById('fare-display').textContent = '₹' + fare;
+            document.getElementById('map-distance-label').textContent = dist + ' km';
+        });
 
     // Draw markers and fit map
     if (pickupMarker) pickupMarker.remove();
