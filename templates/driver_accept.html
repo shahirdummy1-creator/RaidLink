@@ -183,7 +183,7 @@
 
     <!-- Actions -->
     <div class="action-section">
-        <a href="{{ url_for('start_trip', username=driver_name) }}" class="btn-start text-decoration-none">
+        <a href="{{ url_for('start_trip', username=driver_name) }}" class="btn-start text-decoration-none w-100">
             <i class="bi bi-play-circle-fill"></i> Arrived at Pickup
         </a>
         <form method="POST" action="{{ url_for('driver_cancel_trip') }}" style="margin:0;">
