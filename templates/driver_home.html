@@ -89,6 +89,7 @@
         .driver-profile-name { font-size: 1.05rem; font-weight: 700; color: #111827; }
         .driver-profile-meta { font-size: .78rem; color: #6b7280; margin-top: 2px; }
 
+
     </style>
 </head>
 <body>
@@ -185,6 +186,8 @@
 
         <!-- Booking request card (rendered by JS) -->
         <div id="bookingArea"></div>
+
+
 
         <div class="mt-3">
             <a href="{{ url_for('driver_home', username=driver_name) }}" class="btn btn-secondary">Back to Home</a>
@@ -402,7 +405,7 @@
                         onmouseout="this.style.background='transparent';this.style.color='#dc2626'">
                         <i class="bi bi-x-circle me-1"></i> Decline
                     </button>
-                    <button type="button" id="confirmAcceptBtn" onclick="acceptBooking()"
+                    <button type="button" onclick="acceptBooking()"
                         style="padding:12px;border-radius:10px;border:none;background:linear-gradient(135deg,#059669,#047857);color:#fff;font-weight:700;font-size:.9rem;cursor:pointer;box-shadow:0 4px 12px rgba(5,150,105,.35);transition:all .18s;"
                         onmouseover="this.style.transform='translateY(-1px)'"
                         onmouseout="this.style.transform='translateY(0)'">
@@ -439,6 +442,7 @@
 
     // ── Booking actions ────────────────────────────────────
     function acceptBooking() {
+        stopPolling();
         document.getElementById('acceptTripForm').submit();
     }
 
@@ -455,6 +459,8 @@
             });
         }
     }
+
+
 
     function capitalize(str) {
         return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
