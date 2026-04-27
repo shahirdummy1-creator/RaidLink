@@ -1,9 +1,10 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from db import get_db, init_db
 from werkzeug.utils import secure_filename
-import hashlib
+from werkzeug.security import generate_password_hash, check_password_hash
 import os
 import random
+import re
 
 from datetime import timedelta
 
@@ -33,9 +34,6 @@ init_db()
 
 
 # ── Helpers ──────────────────────────────────────────────────
-def hash_password(pw):
-    return hashlib.sha256(pw.encode()).hexdigest()
-
 def format_fare(val):
     """Format fare with ₹ symbol and apply minimum ₹200."""
     try:
@@ -123,12 +121,12 @@ def rider_login():
         if conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT id, username FROM Rider_Details WHERE username=%s AND password_hash=%s AND account_status='Active'",
-                (username, hash_password(password))
+                "SELECT id, username, password_hash FROM Rider_Details WHERE username=%s AND account_status='Active'",
+                (username,)
             )
             rider = cur.fetchone()
             cur.close(); conn.close()
-            if rider:
+            if rider and check_password_hash(rider[2], password):
                 session.permanent = True
                 riders = session.setdefault('riders', {})
                 riders[rider[1]] = rider[0]
@@ -159,7 +157,7 @@ def rider_signup():
                 try:
                     cur.execute(
                         "INSERT INTO Rider_Details (username, mobile, email, password_hash) VALUES (%s,%s,%s,%s)",
-                        (username, mobile, email, hash_password(password))
+                        (username, mobile, email, generate_password_hash(password))
                     )
                     conn.commit()
                     cur.close(); conn.close()
@@ -184,12 +182,12 @@ def driver_login():
         if conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT id, username, car_make, car_model, reg_number, profile_photo FROM Driver_Details WHERE username=%s AND password_hash=%s AND account_status='Active'",
-                (username, hash_password(password))
+                "SELECT id, username, car_make, car_model, reg_number, profile_photo, password_hash FROM Driver_Details WHERE username=%s AND account_status='Active'",
+                (username,)
             )
             driver = cur.fetchone()
             cur.close(); conn.close()
-            if driver:
+            if driver and check_password_hash(driver[6], password):
                 session.permanent = True
                 drivers = session.setdefault('drivers', {})
                 drivers[driver[1]] = {
@@ -229,7 +227,7 @@ def driver_signup_step1():
                 profile_photo = save_file(request.files.get('profile_photo'), f"{secure_filename(username)}_profile")
                 session['signup_step1'] = {
                     'username': username, 'mobile': mobile,
-                    'email': email, 'password': hash_password(password),
+                    'email': email, 'password': generate_password_hash(password),
                     'profile_photo': profile_photo
                 }
                 session.modified = True
@@ -632,7 +630,6 @@ def submit():
     rider_id  = get_rider_id(username)
     if not rider_id:
         return redirect(url_for('rider_login'))
-    import re
     pickup    = re.sub(r'<[^>]*>', '', request.form.get('pickup', '')).strip()
     drop      = re.sub(r'<[^>]*>', '', request.form.get('drop', '')).strip()
     distance  = request.form.get('distance', '')
