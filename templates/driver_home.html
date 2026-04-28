@@ -248,6 +248,21 @@
         statusText.textContent = online ? 'Online' : 'Offline';
         statusText.className   = online ? 'mb-0 text-success' : 'mb-0 text-danger';
         searchingOrdersCard.style.display = online ? 'block' : 'none';
+        
+        // Update online status via API
+        if (navigator.geolocation && online) {
+            navigator.geolocation.getCurrentPosition(
+                position => {
+                    updateDriverOnlineStatus(online, position.coords.latitude, position.coords.longitude);
+                },
+                () => {
+                    updateDriverOnlineStatus(online);
+                }
+            );
+        } else {
+            updateDriverOnlineStatus(online);
+        }
+        
         if (online) {
             currentBookingId = null;
             bookingArea.innerHTML = '';
@@ -257,6 +272,19 @@
             bookingArea.innerHTML = '';
         }
         localStorage.setItem(DRIVER_ONLINE_KEY, online);
+    }
+    
+    function updateDriverOnlineStatus(isOnline, lat = null, lng = null) {
+        fetch('/api/driver-online', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                username: DRIVER_USERNAME,
+                is_online: isOnline,
+                lat: lat,
+                lng: lng
+            })
+        }).catch(err => console.log('Status update failed:', err));
     }
     statusSwitch.addEventListener('change', updateStatus);
 
