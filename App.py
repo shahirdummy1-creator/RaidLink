@@ -99,20 +99,6 @@ def get_driver(username):
 
 # ── Optimized Booking Distribution System ──────────────────────
 
-def calculate_distance(lat1, lng1, lat2, lng2):
-    """Calculate distance between two points using Haversine formula."""
-    if not all([lat1, lng1, lat2, lng2]):
-        return float('inf')
-    
-    R = 6371  # Earth's radius in kilometers
-    dlat = math.radians(lat2 - lat1)
-    dlng = math.radians(lng2 - lng1)
-    a = (math.sin(dlat/2) * math.sin(dlat/2) + 
-         math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * 
-         math.sin(dlng/2) * math.sin(dlng/2))
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
-    return R * c
-
 def update_driver_online_status(username, is_online, lat=None, lng=None):
     """Update driver's online status and location."""
     conn = get_db()
@@ -130,25 +116,29 @@ def update_driver_online_status(username, is_online, lat=None, lng=None):
         conn.commit()
         cur.close(); conn.close()
 
-def get_available_drivers(pickup_lat=None, pickup_lng=None, max_distance=10):
-    """Get list of available drivers sorted by proximity and priority."""
+def get_available_drivers(pickup_lat=None, pickup_lng=None, max_distance=None):
+    """Get list of available drivers with fair rotation distribution."""
     conn = get_db()
     if not conn:
         return []
     
     cur = conn.cursor()
-    # Get online drivers who are not currently on a trip
+    # Get online drivers who are not currently on a trip, ordered by last assignment time
     cur.execute("""
         SELECT dos.driver_username, dos.location_lat, dos.location_lng, 
-               dos.priority_score, dos.last_seen,
-               dd.car_make, dd.car_model, dd.reg_number
+               dos.last_seen, dos.last_assignment_time,
+               dd.car_make, dd.car_model, dd.reg_number,
+               COUNT(bq.id) as total_assignments
         FROM Driver_Online_Status dos
         JOIN Driver_Details dd ON dd.username = dos.driver_username
+        LEFT JOIN Booking_Queue bq ON bq.assigned_driver = dos.driver_username 
+               AND bq.created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)
         WHERE dos.is_online = TRUE 
         AND dd.account_status = 'Active'
         AND dos.current_trip_id IS NULL
         AND dos.last_seen > DATE_SUB(NOW(), INTERVAL 5 MINUTE)
-        ORDER BY dos.priority_score DESC, dos.last_seen DESC
+        GROUP BY dos.driver_username
+        ORDER BY total_assignments ASC, dos.last_assignment_time ASC, dos.last_seen DESC
     """)
     
     drivers = []
@@ -157,27 +147,15 @@ def get_available_drivers(pickup_lat=None, pickup_lng=None, max_distance=10):
             'username': row[0],
             'lat': float(row[1]) if row[1] else None,
             'lng': float(row[2]) if row[2] else None,
-            'priority_score': row[3],
-            'last_seen': row[4],
+            'last_seen': row[3],
+            'last_assignment_time': row[4],
             'car': f"{row[5]} {row[6]}",
             'reg_number': row[7],
-            'distance': float('inf')
+            'total_assignments': row[8] or 0
         }
-        
-        # Calculate distance if pickup location is provided
-        if pickup_lat and pickup_lng and driver['lat'] and driver['lng']:
-            driver['distance'] = calculate_distance(
-                pickup_lat, pickup_lng, driver['lat'], driver['lng']
-            )
-        
-        # Only include drivers within max_distance
-        if driver['distance'] <= max_distance:
-            drivers.append(driver)
+        drivers.append(driver)
     
     cur.close(); conn.close()
-    
-    # Sort by distance first, then by priority score
-    drivers.sort(key=lambda x: (x['distance'], -x['priority_score']))
     return drivers
 
 def assign_booking_to_driver(trip_id, driver_username, timeout_minutes=2):
@@ -202,6 +180,13 @@ def assign_booking_to_driver(trip_id, driver_username, timeout_minutes=2):
             retry_count = retry_count + 1
         """, (trip_id, driver_username, timeout_at))
         
+        # Update driver's last assignment time for fair rotation
+        cur.execute("""
+            UPDATE Driver_Online_Status 
+            SET last_assignment_time = NOW() 
+            WHERE driver_username = %s
+        """, (driver_username,))
+        
         conn.commit()
         cur.close(); conn.close()
         return True
@@ -211,7 +196,7 @@ def assign_booking_to_driver(trip_id, driver_username, timeout_minutes=2):
         return False
 
 def auto_distribute_bookings():
-    """Automatically distribute new bookings to available drivers."""
+    """Automatically distribute new bookings to available drivers with fair rotation."""
     conn = get_db()
     if not conn:
         return
@@ -234,8 +219,7 @@ def auto_distribute_bookings():
     for booking in unassigned_bookings:
         trip_id, pickup_location, drop_location, rider_id = booking
         
-        # Try to geocode pickup location for better driver matching
-        # For now, we'll use a simple distribution without geocoding
+        # Get available drivers with fair rotation (least assignments first)
         available_drivers = get_available_drivers()
         
         if available_drivers:
@@ -252,10 +236,10 @@ def auto_distribute_bookings():
             ]
             
             if eligible_drivers:
-                # Assign to the best available driver
-                best_driver = eligible_drivers[0]
+                # Assign to the driver with least assignments (fair rotation)
+                best_driver = eligible_drivers[0]  # Already sorted by assignment count
                 assign_booking_to_driver(trip_id, best_driver['username'])
-                print(f"Auto-assigned trip {trip_id} to driver {best_driver['username']}")
+                print(f"Fair-assigned trip {trip_id} to driver {best_driver['username']} (assignments: {best_driver['total_assignments']})")
     
     cur.close(); conn.close()
 
@@ -637,7 +621,7 @@ def api_latest_booking():
 
 @app.route('/api/driver-stats/<username>')
 def api_driver_stats(username):
-    """Get driver statistics for priority calculation."""
+    """Get driver statistics for fair rotation tracking."""
     conn = get_db()
     if not conn:
         return jsonify({'error': 'Database connection failed'}), 500
@@ -650,38 +634,24 @@ def api_driver_stats(username):
             COUNT(*) as total_trips,
             AVG(CASE WHEN t.status = 'Completed' THEN 1 ELSE 0 END) as completion_rate,
             COUNT(CASE WHEN DATE(t.created_at) = CURDATE() THEN 1 END) as today_trips,
-            AVG(t.fare) as avg_fare
+            AVG(t.fare) as avg_fare,
+            COUNT(CASE WHEN bq.assigned_driver = %s AND bq.created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN 1 END) as assignments_today
         FROM Trip_Details t
+        LEFT JOIN Booking_Queue bq ON bq.trip_id = t.id
         WHERE t.accepted_by = %s
         AND t.created_at > DATE_SUB(NOW(), INTERVAL 30 DAY)
-    """, (username,))
+    """, (username, username))
     
     stats = cur.fetchone()
     if stats:
-        total_trips, completion_rate, today_trips, avg_fare = stats
-        
-        # Calculate priority score
-        priority_score = int(
-            (total_trips or 0) * 2 +
-            (completion_rate or 0) * 100 +
-            (today_trips or 0) * 5 +
-            min((avg_fare or 0) / 100, 10)
-        )
-        
-        # Update priority score in database
-        cur.execute("""
-            UPDATE Driver_Online_Status 
-            SET priority_score = %s 
-            WHERE driver_username = %s
-        """, (priority_score, username))
-        conn.commit()
+        total_trips, completion_rate, today_trips, avg_fare, assignments_today = stats
         
         result = {
             'total_trips': total_trips or 0,
             'completion_rate': round((completion_rate or 0) * 100, 1),
             'today_trips': today_trips or 0,
             'avg_fare': float(avg_fare or 0),
-            'priority_score': priority_score
+            'assignments_today': assignments_today or 0
         }
     else:
         result = {
@@ -689,7 +659,7 @@ def api_driver_stats(username):
             'completion_rate': 0,
             'today_trips': 0,
             'avg_fare': 0,
-            'priority_score': 0
+            'assignments_today': 0
         }
     
     cur.close(); conn.close()
@@ -860,11 +830,10 @@ def complete_trip():
         # Complete the trip
         cur.execute("UPDATE Trip_Details SET status='Completed' WHERE id=%s", (booking_id,))
         
-        # Clear driver's current trip and update priority
+        # Clear driver's current trip
         cur.execute("""
             UPDATE Driver_Online_Status 
-            SET current_trip_id = NULL,
-                priority_score = priority_score + 5
+            SET current_trip_id = NULL
             WHERE driver_username = %s
         """, (username,))
         
@@ -1303,12 +1272,16 @@ def admin_booking_system():
     # Get online drivers
     cur.execute("""
         SELECT dos.driver_username, dos.is_online, dos.last_seen, 
-               dos.location_lat, dos.location_lng, dos.current_trip_id, dos.priority_score,
-               dd.car_make, dd.car_model, dd.reg_number
+               dos.location_lat, dos.location_lng, dos.current_trip_id, dos.last_assignment_time,
+               dd.car_make, dd.car_model, dd.reg_number,
+               COUNT(bq.id) as total_assignments_today
         FROM Driver_Online_Status dos
         JOIN Driver_Details dd ON dd.username = dos.driver_username
+        LEFT JOIN Booking_Queue bq ON bq.assigned_driver = dos.driver_username 
+               AND bq.created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)
         WHERE dd.account_status = 'Active'
-        ORDER BY dos.is_online DESC, dos.priority_score DESC, dos.last_seen DESC
+        GROUP BY dos.driver_username
+        ORDER BY dos.is_online DESC, total_assignments_today ASC, dos.last_assignment_time ASC
     """)
     
     online_drivers = []
@@ -1320,9 +1293,10 @@ def admin_booking_system():
             'location_lat': row[3],
             'location_lng': row[4],
             'current_trip_id': row[5],
-            'priority_score': row[6],
+            'last_assignment_time': row[6],
             'car': f"{row[7]} {row[8]}",
-            'reg_number': row[9]
+            'reg_number': row[9],
+            'total_assignments_today': row[10] or 0
         }
         online_drivers.append(driver)
     

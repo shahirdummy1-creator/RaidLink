@@ -105,14 +105,14 @@
                                 <tr>
                                     <th>Driver</th>
                                     <th>Status</th>
-                                    <th>Priority</th>
+                                    <th>Assignments Today</th>
                                     <th>Last Seen</th>
                                     <th>Location</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for driver in online_drivers %}
-                                <tr class="{% if driver.priority_score > 50 %}priority-high{% elif driver.priority_score > 20 %}priority-medium{% else %}priority-low{% endif %}">
+                                <tr class="{% if driver.total_assignments_today == 0 %}priority-high{% elif driver.total_assignments_today <= 2 %}priority-medium{% else %}priority-low{% endif %}">
                                     <td>
                                         <div>
                                             <strong>{{ driver.username }}</strong><br>
@@ -131,7 +131,10 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        <span class="badge bg-secondary">{{ driver.priority_score }}</span>
+                                        <span class="badge bg-info">{{ driver.total_assignments_today }}</span>
+                                        {% if driver.last_assignment_time %}
+                                            <br><small class="text-muted">Last: {{ driver.last_assignment_time.strftime('%H:%M') }}</small>
+                                        {% endif %}
                                     </td>
                                     <td>
                                         <small>{{ driver.last_seen.strftime('%H:%M:%S') if driver.last_seen else 'Never' }}</small>

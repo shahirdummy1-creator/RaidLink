@@ -132,12 +132,21 @@ def init_db():
                 location_lat    DECIMAL(10,8) DEFAULT NULL,
                 location_lng    DECIMAL(11,8) DEFAULT NULL,
                 current_trip_id INT DEFAULT NULL,
-                priority_score  INT NOT NULL DEFAULT 0,
+                last_assignment_time DATETIME DEFAULT NULL,
                 INDEX idx_online (is_online),
                 INDEX idx_last_seen (last_seen),
-                INDEX idx_location (location_lat, location_lng)
+                INDEX idx_location (location_lat, location_lng),
+                INDEX idx_assignment_time (last_assignment_time)
             )
         """)
+        
+        # Add last_assignment_time column if it doesn't exist
+        try:
+            cursor.execute("ALTER TABLE Driver_Online_Status ADD COLUMN last_assignment_time DATETIME DEFAULT NULL")
+            cursor.execute("ALTER TABLE Driver_Online_Status ADD INDEX idx_assignment_time (last_assignment_time)")
+            conn.commit()
+        except Exception:
+            pass  # Column already exists
 
         # Booking assignment queue
         cursor.execute("""
