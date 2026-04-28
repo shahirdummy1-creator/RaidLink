@@ -619,6 +619,72 @@ def api_latest_booking():
     
     return jsonify({'booking': None, 'picked': False})
 
+@app.route('/api/debug-booking-system')
+def api_debug_booking_system():
+    """Debug endpoint to check booking distribution system status."""
+    conn = get_db()
+    if not conn:
+        return jsonify({'error': 'Database connection failed'})
+    
+    cur = conn.cursor()
+    debug_info = {}
+    
+    # Check online drivers
+    cur.execute("""
+        SELECT dos.driver_username, dos.is_online, dos.last_seen, dos.current_trip_id
+        FROM Driver_Online_Status dos
+        JOIN Driver_Details dd ON dd.username = dos.driver_username
+        WHERE dd.account_status = 'Active'
+    """)
+    debug_info['all_drivers'] = [{
+        'username': row[0], 'is_online': bool(row[1]), 
+        'last_seen': str(row[2]), 'current_trip_id': row[3]
+    } for row in cur.fetchall()]
+    
+    # Check available drivers
+    available_drivers = get_available_drivers()
+    debug_info['available_drivers'] = available_drivers
+    
+    # Check unassigned bookings
+    cur.execute("""
+        SELECT t.id, t.pickup_location, t.drop_location, t.status, t.accepted_by,
+               bq.status as queue_status, bq.assigned_driver
+        FROM Trip_Details t
+        LEFT JOIN Booking_Queue bq ON bq.trip_id = t.id
+        WHERE t.status = 'Confirmed'
+        ORDER BY t.created_at DESC
+        LIMIT 10
+    """)
+    debug_info['recent_bookings'] = [{
+        'trip_id': row[0], 'pickup': row[1], 'drop': row[2], 
+        'status': row[3], 'accepted_by': row[4],
+        'queue_status': row[5], 'assigned_driver': row[6]
+    } for row in cur.fetchall()]
+    
+    # Check booking queue
+    cur.execute("""
+        SELECT bq.trip_id, bq.assigned_driver, bq.status, bq.timeout_at, bq.retry_count
+        FROM Booking_Queue bq
+        ORDER BY bq.created_at DESC
+        LIMIT 10
+    """)
+    debug_info['booking_queue'] = [{
+        'trip_id': row[0], 'assigned_driver': row[1], 'status': row[2],
+        'timeout_at': str(row[3]) if row[3] else None, 'retry_count': row[4]
+    } for row in cur.fetchall()]
+    
+    cur.close(); conn.close()
+    return jsonify(debug_info)
+
+@app.route('/api/force-distribute')
+def api_force_distribute():
+    """Force immediate booking distribution for testing."""
+    try:
+        auto_distribute_bookings()
+        return jsonify({'success': True, 'message': 'Booking distribution triggered'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 @app.route('/api/driver-stats/<username>')
 def api_driver_stats(username):
     """Get driver statistics for fair rotation tracking."""
