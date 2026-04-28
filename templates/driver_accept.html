@@ -183,9 +183,9 @@
 
     <!-- Actions -->
     <div class="action-section">
-        <a href="{{ url_for('start_trip', username=driver_name) }}" class="btn-start" style="text-decoration: none;">
-            <i class="bi bi-play-circle-fill"></i> Start Trip
-        </a>
+        <button class="btn-start" onclick="new bootstrap.Modal(document.getElementById('otpModal')).show()">
+            <i class="bi bi-play-circle-fill"></i> Enter OTP & Start Trip
+        </button>
         <form method="POST" action="{{ url_for('driver_cancel_trip') }}" style="margin:0;">
             <input type="hidden" name="trip_id" value="{{ booking.id if booking else '' }}">
             <input type="hidden" name="driver_name" value="{{ driver_name }}">
@@ -196,6 +196,35 @@
     </div>
 
 </div>
+
+<!-- OTP Modal -->
+<div class="modal fade" id="otpModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 overflow-hidden">
+            <div class="modal-header" style="background:linear-gradient(135deg,#059669,#047857);">
+                <h5 class="modal-title text-white fw-bold"><i class="bi bi-shield-lock me-2"></i>Enter Rider OTP</h5>
+            </div>
+            <div class="modal-body text-center py-4">
+                <p class="text-muted mb-3">Ask the rider for their 4-digit trip OTP</p>
+                <input type="text" id="otpInput" class="form-control form-control-lg text-center mx-auto"
+                       maxlength="4" placeholder="0 0 0 0" inputmode="numeric"
+                       style="font-size:2rem;letter-spacing:.6rem;font-family:monospace;font-weight:800;max-width:220px;">
+                <div id="otpError" class="text-danger mt-2 fw-semibold" style="display:none;">
+                    <i class="bi bi-exclamation-circle me-1"></i>Wrong OTP. Try again.
+                </div>
+            </div>
+            <div class="modal-footer justify-content-center gap-3 border-0 pb-4">
+                <button type="button" class="btn btn-outline-secondary px-4"
+                        onclick="bootstrap.Modal.getInstance(document.getElementById('otpModal')).hide()">Cancel</button>
+                <button type="button" class="btn btn-success px-5 fw-bold" onclick="verifyOTP()">
+                    <i class="bi bi-check-circle me-1"></i> Confirm & Start
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="startTripForm" method="GET" action="{{ url_for('start_trip', username=driver_name) }}"></form>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -277,6 +306,38 @@ function onPosition(lat, lng, accuracy) {
     } else {
         map.setView([lat, lng], 14);
     }
+}
+
+// ── OTP verify ────────────────────────────────────────────
+function verifyOTP() {
+    const otp = document.getElementById('otpInput').value.trim();
+    if (otp.length !== 4 || !/^\d{4}$/.test(otp)) {
+        document.getElementById('otpError').style.display = 'block';
+        return;
+    }
+    fetch('/api/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trip_id: TRIP_ID, otp: otp })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.valid) {
+            if (watchId) navigator.geolocation.clearWatch(watchId);
+            bootstrap.Modal.getInstance(document.getElementById('otpModal')).hide();
+            document.getElementById('startTripForm').submit();
+        } else {
+            const inp = document.getElementById('otpInput');
+            inp.classList.add('is-invalid');
+            inp.value = '';
+            document.getElementById('otpError').style.display = 'block';
+            setTimeout(() => {
+                inp.classList.remove('is-invalid');
+                document.getElementById('otpError').style.display = 'none';
+            }, 2500);
+        }
+    })
+    .catch(() => alert('Verification failed. Please try again.'));
 }
 
 // ── Init ──────────────────────────────────────────────────
