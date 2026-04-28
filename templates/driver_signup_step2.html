@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Signup – Step 2</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        body { background: #f0f4f8; font-family: 'Segoe UI', sans-serif; }
+        .step-card { max-width: 560px; margin: 48px auto; background: #fff; border-radius: 20px; box-shadow: 0 4px 24px rgba(0,0,0,.08); padding: 40px; }
+        .step-indicator { display: flex; align-items: center; justify-content: center; gap: 0; margin-bottom: 32px; }
+        .step-dot { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .82rem; font-weight: 700; }
+        .step-dot.active  { background: #0d6efd; color: #fff; }
+        .step-dot.done    { background: #198754; color: #fff; }
+        .step-dot.pending { background: #e5e7eb; color: #9ca3af; }
+        .step-line { width: 60px; height: 3px; background: #e5e7eb; }
+        .step-line.done { background: #198754; }
+        .step-title { font-size: 1.3rem; font-weight: 700; color: #111827; margin-bottom: 6px; }
+        .step-sub   { font-size: .85rem; color: #6b7280; margin-bottom: 28px; }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-dark bg-primary">
+    <div class="container justify-content-center">
+        <a class="navbar-brand fw-bold" href="{{ url_for('welcome') }}">RaidLink Technologies</a>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="step-card">
+        <div class="step-indicator">
+            <div class="step-dot done"><i class="bi bi-check"></i></div>
+            <div class="step-line done"></div>
+            <div class="step-dot active">2</div>
+            <div class="step-line"></div>
+            <div class="step-dot pending">3</div>
+        </div>
+
+        <div class="step-title">Vehicle Information</div>
+        <div class="step-sub">Step 2 of 3 — Enter your vehicle details</div>
+
+        {% if error %}
+        <div class="alert alert-danger py-2">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('driver_signup_step2') }}">
+            <div class="row g-3 mb-3">
+                <div class="col-6">
+                    <label class="form-label fw-semibold">Car Make</label>
+                    <input type="text" class="form-control" name="car_make" placeholder="e.g. Toyota" value="{{ form.car_make or '' }}" required>
+                </div>
+                <div class="col-6">
+                    <label class="form-label fw-semibold">Car Model</label>
+                    <input type="text" class="form-control" name="car_model" placeholder="e.g. Innova" value="{{ form.car_model or '' }}" required>
+                </div>
+            </div>
+            <div class="row g-3 mb-3">
+                <div class="col-6">
+                    <label class="form-label fw-semibold">Car Color</label>
+                    <input type="text" class="form-control" name="car_color" placeholder="e.g. White, Black" value="{{ form.car_color or '' }}">
+                </div>
+                <div class="col-6">
+                    <label class="form-label fw-semibold">Registration Number</label>
+                    <input type="text" class="form-control" name="reg_number" placeholder="e.g. TN01AB1234" value="{{ form.reg_number or '' }}" required>
+                </div>
+            </div>
+            <div class="mb-4">
+                <label class="form-label fw-semibold">Aadhaar Number</label>
+                <input type="text" class="form-control" name="aadhaar_number" placeholder="12-digit Aadhaar number" pattern="\d{12}" maxlength="12" value="{{ form.aadhaar_number or '' }}" required>
+            </div>
+            <div class="d-flex gap-3">
+                <a href="{{ url_for('driver_signup_step1') }}" class="btn btn-outline-secondary w-50 fw-bold py-2">
+                    <i class="bi bi-arrow-left me-1"></i> Back
+                </a>
+                <button type="submit" class="btn btn-primary w-50 fw-bold py-2">
+                    Next <i class="bi bi-arrow-right ms-1"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

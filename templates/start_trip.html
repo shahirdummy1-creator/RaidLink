@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trip In Progress</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <style>
+        body { background: #f0f4f8; font-family: 'Segoe UI', sans-serif; }
+        #map { width: 100%; height: 340px; border-radius: 14px; z-index: 0; }
+
+        .live-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: #dcfce7; color: #166534;
+            font-size: .78rem; font-weight: 700;
+            padding: 5px 12px; border-radius: 20px;
+        }
+        .live-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #22c55e;
+            animation: blink 1.2s ease-in-out infinite;
+        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+
+        .trip-card { background:#fff; border-radius:16px; box-shadow:0 4px 20px rgba(0,0,0,.08); padding:24px; }
+        .info-box { background:#f8faff; border:1px solid #e0e7ff; border-radius:10px; padding:10px 14px; }
+        .info-label { font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#6b7280; }
+        .info-value { font-size:.95rem; font-weight:600; color:#111827; margin-top:2px; }
+
+        .stat-pill {
+            background:#eff6ff; border:1px solid #bfdbfe;
+            border-radius:10px; padding:10px 16px; text-align:center;
+        }
+        .stat-label { font-size:.68rem; font-weight:700; text-transform:uppercase; color:#6b7280; }
+        .stat-value { font-size:1.2rem; font-weight:800; color:#1d4ed8; margin-top:2px; }
+
+        .progress { height: 8px; border-radius: 4px; }
+
+        /* Success overlay */
+        #successOverlay {
+            display:none; position:fixed; inset:0;
+            background:rgba(0,0,0,.55); z-index:2000;
+            align-items:center; justify-content:center;
+        }
+        #successOverlay.show { display:flex; }
+        .success-card {
+            background:#fff; border-radius:20px; padding:40px 50px;
+            text-align:center;
+            animation: pop-in .4s cubic-bezier(.175,.885,.32,1.275);
+        }
+        @keyframes pop-in { from{transform:scale(.5);opacity:0} to{transform:scale(1);opacity:1} }
+        .checkmark-circle {
+            width:80px; height:80px; background:#198754; border-radius:50%;
+            display:flex; align-items:center; justify-content:center;
+            margin:0 auto 16px; font-size:2.5rem; color:#fff;
+            animation: check-pop .5s .2s cubic-bezier(.175,.885,.32,1.275) both;
+        }
+        @keyframes check-pop { from{transform:scale(0)} to{transform:scale(1)} }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-dark bg-primary">
+    <div class="container justify-content-between">
+        <a class="navbar-brand fw-bold" href="{{ url_for('welcome') }}">RaidLink Technologies</a>
+        <span class="live-badge"><span class="live-dot"></span> LIVE TRACKING</span>
+    </div>
+</nav>
+
+<div class="container mt-4 mb-5 pb-5">
+    <div class="row justify-content-center">
+    <div class="col-lg-7 col-md-9">
+    <div class="trip-card">
+
+        <!-- Header -->
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <h5 class="mb-0 fw-bold"><i class="bi bi-car-front-fill text-primary me-2"></i>Trip In Progress</h5>
+            <span class="text-muted fw-semibold" id="tripTimer" style="font-size:1.1rem;">00:00</span>
+        </div>
+
+        <!-- Live Map -->
+        <div id="map" class="mb-3 shadow-sm"></div>
+        <div class="d-flex justify-content-between mb-3" style="font-size:.78rem;color:#6b7280;">
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#22c55e;margin-right:4px;"></span>Pickup</span>
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#0d6efd;margin-right:4px;"></span>Your Location</span>
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ef4444;margin-right:4px;"></span>Drop</span>
+            <span id="gps-status" class="text-muted"></span>
+        </div>
+
+        <!-- Trip Info -->
+        <div class="row g-2 mb-3">
+            <div class="col-6">
+                <div class="info-box">
+                    <div class="info-label">📍 Pickup</div>
+                    <div class="info-value">{{ booking.pickup_location if booking else 'N/A' }}</div>
+                </div>
+            </div>
+            <div class="col-6">
+                <div class="info-box">
+                    <div class="info-label">🏁 Drop</div>
+                    <div class="info-value">{{ booking.drop_location if booking else 'N/A' }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="row g-2 mb-3">
+            <div class="col-4">
+                <div class="stat-pill">
+                    <div class="stat-label">Distance</div>
+                    <div class="stat-value">{{ booking.distance_km if booking else '—' }} <small style="font-size:.7rem;">km</small></div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="stat-pill">
+                    <div class="stat-label">Fare</div>
+                    <div class="stat-value" style="color:#059669;">{{ booking.fare if booking else '—' }}</div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="stat-pill">
+                    <div class="stat-label">Covered</div>
+                    <div class="stat-value" id="covered-km">0 <small style="font-size:.7rem;">km</small></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="mb-3">
+            <div class="d-flex justify-content-between mb-1">
+                <small class="text-muted fw-semibold">Pickup</small>
+                <small class="text-muted fw-semibold" id="progress-pct">0%</small>
+                <small class="text-muted fw-semibold">Destination</small>
+            </div>
+            <div class="progress">
+                <div id="progressBar" class="progress-bar bg-primary progress-bar-striped progress-bar-animated"
+                     role="progressbar" style="width:0%"></div>
+            </div>
+        </div>
+
+        <!-- Complete Trip -->
+        <button id="completeTripBtn" class="btn btn-success w-100 fw-bold py-2" onclick="onCompleteTrip()">
+            <i class="bi bi-check-circle-fill me-2"></i>Complete Trip
+        </button>
+
+    </div>
+    </div>
+    </div>
+</div>
+
+<!-- Success Overlay -->
+<div id="successOverlay">
+    <div class="success-card">
+        <div class="checkmark-circle">✓</div>
+        <h4 class="fw-bold mb-1">Trip Completed!</h4>
+        <p class="text-muted mb-3">Order completed successfully.</p>
+        <p class="text-muted" style="font-size:.9rem;">Redirecting to Driver Home…</p>
+        <div class="spinner-border text-primary mt-2" role="status" style="width:1.5rem;height:1.5rem;"></div>
+    </div>
+</div>
+
+<form id="completeTripForm" method="POST" action="{{ url_for('complete_trip') }}">
+    <input type="hidden" name="booking_id" value="{{ booking.id if booking else '' }}">
+    <input type="hidden" name="username" value="{{ username }}">
+</form>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// ── Trip data from server ─────────────────────────────────
+const TOTAL_KM = parseFloat('{{ booking.distance_km if booking else 0 }}') || 0;
+
+// ── Map init ──────────────────────────────────────────────
+const map = L.map('map').setView([20.5937, 78.9629], 5);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap', maxZoom: 19
+}).addTo(map);
+
+// Icons
+const greenIcon = L.icon({ iconUrl:'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png', shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png', iconSize:[25,41], iconAnchor:[12,41] });
+const redIcon   = L.icon({ iconUrl:'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',   shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png', iconSize:[25,41], iconAnchor:[12,41] });
+const blueIcon  = L.icon({ iconUrl:'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',  shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png', iconSize:[25,41], iconAnchor:[12,41] });
+
+let driverMarker = null, pickupMarker = null, dropMarker = null, routeLine = null;
+let startCoords  = null;
+
+// ── Haversine ─────────────────────────────────────────────
+function haversineKm(lat1, lon1, lat2, lon2) {
+    const R = 6371, r = x => x * Math.PI / 180;
+    const a = Math.sin(r(lat2-lat1)/2)**2 + Math.cos(r(lat1))*Math.cos(r(lat2))*Math.sin(r(lon2-lon1)/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// ── Geocode pickup/drop and place markers ─────────────────
+async function geocodeAndMark(query, iconType, label) {
+    try {
+        const res  = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query+', India')}&format=json&limit=1`, { headers:{'Accept-Language':'en'} });
+        const data = await res.json();
+        if (data.length) {
+            const lat = parseFloat(data[0].lat), lng = parseFloat(data[0].lon);
+            const icon = iconType === 'green' ? greenIcon : redIcon;
+            const m = L.marker([lat, lng], { icon }).addTo(map).bindPopup(`<b>${label}</b>`);
+            return [lat, lng];
+        }
+    } catch {}
+    return null;
+}
+
+// ── GPS tracking ──────────────────────────────────────────
+let watchId = null;
+
+function startTracking() {
+    if (!navigator.geolocation) {
+        document.getElementById('gps-status').textContent = 'GPS not supported';
+        return;
+    }
+    document.getElementById('gps-status').textContent = '⏳ Getting GPS...';
+    watchId = navigator.geolocation.watchPosition(
+        pos => onPosition(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy),
+        err => {
+            document.getElementById('gps-status').textContent = '⚠️ GPS unavailable';
+            // Simulate movement if GPS denied
+            simulateMovement();
+        },
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+    );
+}
+
+function onPosition(lat, lng, accuracy) {
+    document.getElementById('gps-status').textContent = `📡 GPS ±${Math.round(accuracy)}m`;
+
+    if (!startCoords) startCoords = [lat, lng];
+
+    // Update driver marker
+    if (driverMarker) map.removeLayer(driverMarker);
+    driverMarker = L.marker([lat, lng], { icon: blueIcon })
+        .addTo(map)
+        .bindPopup('<b>🚗 Your Location</b>')
+        .openPopup();
+
+    // Update route line
+    if (routeLine) map.removeLayer(routeLine);
+    if (dropCoords) {
+        routeLine = L.polyline([[lat, lng], dropCoords], { color:'#0d6efd', weight:3, dashArray:'8,6' }).addTo(map);
+    }
+
+    // Pan map to driver
+    map.setView([lat, lng], Math.max(map.getZoom(), 13));
+
+    // Update progress
+    updateProgress(lat, lng);
+}
+
+// ── Progress calculation ──────────────────────────────────
+let dropCoords = null;
+
+function updateProgress(dLat, dLng) {
+    if (!startCoords || !dropCoords || TOTAL_KM <= 0) return;
+    const distFromStart = haversineKm(startCoords[0], startCoords[1], dLat, dLng);
+    const pct = Math.min(Math.round((distFromStart / TOTAL_KM) * 100), 100);
+    document.getElementById('progressBar').style.width = pct + '%';
+    document.getElementById('progress-pct').textContent = pct + '%';
+    document.getElementById('covered-km').innerHTML = distFromStart.toFixed(1) + ' <small style="font-size:.7rem;">km</small>';
+}
+
+// ── Simulate movement (fallback when GPS denied) ──────────
+let simStep = 0;
+function simulateMovement() {
+    if (!startCoords || !dropCoords) return;
+    const steps = 20;
+    const interval = setInterval(() => {
+        if (simStep >= steps) { clearInterval(interval); return; }
+        simStep++;
+        const t   = simStep / steps;
+        const lat = startCoords[0] + (dropCoords[0] - startCoords[0]) * t;
+        const lng = startCoords[1] + (dropCoords[1] - startCoords[1]) * t;
+        onPosition(lat, lng, 50);
+    }, 3000);
+}
+
+// ── Timer ─────────────────────────────────────────────────
+let timerInterval = null, seconds = 0;
+function startTimer() {
+    timerInterval = setInterval(() => {
+        seconds++;
+        const m = String(Math.floor(seconds/60)).padStart(2,'0');
+        const s = String(seconds%60).padStart(2,'0');
+        document.getElementById('tripTimer').textContent = `${m}:${s}`;
+    }, 1000);
+}
+
+// ── Complete trip ─────────────────────────────────────────
+function onCompleteTrip() {
+    if (timerInterval) clearInterval(timerInterval);
+    if (watchId) navigator.geolocation.clearWatch(watchId);
+    document.getElementById('completeTripBtn').disabled = true;
+    document.getElementById('successOverlay').classList.add('show');
+    setTimeout(() => document.getElementById('completeTripForm').submit(), 2500);
+}
+
+// ── Init ──────────────────────────────────────────────────
+(async function init() {
+    startTimer();
+
+    const pickup = '{{ booking.pickup_location if booking else "" }}';
+    const drop   = '{{ booking.drop_location   if booking else "" }}';
+
+    const [pCoords, dCoords] = await Promise.all([
+        geocodeAndMark(pickup, 'green', 'Pickup: ' + pickup),
+        geocodeAndMark(drop,   'red',   'Drop: '   + drop)
+    ]);
+
+    if (pCoords) startCoords = pCoords;
+    if (dCoords) dropCoords  = dCoords;
+
+    if (pCoords && dCoords) {
+        map.fitBounds([pCoords, dCoords], { padding: [40, 40] });
+    } else if (pCoords) {
+        map.setView(pCoords, 13);
+    }
+
+    startTracking();
+})();
+</script>
+</body>
+</html>

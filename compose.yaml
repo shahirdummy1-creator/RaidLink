@@ -1,0 +1,8 @@
+services:
+  taxibookapp:
+    image: taxibookapp
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    ports:
+      - 5002:5002

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Info</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-dark bg-primary">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="{{ url_for('welcome') }}">RaidLink Technologies</a>
+        <a href="{{ url_for('rider_bookings', username=rider_name) }}" class="btn btn-sm btn-outline-light">
+            <i class="bi bi-arrow-left me-1"></i> Back to Bookings
+        </a>
+    </div>
+</nav>
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-5">
+            <div class="card shadow rounded-4 p-4">
+
+                <div class="text-center mb-4">
+                    <div class="bg-primary bg-opacity-10 rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                         style="width:72px;height:72px;">
+                        <i class="bi bi-person-fill text-primary fs-2"></i>
+                    </div>
+                    <h5 class="fw-bold mb-0">{{ driver.accepted_by }}</h5>
+                    <small class="text-muted">Your Assigned Driver</small>
+                </div>
+
+                <ul class="list-group list-group-flush rounded-3">
+                    <li class="list-group-item d-flex align-items-center gap-3 py-3">
+                        <i class="bi bi-telephone-fill text-success fs-5"></i>
+                        <div>
+                            <div class="text-muted" style="font-size:.75rem;">Mobile</div>
+                            <a href="tel:{{ driver.driver_mobile }}" class="fw-semibold text-decoration-none text-dark">
+                                {{ driver.driver_mobile or '—' }}
+                            </a>
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex align-items-center gap-3 py-3">
+                        <i class="bi bi-car-front-fill text-primary fs-5"></i>
+                        <div>
+                            <div class="text-muted" style="font-size:.75rem;">Car</div>
+                            <span class="fw-semibold">{{ driver.driver_car_make }} {{ driver.driver_car_model }}</span>
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex align-items-center gap-3 py-3">
+                        <i class="bi bi-card-text text-secondary fs-5"></i>
+                        <div>
+                            <div class="text-muted" style="font-size:.75rem;">Registration Number</div>
+                            <span class="fw-semibold">{{ driver.driver_reg or '—' }}</span>
+                        </div>
+                    </li>
+                    <li class="list-group-item d-flex align-items-center gap-3 py-3">
+                        <i class="bi bi-palette-fill text-warning fs-5"></i>
+                        <div>
+                            <div class="text-muted" style="font-size:.75rem;">Car Color</div>
+                            <span class="fw-semibold">{{ driver.driver_car_color or '—' }}</span>
+                        </div>
+                    </li>
+                </ul>
+
+                <div class="mt-4 text-center">
+                    <small class="text-muted">Booking <strong>#{{ driver.id }}</strong> &nbsp;|&nbsp;
+                    {{ driver.pickup_location | capitalize }} → {{ driver.drop_location | capitalize }}</small>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

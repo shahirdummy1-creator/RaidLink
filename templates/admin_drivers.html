@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drivers Panel – RaidLink Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        body { background: #f0f2f7; font-family: 'Segoe UI', sans-serif; margin: 0; }
+
+        .sidebar {
+            width: 240px; min-height: 100vh;
+            background: #0d6efd;
+            position: fixed; top: 0; left: 0;
+            z-index: 200;
+            display: flex; flex-direction: column;
+        }
+        .sidebar-brand { padding: 22px 24px 18px; border-bottom: 1px solid rgba(255,255,255,0.15); }
+        .sidebar-brand .brand-name { font-size: 1.1rem; font-weight: 700; color: #fff; letter-spacing: .02em; }
+        .sidebar-brand .brand-sub  { font-size: .72rem; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: .1em; }
+        .nav-section { font-size: .68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .12em; color: rgba(255,255,255,0.5); padding: 18px 24px 6px; }
+        .sidebar-link {
+            display: flex; align-items: center; gap: 11px;
+            padding: 11px 24px;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none; font-size: .9rem; font-weight: 500;
+            border-left: 3px solid transparent;
+            transition: all .18s;
+        }
+        .sidebar-link i { font-size: 1rem; }
+        .sidebar-link:hover { color: #fff; background: rgba(255,255,255,0.12); border-left-color: rgba(255,255,255,0.6); }
+        .sidebar-link.active { color: #fff; background: rgba(255,255,255,0.18); border-left-color: #fff; }
+        .sidebar-footer { margin-top: auto; padding: 16px 24px; border-top: 1px solid rgba(255,255,255,0.15); }
+        .sidebar-footer a { display: flex; align-items: center; gap: 10px; color: rgba(255,255,255,0.7); text-decoration: none; font-size: .85rem; transition: color .18s; }
+        .sidebar-footer a:hover { color: #fff; }
+
+        .main-content { margin-left: 240px; padding: 32px 36px; }
+
+        .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; }
+        .page-title { font-size: 1.45rem; font-weight: 700; color: #111827; margin: 0; }
+        .page-sub   { font-size: .82rem; color: #6b7280; margin-top: 2px; }
+
+        .stat-card {
+            background: #fff; border-radius: 14px; border: none;
+            padding: 20px 22px;
+            box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+            display: flex; align-items: center; gap: 16px;
+            transition: transform .2s;
+        }
+        .stat-card:hover { transform: translateY(-3px); }
+        .stat-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0; }
+        .stat-label { font-size: .72rem; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; }
+        .stat-value { font-size: 1.6rem; font-weight: 700; color: #111827; line-height: 1.1; }
+
+        /* Tabs */
+        .custom-tabs { display: flex; gap: 4px; border-bottom: 2px solid #e5e7eb; margin-bottom: 20px; }
+        .custom-tab {
+            padding: 10px 20px;
+            font-size: .875rem; font-weight: 600;
+            color: #6b7280;
+            background: none; border: none;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            cursor: pointer;
+            display: flex; align-items: center; gap: 7px;
+            transition: color .18s;
+        }
+        .custom-tab:hover { color: #0d6efd; }
+        .custom-tab.active { color: #0d6efd; border-bottom-color: #0d6efd; }
+
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        .section-card { background: #fff; border-radius: 14px; border: none; box-shadow: 0 1px 8px rgba(0,0,0,0.06); padding: 24px 26px; }
+
+        .search-wrap { position: relative; }
+        .search-wrap .bi-search { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: #9ca3af; font-size: .9rem; pointer-events: none; }
+        .search-wrap input { padding-left: 36px; border-radius: 8px; border: 1px solid #e5e7eb; background: #f9fafb; font-size: .875rem; }
+        .search-wrap input:focus { background: #fff; border-color: #0d6efd; box-shadow: 0 0 0 3px rgba(13,110,253,.1); outline: none; }
+
+        .table thead th { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: #6b7280; background: #f9fafb; border-bottom: 1px solid #f3f4f6; padding: 10px 14px; }
+        .table tbody td { font-size: .875rem; padding: 11px 14px; vertical-align: middle; color: #374151; }
+        .table tbody tr:hover td { background: #f8faff; }
+
+        .badge-confirmed { background: #eff6ff; color: #1d4ed8; font-size: .72rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; }
+        .badge-completed { background: #f0fdf4; color: #166534; font-size: .72rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; }
+        .badge-active    { background: #f0fdf4; color: #166534; font-size: .72rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; }
+        .badge-suspended { background: #fef2f2; color: #991b1b; font-size: .72rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; }
+        .badge-reg       { background: #f3f4f6; color: #374151; font-size: .72rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; font-family: monospace; }
+        .btn-allow {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 4px 11px; border-radius: 6px;
+            font-size: .72rem; font-weight: 600;
+            border: 1.5px solid #198754; color: #198754; background: transparent;
+            cursor: pointer; transition: all .18s;
+        }
+        .btn-allow:hover { background: #198754; color: #fff; }
+        .btn-suspend {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 4px 11px; border-radius: 6px;
+            font-size: .72rem; font-weight: 600;
+            border: 1.5px solid #dc3545; color: #dc3545; background: transparent;
+            cursor: pointer; transition: all .18s;
+        }
+        .btn-suspend:hover { background: #dc3545; color: #fff; }
+
+        .driver-initials {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: #eff6ff; color: #1d4ed8;
+            display: flex; align-items: center; justify-content: center;
+            font-size: .8rem; font-weight: 700; flex-shrink: 0;
+        }
+
+        .count-badge {
+            display: inline-flex; align-items: center;
+            background: #eff6ff; color: #1d4ed8;
+            font-size: .78rem; font-weight: 600;
+            padding: 5px 12px; border-radius: 20px;
+        }
+
+        /* Document preview */
+        .doc-thumb {
+            width: 72px; height: 72px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            cursor: pointer;
+            transition: transform .18s, box-shadow .18s;
+        }
+        .doc-thumb:hover { transform: scale(1.08); box-shadow: 0 4px 14px rgba(0,0,0,0.15); }
+        .doc-missing {
+            width: 72px; height: 72px;
+            border-radius: 8px;
+            background: #f3f4f6;
+            display: flex; align-items: center; justify-content: center;
+            color: #9ca3af; font-size: .7rem; text-align: center;
+            border: 1px dashed #d1d5db;
+        }
+        /* Lightbox */
+        #lightbox {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 9999;
+            align-items: center; justify-content: center;
+        }
+        #lightbox.show { display: flex; }
+        #lightbox img {
+            max-width: 90vw; max-height: 88vh;
+            border-radius: 10px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+        }
+        #lightboxClose {
+            position: absolute; top: 20px; right: 28px;
+            color: #fff; font-size: 2rem; cursor: pointer;
+            background: none; border: none; line-height: 1;
+        }
+        #lightboxCaption {
+            position: absolute; bottom: 24px;
+            color: rgba(255,255,255,0.8); font-size: .9rem;
+        }
+    </style>
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="sidebar-brand">
+        <div class="brand-name">RaidLink</div>
+        <div class="brand-sub">Admin Console</div>
+    </div>
+    <div class="nav-section">Overview</div>
+    <a href="{{ url_for('admin_dashboard') }}" class="sidebar-link">
+        <i class="bi bi-grid-1x2"></i> Dashboard
+    </a>
+    <div class="nav-section">Management</div>
+    <a href="{{ url_for('admin_drivers') }}" class="sidebar-link active">
+        <i class="bi bi-person-badge"></i> Drivers
+    </a>
+    <a href="{{ url_for('admin_riders') }}" class="sidebar-link">
+        <i class="bi bi-people"></i> Riders
+    </a>
+    <div class="sidebar-footer">
+        <a href="{{ url_for('welcome') }}"><i class="bi bi-house"></i> Main Site</a>
+        <a href="{{ url_for('admin_login') }}" style="margin-top:10px;"><i class="bi bi-box-arrow-left"></i> Logout</a>
+    </div>
+</aside>
+
+<main class="main-content">
+
+    <div class="topbar">
+        <div>
+            <div class="page-title">Driver Management</div>
+            <div class="page-sub">View and manage all registered drivers</div>
+        </div>
+        <span class="count-badge"><i class="bi bi-person-badge me-1"></i> {{ drivers | length }} Drivers</span>
+    </div>
+
+    <!-- Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#eff6ff;"><i class="bi bi-person-badge text-primary"></i></div>
+                <div><div class="stat-label">Total Drivers</div><div class="stat-value">{{ drivers | length }}</div></div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#f0fdf4;"><i class="bi bi-check-circle text-success"></i></div>
+                <div><div class="stat-label">Completed Trips</div><div class="stat-value">{{ completed_trips }}</div></div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#fffbeb;"><i class="bi bi-arrow-repeat text-warning"></i></div>
+                <div><div class="stat-label">Active Trips</div><div class="stat-value">{{ active_trips }}</div></div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#f0f9ff;"><i class="bi bi-currency-rupee text-info"></i></div>
+                <div><div class="stat-label">Total Revenue</div><div class="stat-value" style="font-size:1.3rem;">{{ total_revenue }}</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="custom-tabs">
+        <button class="custom-tab active" onclick="switchTab('profiles', this)">
+            <i class="bi bi-person-lines-fill"></i> Driver Profiles
+        </button>
+        <button class="custom-tab" onclick="switchTab('trips', this)">
+            <i class="bi bi-map"></i> Trip Details
+        </button>
+        <button class="custom-tab" onclick="switchTab('documents', this)">
+            <i class="bi bi-file-earmark-image"></i> Driver Documents
+        </button>
+    </div>
+
+    <!-- Tab: Driver Profiles -->
+    <div id="tab-profiles" class="tab-pane active">
+        <div class="section-card">
+            <div class="search-wrap mb-3">
+                <i class="bi bi-search"></i>
+                <input type="text" class="form-control" placeholder="Search by name, mobile, car make, registration number…" oninput="filterTable('driverTable', this.value)">
+            </div>
+            <div class="table-responsive">
+                <table class="table mb-0" id="driverTable">
+                    <thead>
+                        <tr>
+                            <th>Driver</th>
+                            <th>Username</th>
+                            <th>Mobile</th>
+                            <th>Email</th>
+                            <th>Vehicle</th>
+                            <th>Reg. Number</th>
+                            <th>Licence Validity</th>
+                            <th>Fitness Validity</th>
+                            <th>Pollution Validity</th>
+                            <th>Permit Validity</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in drivers %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="driver-initials">{{ d.username[0] | upper }}</div>
+                                    <span style="font-weight:600;color:#111827;">#{{ d.id }}</span>
+                                </div>
+                            </td>
+                            <td>{{ d.username }}</td>
+                            <td>{{ d.mobile }}</td>
+                            <td style="color:#6b7280;">{{ d.email }}</td>
+                            <td>{{ d.car_make }} {{ d.car_model }}</td>
+                            <td><span class="badge-reg">{{ d.reg_number }}</span></td>
+                            <td>{{ d.licence_validity or '—' }}</td>
+                            <td>{{ d.fitness_validity or '—' }}</td>
+                            <td>{{ d.pollution_validity or '—' }}</td>
+                            <td>{{ d.permit_validity or '—' }}</td>
+                            <td>
+                                {% if d.get('account_status', 'Active') == 'Active' %}
+                                    <span class="badge-active">Active</span>
+                                {% else %}
+                                    <span class="badge-suspended">Suspended</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if d.get('account_status', 'Active') == 'Active' %}
+                                <form method="POST" action="{{ url_for('admin_toggle_driver') }}">
+                                    <input type="hidden" name="driver_id" value="{{ d.id }}">
+                                    <input type="hidden" name="action" value="suspend">
+                                    <input type="hidden" name="next" value="{{ url_for('admin_drivers') }}">
+                                    <button type="submit" class="btn-suspend"><i class="bi bi-slash-circle"></i> Suspend</button>
+                                </form>
+                                {% else %}
+                                <form method="POST" action="{{ url_for('admin_toggle_driver') }}">
+                                    <input type="hidden" name="driver_id" value="{{ d.id }}">
+                                    <input type="hidden" name="action" value="allow">
+                                    <input type="hidden" name="next" value="{{ url_for('admin_drivers') }}">
+                                    <button type="submit" class="btn-allow"><i class="bi bi-check-circle"></i> Allow</button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="12" class="text-center text-muted py-5">No drivers registered yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab: Trip Details -->
+    <div id="tab-trips" class="tab-pane">
+        <div class="section-card">
+            <div class="search-wrap mb-3">
+                <i class="bi bi-search"></i>
+                <input type="text" class="form-control" placeholder="Search by pickup, drop location, status…" oninput="filterTable('tripTable', this.value)">
+            </div>
+            <div class="table-responsive">
+                <table class="table mb-0" id="tripTable">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Rider</th>
+                            <th>Driver</th>
+                            <th>Pickup Location</th>
+                            <th>Drop Location</th>
+                            <th>Distance</th>
+                            <th>Fare</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for b in all_bookings %}
+                        <tr>
+                            <td><span style="font-weight:600;color:#111827;">#{{ b.id }}</span></td>
+                            <td style="font-weight:600;color:#1d4ed8;">{{ b.rider_name or '—' }}</td>
+                            <td style="font-weight:600;color:#166534;">{{ b.accepted_by if b.accepted_by and b.accepted_by != '—' else '—' }}</td>
+                            <td>{{ b.pickup_location | capitalize }}</td>
+                            <td>{{ b.drop_location | capitalize }}</td>
+                            <td>{{ b.distance_km }} km</td>
+                            <td style="font-weight:600;color:#166534;">{{ b.fare if b.fare else '—' }}</td>
+                            <td style="color:#6b7280;">{{ b.ride_date }}</td>
+                            <td style="color:#6b7280;">{{ b.ride_time }}</td>
+                            <td>
+                                {% if b.status == 'Completed' %}
+                                    <span class="badge-completed">Completed</span>
+                                {% elif b.accepted_by and b.accepted_by != '—' %}
+                                    <span class="badge-confirmed">In Progress</span>
+                                {% else %}
+                                    <span style="background:#fff7ed;color:#c2410c;font-size:.72rem;font-weight:600;padding:4px 10px;border-radius:6px;">Waiting for driver</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="10" class="text-center text-muted py-5">No trips recorded yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab: Driver Documents -->
+    <div id="tab-documents" class="tab-pane">
+        <div class="section-card">
+            <div class="search-wrap mb-3">
+                <i class="bi bi-search"></i>
+                <input type="text" class="form-control" placeholder="Search by driver name or username…" oninput="filterTable('docTable', this.value)">
+            </div>
+            <div class="table-responsive">
+                <table class="table mb-0" id="docTable">
+                    <thead>
+                        <tr>
+                            <th>Driver</th>
+                            <th>Username</th>
+                            <th>Licence</th>
+                            <th>RC Book</th>
+                            <th>Aadhaar</th>
+                            <th>Permit</th>
+                            <th>Pollution Cert.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for d in drivers %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="driver-initials">{{ d.username[0] | upper }}</div>
+                                    <span style="font-weight:600;color:#111827;">#{{ d.id }}</span>
+                                </div>
+                            </td>
+                            <td>{{ d.username }}</td>
+                            {% for field, label in [
+                                ('licence_img',   'Licence'),
+                                ('rc_img',        'RC Book'),
+                                ('aadhaar_img',   'Aadhaar'),
+                                ('permit_img',    'Permit'),
+                                ('pollution_img', 'Pollution')
+                            ] %}
+                            <td>
+                                {% if d.get(field) %}
+                                <img src="{{ url_for('static', filename=d[field]) }}"
+                                     class="doc-thumb"
+                                     alt="{{ label }}"
+                                     title="Click to preview {{ label }}"
+                                     onclick="openLightbox('{{ url_for('static', filename=d[field]) }}', '{{ d.username }} — {{ label }}')"
+                                >
+                                {% else %}
+                                <div class="doc-missing">Not<br>Uploaded</div>
+                                {% endif %}
+                            </td>
+                            {% endfor %}
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="7" class="text-center text-muted py-5">No drivers registered yet.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</main>
+
+<!-- Lightbox -->
+<div id="lightbox" onclick="closeLightbox()">
+    <button id="lightboxClose" onclick="closeLightbox()">&times;</button>
+    <img id="lightboxImg" src="" alt="">
+    <div id="lightboxCaption"></div>
+</div>
+
+<script>
+function switchTab(name, btn) {
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.custom-tab').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    btn.classList.add('active');
+}
+function filterTable(tableId, query) {
+    const q = query.toLowerCase();
+    document.querySelectorAll('#' + tableId + ' tbody tr').forEach(row => {
+        row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+}
+function openLightbox(src, caption) {
+    document.getElementById('lightboxImg').src     = src;
+    document.getElementById('lightboxCaption').textContent = caption;
+    document.getElementById('lightbox').classList.add('show');
+}
+function closeLightbox() {
+    document.getElementById('lightbox').classList.remove('show');
+    document.getElementById('lightboxImg').src = '';
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
