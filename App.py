@@ -203,14 +203,14 @@ def auto_distribute_bookings():
     
     cur = conn.cursor()
     
-    # Get unassigned bookings
+    # Get unassigned bookings (no active assignment or expired assignments)
     cur.execute("""
         SELECT t.id, t.pickup_location, t.drop_location, t.rider_id
         FROM Trip_Details t
-        LEFT JOIN Booking_Queue bq ON bq.trip_id = t.id
+        LEFT JOIN Booking_Queue bq ON bq.trip_id = t.id AND bq.status = 'assigned' AND bq.timeout_at > NOW()
         WHERE t.status = 'Confirmed' 
         AND (t.accepted_by IS NULL OR t.accepted_by = '')
-        AND (bq.id IS NULL OR bq.status = 'expired')
+        AND bq.id IS NULL
         ORDER BY t.created_at ASC
     """)
     
@@ -238,8 +238,9 @@ def auto_distribute_bookings():
             if eligible_drivers:
                 # Assign to the driver with least assignments (fair rotation)
                 best_driver = eligible_drivers[0]  # Already sorted by assignment count
-                assign_booking_to_driver(trip_id, best_driver['username'])
-                print(f"Fair-assigned trip {trip_id} to driver {best_driver['username']} (assignments: {best_driver['total_assignments']})")
+                success = assign_booking_to_driver(trip_id, best_driver['username'])
+                if success:
+                    print(f"Fair-assigned trip {trip_id} to driver {best_driver['username']} (assignments: {best_driver['total_assignments']})")
     
     cur.close(); conn.close()
 
@@ -561,10 +562,10 @@ def api_latest_booking():
     
     cur = conn.cursor()
     
-    # Update driver's last seen timestamp
+    # Update driver's last seen timestamp and ensure they're online
     update_driver_online_status(driver_name, True)
     
-    # Check for assigned booking in queue
+    # Check for assigned booking in queue (active assignments)
     cur.execute("""
         SELECT t.id, t.rider_id, t.pickup_location, t.drop_location,
                t.distance_km, t.fare, t.ride_date, t.ride_time,
@@ -578,6 +579,7 @@ def api_latest_booking():
         AND bq.status = 'assigned'
         AND bq.timeout_at > NOW()
         AND t.status = 'Confirmed'
+        AND (t.accepted_by IS NULL OR t.accepted_by = '')
         ORDER BY bq.assignment_time DESC
         LIMIT 1
     """, (driver_name,))
@@ -594,29 +596,31 @@ def api_latest_booking():
         # Calculate remaining time
         timeout_at = b['timeout_at']
         if isinstance(timeout_at, str):
-            timeout_at = datetime.fromisoformat(timeout_at.replace('Z', '+00:00'))
+            try:
+                timeout_at = datetime.fromisoformat(timeout_at.replace('Z', '+00:00'))
+            except:
+                timeout_at = datetime.strptime(timeout_at, '%Y-%m-%d %H:%M:%S')
         remaining_seconds = max(0, int((timeout_at - datetime.now()).total_seconds()))
         b['remaining_seconds'] = remaining_seconds
         
         cur.close(); conn.close()
         return jsonify({'booking': b, 'picked': False})
     
-    # Check if there was a recently accepted booking (picked by another driver)
+    # If no active assignment, trigger distribution for this driver
     cur.execute("""
-        SELECT id, accepted_by FROM Trip_Details 
-        WHERE status='Confirmed' 
-        AND accepted_by IS NOT NULL 
-        AND accepted_by != '' 
-        AND accepted_by != %s
-        ORDER BY id DESC LIMIT 1
-    """, (driver_name,))
+        SELECT COUNT(*) FROM Trip_Details t
+        LEFT JOIN Booking_Queue bq ON bq.trip_id = t.id
+        WHERE t.status = 'Confirmed' 
+        AND (t.accepted_by IS NULL OR t.accepted_by = '')
+        AND (bq.id IS NULL OR bq.status IN ('expired', 'pending'))
+    """)
     
-    picked = cur.fetchone()
+    unassigned_count = cur.fetchone()[0]
+    if unassigned_count > 0:
+        # Trigger immediate distribution
+        threading.Thread(target=auto_distribute_bookings, daemon=True).start()
+    
     cur.close(); conn.close()
-    
-    if picked:
-        return jsonify({'booking': None, 'picked': True, 'picked_by': picked[1]})
-    
     return jsonify({'booking': None, 'picked': False})
 
 @app.route('/api/debug-booking-system')
@@ -682,6 +686,15 @@ def api_force_distribute():
     try:
         auto_distribute_bookings()
         return jsonify({'success': True, 'message': 'Booking distribution triggered'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/set-driver-online/<username>')
+def api_set_driver_online(username):
+    """Manually set driver online for testing."""
+    try:
+        update_driver_online_status(username, True)
+        return jsonify({'success': True, 'message': f'Driver {username} set online'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
