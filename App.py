@@ -551,7 +551,7 @@ def api_driver_online():
 
 @app.route('/api/latest-booking')
 def api_latest_booking():
-    """Get latest booking assigned to driver with intelligent distribution."""
+    """Get latest booking for driver - SIMPLIFIED APPROACH."""
     driver_name = request.args.get('driver', '')
     if not driver_name:
         return jsonify({'booking': None, 'picked': False})
@@ -562,27 +562,22 @@ def api_latest_booking():
     
     cur = conn.cursor()
     
-    # Update driver's last seen timestamp and ensure they're online
+    # Update driver's last seen timestamp
     update_driver_online_status(driver_name, True)
     
-    # Check for assigned booking in queue (active assignments)
+    # DIRECT APPROACH: Check for any unassigned confirmed bookings
     cur.execute("""
         SELECT t.id, t.rider_id, t.pickup_location, t.drop_location,
                t.distance_km, t.fare, t.ride_date, t.ride_time,
                t.accepted_by, t.otp, t.status,
-               r.username AS rider_name, r.mobile AS rider_mobile,
-               bq.assignment_time, bq.timeout_at
-        FROM Booking_Queue bq
-        JOIN Trip_Details t ON t.id = bq.trip_id
+               r.username AS rider_name, r.mobile AS rider_mobile
+        FROM Trip_Details t
         LEFT JOIN Rider_Details r ON r.id = t.rider_id
-        WHERE bq.assigned_driver = %s 
-        AND bq.status = 'assigned'
-        AND bq.timeout_at > NOW()
-        AND t.status = 'Confirmed'
+        WHERE t.status = 'Confirmed'
         AND (t.accepted_by IS NULL OR t.accepted_by = '')
-        ORDER BY bq.assignment_time DESC
+        ORDER BY t.created_at ASC
         LIMIT 1
-    """, (driver_name,))
+    """)
     
     row = cur.fetchone()
     if row:
@@ -590,35 +585,10 @@ def api_latest_booking():
         b['fare'] = format_fare(b['fare'])
         b['ride_date'] = str(b['ride_date'])
         b['ride_time'] = str(b['ride_time'])
-        b['assignment_time'] = str(b['assignment_time'])
-        b['timeout_at'] = str(b['timeout_at'])
-        
-        # Calculate remaining time
-        timeout_at = b['timeout_at']
-        if isinstance(timeout_at, str):
-            try:
-                timeout_at = datetime.fromisoformat(timeout_at.replace('Z', '+00:00'))
-            except:
-                timeout_at = datetime.strptime(timeout_at, '%Y-%m-%d %H:%M:%S')
-        remaining_seconds = max(0, int((timeout_at - datetime.now()).total_seconds()))
-        b['remaining_seconds'] = remaining_seconds
+        b['remaining_seconds'] = 120  # 2 minutes timeout
         
         cur.close(); conn.close()
         return jsonify({'booking': b, 'picked': False})
-    
-    # If no active assignment, trigger distribution for this driver
-    cur.execute("""
-        SELECT COUNT(*) FROM Trip_Details t
-        LEFT JOIN Booking_Queue bq ON bq.trip_id = t.id
-        WHERE t.status = 'Confirmed' 
-        AND (t.accepted_by IS NULL OR t.accepted_by = '')
-        AND (bq.id IS NULL OR bq.status IN ('expired', 'pending'))
-    """)
-    
-    unassigned_count = cur.fetchone()[0]
-    if unassigned_count > 0:
-        # Trigger immediate distribution
-        threading.Thread(target=auto_distribute_bookings, daemon=True).start()
     
     cur.close(); conn.close()
     return jsonify({'booking': None, 'picked': False})
@@ -695,6 +665,47 @@ def api_set_driver_online(username):
     try:
         update_driver_online_status(username, True)
         return jsonify({'success': True, 'message': f'Driver {username} set online'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/create-test-booking')
+def api_create_test_booking():
+    """Create a test booking for testing purposes."""
+    try:
+        conn = get_db()
+        if not conn:
+            return jsonify({'success': False, 'error': 'Database connection failed'})
+        
+        cur = conn.cursor()
+        
+        # Create a test rider if not exists
+        cur.execute("SELECT id FROM Rider_Details WHERE username='rider1'")
+        rider = cur.fetchone()
+        if not rider:
+            cur.execute(
+                "INSERT INTO Rider_Details (username, mobile, email, password_hash) VALUES (%s, %s, %s, %s)",
+                ('rider1', '9876543210', 'rider1@test.com', hash_password('password123'))
+            )
+            conn.commit()
+            rider_id = cur.lastrowid
+        else:
+            rider_id = rider[0]
+        
+        # Create test booking
+        cur.execute(
+            "INSERT INTO Trip_Details (rider_id, pickup_location, drop_location, distance_km, fare, ride_date, ride_time, otp) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
+            (rider_id, 'Test Pickup Location', 'Test Drop Location', 5.5, 250.00, '2024-01-15', '14:30:00', '1234')
+        )
+        conn.commit()
+        trip_id = cur.lastrowid
+        
+        cur.close(); conn.close()
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Test booking created with ID {trip_id}',
+            'trip_id': trip_id
+        })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
@@ -828,29 +839,21 @@ def accept_trip():
     if conn:
         cur = conn.cursor()
         
-        # Check if this booking is assigned to this driver and not expired
+        # Check if booking is still available (not accepted by another driver)
         cur.execute("""
-            SELECT bq.id FROM Booking_Queue bq
-            WHERE bq.trip_id = %s 
-            AND bq.assigned_driver = %s
-            AND bq.status = 'assigned'
-            AND bq.timeout_at > NOW()
-        """, (trip_id, driver_name))
+            SELECT t.id FROM Trip_Details t
+            WHERE t.id = %s 
+            AND t.status = 'Confirmed'
+            AND (t.accepted_by IS NULL OR t.accepted_by = '')
+        """, (trip_id,))
         
-        assignment = cur.fetchone()
-        if not assignment:
+        available = cur.fetchone()
+        if not available:
             cur.close(); conn.close()
             return redirect(url_for('driver_home', username=driver_name))
         
-        # Accept the trip
+        # Accept the trip (first come, first served)
         cur.execute("UPDATE Trip_Details SET accepted_by=%s WHERE id=%s", (driver_name, trip_id))
-        
-        # Update booking queue status
-        cur.execute("""
-            UPDATE Booking_Queue 
-            SET status = 'accepted' 
-            WHERE trip_id = %s AND assigned_driver = %s
-        """, (trip_id, driver_name))
         
         # Update driver status to indicate they're on a trip
         cur.execute("""
@@ -1098,17 +1101,7 @@ def submit():
         )
         conn.commit()
         order_id = cur.lastrowid
-        
-        # Add to booking queue for automatic distribution
-        cur.execute(
-            "INSERT INTO Booking_Queue (trip_id, status) VALUES (%s, 'pending')",
-            (order_id,)
-        )
-        conn.commit()
         cur.close(); conn.close()
-        
-        # Trigger immediate booking distribution
-        threading.Thread(target=auto_distribute_bookings, daemon=True).start()
     
     riders_orders = session.setdefault('last_order', {})
     riders_orders[username] = order_id
