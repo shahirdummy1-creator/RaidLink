@@ -122,49 +122,6 @@ def init_db():
             )
         """)
 
-        # Driver online status tracking
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS Driver_Online_Status (
-                id              INT AUTO_INCREMENT PRIMARY KEY,
-                driver_username VARCHAR(100) NOT NULL UNIQUE,
-                is_online       BOOLEAN NOT NULL DEFAULT FALSE,
-                last_seen       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                location_lat    DECIMAL(10,8) DEFAULT NULL,
-                location_lng    DECIMAL(11,8) DEFAULT NULL,
-                current_trip_id INT DEFAULT NULL,
-                last_assignment_time DATETIME DEFAULT NULL,
-                INDEX idx_online (is_online),
-                INDEX idx_last_seen (last_seen),
-                INDEX idx_location (location_lat, location_lng),
-                INDEX idx_assignment_time (last_assignment_time)
-            )
-        """)
-        
-        # Add last_assignment_time column if it doesn't exist
-        try:
-            cursor.execute("ALTER TABLE Driver_Online_Status ADD COLUMN last_assignment_time DATETIME DEFAULT NULL")
-            cursor.execute("ALTER TABLE Driver_Online_Status ADD INDEX idx_assignment_time (last_assignment_time)")
-            conn.commit()
-        except Exception:
-            pass  # Column already exists
-
-        # Booking assignment queue
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS Booking_Queue (
-                id              INT AUTO_INCREMENT PRIMARY KEY,
-                trip_id         INT NOT NULL UNIQUE,
-                assigned_driver VARCHAR(100) DEFAULT NULL,
-                assignment_time DATETIME DEFAULT NULL,
-                timeout_at      DATETIME DEFAULT NULL,
-                retry_count     INT NOT NULL DEFAULT 0,
-                status          ENUM('pending','assigned','accepted','expired') NOT NULL DEFAULT 'pending',
-                created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                INDEX idx_status (status),
-                INDEX idx_timeout (timeout_at),
-                FOREIGN KEY (trip_id) REFERENCES Trip_Details(id) ON DELETE CASCADE
-            )
-        """)
-
         conn.commit()
         cursor.close()
         conn.close()

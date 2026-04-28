@@ -89,7 +89,7 @@
         .driver-profile-name { font-size: 1.05rem; font-weight: 700; color: #111827; }
         .driver-profile-meta { font-size: .78rem; color: #6b7280; margin-top: 2px; }
 
-
+        /* OTP input - REMOVED */
     </style>
 </head>
 <body>
@@ -187,8 +187,6 @@
         <!-- Booking request card (rendered by JS) -->
         <div id="bookingArea"></div>
 
-
-
         <div class="mt-3">
             <a href="{{ url_for('driver_home', username=driver_name) }}" class="btn btn-secondary">Back to Home</a>
         </div>
@@ -250,21 +248,6 @@
         statusText.textContent = online ? 'Online' : 'Offline';
         statusText.className   = online ? 'mb-0 text-success' : 'mb-0 text-danger';
         searchingOrdersCard.style.display = online ? 'block' : 'none';
-        
-        // Update online status via API
-        if (navigator.geolocation && online) {
-            navigator.geolocation.getCurrentPosition(
-                position => {
-                    updateDriverOnlineStatus(online, position.coords.latitude, position.coords.longitude);
-                },
-                () => {
-                    updateDriverOnlineStatus(online);
-                }
-            );
-        } else {
-            updateDriverOnlineStatus(online);
-        }
-        
         if (online) {
             currentBookingId = null;
             bookingArea.innerHTML = '';
@@ -274,19 +257,6 @@
             bookingArea.innerHTML = '';
         }
         localStorage.setItem(DRIVER_ONLINE_KEY, online);
-    }
-    
-    function updateDriverOnlineStatus(isOnline, lat = null, lng = null) {
-        fetch('/api/driver-online', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                username: DRIVER_USERNAME,
-                is_online: isOnline,
-                lat: lat,
-                lng: lng
-            })
-        }).catch(err => console.log('Status update failed:', err));
     }
     statusSwitch.addEventListener('change', updateStatus);
 
@@ -325,9 +295,6 @@
                         renderBookingCard(b);
                         searchingOrdersCard.style.display = 'none';
                         if (!manual) notifyNewBooking();
-                    } else if (b.remaining_seconds) {
-                        // Update countdown for existing booking
-                        updateBookingCountdown(b.remaining_seconds);
                     }
                 } else if (data.picked && currentBookingId !== null) {
                     currentBookingId = null;
@@ -440,7 +407,7 @@
                         style="padding:12px;border-radius:10px;border:none;background:linear-gradient(135deg,#059669,#047857);color:#fff;font-weight:700;font-size:.9rem;cursor:pointer;box-shadow:0 4px 12px rgba(5,150,105,.35);transition:all .18s;"
                         onmouseover="this.style.transform='translateY(-1px)'"
                         onmouseout="this.style.transform='translateY(0)'">
-                        <i class="bi bi-check-circle me-1"></i> Accept <span id="countdown-${b.id}" style="font-size:.8rem;opacity:.8;"></span>
+                        <i class="bi bi-check-circle me-1"></i> Accept
                     </button>
                 </div>
             </div>
@@ -491,8 +458,6 @@
         }
     }
 
-
-
     function capitalize(str) {
         return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
     }
@@ -503,20 +468,6 @@
             document.title = document.title === '*** NEW ORDER ***' ? original : '*** NEW ORDER ***';
         }, 600);
         setTimeout(() => { clearInterval(flashing); document.title = original; }, 5000);
-    }
-    
-    function updateBookingCountdown(remainingSeconds) {
-        const countdownEl = document.querySelector(`#countdown-${currentBookingId}`);
-        if (countdownEl && remainingSeconds > 0) {
-            const minutes = Math.floor(remainingSeconds / 60);
-            const seconds = remainingSeconds % 60;
-            countdownEl.textContent = `(${minutes}:${seconds.toString().padStart(2, '0')})`;
-            
-            if (remainingSeconds <= 30) {
-                countdownEl.style.color = '#dc2626';
-                countdownEl.style.fontWeight = '700';
-            }
-        }
     }
 </script>
 </body>

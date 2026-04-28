@@ -4,10 +4,8 @@ from werkzeug.utils import secure_filename
 import hashlib
 import os
 import random
-import threading
-import time
-from datetime import datetime, timedelta
-import math
+
+from datetime import timedelta
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'raidlink_secret_2024')
@@ -95,200 +93,6 @@ def get_driver(username):
     session.get('drivers', {}).pop(username, None)
     session.modified = True
     return None
-
-
-# ── Optimized Booking Distribution System ──────────────────────
-
-def update_driver_online_status(username, is_online, lat=None, lng=None):
-    """Update driver's online status and location."""
-    conn = get_db()
-    if conn:
-        cur = conn.cursor()
-        cur.execute("""
-            INSERT INTO Driver_Online_Status (driver_username, is_online, last_seen, location_lat, location_lng)
-            VALUES (%s, %s, NOW(), %s, %s)
-            ON DUPLICATE KEY UPDATE 
-            is_online = VALUES(is_online),
-            last_seen = NOW(),
-            location_lat = COALESCE(VALUES(location_lat), location_lat),
-            location_lng = COALESCE(VALUES(location_lng), location_lng)
-        """, (username, is_online, lat, lng))
-        conn.commit()
-        cur.close(); conn.close()
-
-def get_available_drivers(pickup_lat=None, pickup_lng=None, max_distance=None):
-    """Get list of available drivers with fair rotation distribution."""
-    conn = get_db()
-    if not conn:
-        return []
-    
-    cur = conn.cursor()
-    # Get online drivers who are not currently on a trip, ordered by last assignment time
-    cur.execute("""
-        SELECT dos.driver_username, dos.location_lat, dos.location_lng, 
-               dos.last_seen, dos.last_assignment_time,
-               dd.car_make, dd.car_model, dd.reg_number,
-               COUNT(bq.id) as total_assignments
-        FROM Driver_Online_Status dos
-        JOIN Driver_Details dd ON dd.username = dos.driver_username
-        LEFT JOIN Booking_Queue bq ON bq.assigned_driver = dos.driver_username 
-               AND bq.created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)
-        WHERE dos.is_online = TRUE 
-        AND dd.account_status = 'Active'
-        AND dos.current_trip_id IS NULL
-        AND dos.last_seen > DATE_SUB(NOW(), INTERVAL 5 MINUTE)
-        GROUP BY dos.driver_username
-        ORDER BY total_assignments ASC, dos.last_assignment_time ASC, dos.last_seen DESC
-    """)
-    
-    drivers = []
-    for row in cur.fetchall():
-        driver = {
-            'username': row[0],
-            'lat': float(row[1]) if row[1] else None,
-            'lng': float(row[2]) if row[2] else None,
-            'last_seen': row[3],
-            'last_assignment_time': row[4],
-            'car': f"{row[5]} {row[6]}",
-            'reg_number': row[7],
-            'total_assignments': row[8] or 0
-        }
-        drivers.append(driver)
-    
-    cur.close(); conn.close()
-    return drivers
-
-def assign_booking_to_driver(trip_id, driver_username, timeout_minutes=2):
-    """Assign a booking to a specific driver with timeout."""
-    conn = get_db()
-    if not conn:
-        return False
-    
-    cur = conn.cursor()
-    timeout_at = datetime.now() + timedelta(minutes=timeout_minutes)
-    
-    try:
-        # Add to booking queue
-        cur.execute("""
-            INSERT INTO Booking_Queue (trip_id, assigned_driver, assignment_time, timeout_at, status)
-            VALUES (%s, %s, NOW(), %s, 'assigned')
-            ON DUPLICATE KEY UPDATE
-            assigned_driver = VALUES(assigned_driver),
-            assignment_time = NOW(),
-            timeout_at = VALUES(timeout_at),
-            status = 'assigned',
-            retry_count = retry_count + 1
-        """, (trip_id, driver_username, timeout_at))
-        
-        # Update driver's last assignment time for fair rotation
-        cur.execute("""
-            UPDATE Driver_Online_Status 
-            SET last_assignment_time = NOW() 
-            WHERE driver_username = %s
-        """, (driver_username,))
-        
-        conn.commit()
-        cur.close(); conn.close()
-        return True
-    except Exception as e:
-        print(f"Error assigning booking: {e}")
-        cur.close(); conn.close()
-        return False
-
-def auto_distribute_bookings():
-    """Automatically distribute new bookings to available drivers with fair rotation."""
-    conn = get_db()
-    if not conn:
-        return
-    
-    cur = conn.cursor()
-    
-    # Get unassigned bookings (no active assignment or expired assignments)
-    cur.execute("""
-        SELECT t.id, t.pickup_location, t.drop_location, t.rider_id
-        FROM Trip_Details t
-        LEFT JOIN Booking_Queue bq ON bq.trip_id = t.id AND bq.status = 'assigned' AND bq.timeout_at > NOW()
-        WHERE t.status = 'Confirmed' 
-        AND (t.accepted_by IS NULL OR t.accepted_by = '')
-        AND bq.id IS NULL
-        ORDER BY t.created_at ASC
-    """)
-    
-    unassigned_bookings = cur.fetchall()
-    
-    for booking in unassigned_bookings:
-        trip_id, pickup_location, drop_location, rider_id = booking
-        
-        # Get available drivers with fair rotation (least assignments first)
-        available_drivers = get_available_drivers()
-        
-        if available_drivers:
-            # Get drivers who haven't skipped this trip
-            cur.execute("""
-                SELECT driver_name FROM Driver_Skipped_Trips WHERE trip_id = %s
-            """, (trip_id,))
-            skipped_drivers = {row[0] for row in cur.fetchall()}
-            
-            # Filter out drivers who skipped this trip
-            eligible_drivers = [
-                d for d in available_drivers 
-                if d['username'] not in skipped_drivers
-            ]
-            
-            if eligible_drivers:
-                # Assign to the driver with least assignments (fair rotation)
-                best_driver = eligible_drivers[0]  # Already sorted by assignment count
-                success = assign_booking_to_driver(trip_id, best_driver['username'])
-                if success:
-                    print(f"Fair-assigned trip {trip_id} to driver {best_driver['username']} (assignments: {best_driver['total_assignments']})")
-    
-    cur.close(); conn.close()
-
-def cleanup_expired_assignments():
-    """Clean up expired booking assignments and redistribute."""
-    conn = get_db()
-    if not conn:
-        return
-    
-    cur = conn.cursor()
-    
-    # Mark expired assignments
-    cur.execute("""
-        UPDATE Booking_Queue 
-        SET status = 'expired' 
-        WHERE status = 'assigned' 
-        AND timeout_at < NOW()
-    """)
-    
-    # Reset trip assignments for expired bookings
-    cur.execute("""
-        UPDATE Trip_Details t
-        JOIN Booking_Queue bq ON bq.trip_id = t.id
-        SET t.accepted_by = NULL
-        WHERE bq.status = 'expired' 
-        AND t.status = 'Confirmed'
-    """)
-    
-    conn.commit()
-    cur.close(); conn.close()
-    
-    # Redistribute expired bookings
-    auto_distribute_bookings()
-
-def background_booking_manager():
-    """Background thread to manage booking distribution."""
-    while True:
-        try:
-            cleanup_expired_assignments()
-            auto_distribute_bookings()
-            time.sleep(10)  # Check every 10 seconds
-        except Exception as e:
-            print(f"Background booking manager error: {e}")
-            time.sleep(30)  # Wait longer on error
-
-# Start background booking manager
-booking_thread = threading.Thread(target=background_booking_manager, daemon=True)
-booking_thread.start()
 
 
 # ════════════════════════════════════════════════════════════
@@ -515,245 +319,45 @@ def api_driver_status(username):
             return jsonify({'status': row[0]})
     return jsonify({'status': 'Unknown'})
 
-@app.route('/api/driver-online', methods=['POST'])
-def api_driver_online():
-    """Update driver online status and location."""
-    data = request.get_json()
-    username = data.get('username')
-    is_online = data.get('is_online', False)
-    lat = data.get('lat')
-    lng = data.get('lng')
-    
-    if not username:
-        return jsonify({'error': 'Username required'}), 400
-    
-    # Verify driver exists and is active
-    driver = get_driver(username)
-    if not driver:
-        return jsonify({'error': 'Driver not found or inactive'}), 404
-    
-    update_driver_online_status(username, is_online, lat, lng)
-    
-    # If going offline, clear any current assignments
-    if not is_online:
-        conn = get_db()
-        if conn:
-            cur = conn.cursor()
-            cur.execute("""
-                UPDATE Driver_Online_Status 
-                SET current_trip_id = NULL 
-                WHERE driver_username = %s
-            """, (username,))
-            conn.commit()
-            cur.close(); conn.close()
-    
-    return jsonify({'success': True, 'online': is_online})
-
 @app.route('/api/latest-booking')
 def api_latest_booking():
-    """Get latest booking for driver - SIMPLIFIED APPROACH."""
+    from flask import jsonify
     driver_name = request.args.get('driver', '')
-    if not driver_name:
-        return jsonify({'booking': None, 'picked': False})
-    
     conn = get_db()
-    if not conn:
-        return jsonify({'booking': None, 'picked': False})
-    
-    cur = conn.cursor()
-    
-    # Update driver's last seen timestamp
-    update_driver_online_status(driver_name, True)
-    
-    # DIRECT APPROACH: Check for any unassigned confirmed bookings
-    cur.execute("""
-        SELECT t.id, t.rider_id, t.pickup_location, t.drop_location,
-               t.distance_km, t.fare, t.ride_date, t.ride_time,
-               t.accepted_by, t.otp, t.status,
-               r.username AS rider_name, r.mobile AS rider_mobile
-        FROM Trip_Details t
-        LEFT JOIN Rider_Details r ON r.id = t.rider_id
-        WHERE t.status = 'Confirmed'
-        AND (t.accepted_by IS NULL OR t.accepted_by = '')
-        ORDER BY t.created_at ASC
-        LIMIT 1
-    """)
-    
-    row = cur.fetchone()
-    if row:
-        b = row_to_dict(cur, row)
-        b['fare'] = format_fare(b['fare'])
-        b['ride_date'] = str(b['ride_date'])
-        b['ride_time'] = str(b['ride_time'])
-        b['remaining_seconds'] = 120  # 2 minutes timeout
-        
-        cur.close(); conn.close()
-        return jsonify({'booking': b, 'picked': False})
-    
-    cur.close(); conn.close()
-    return jsonify({'booking': None, 'picked': False})
-
-@app.route('/api/debug-booking-system')
-def api_debug_booking_system():
-    """Debug endpoint to check booking distribution system status."""
-    conn = get_db()
-    if not conn:
-        return jsonify({'error': 'Database connection failed'})
-    
-    cur = conn.cursor()
-    debug_info = {}
-    
-    # Check online drivers
-    cur.execute("""
-        SELECT dos.driver_username, dos.is_online, dos.last_seen, dos.current_trip_id
-        FROM Driver_Online_Status dos
-        JOIN Driver_Details dd ON dd.username = dos.driver_username
-        WHERE dd.account_status = 'Active'
-    """)
-    debug_info['all_drivers'] = [{
-        'username': row[0], 'is_online': bool(row[1]), 
-        'last_seen': str(row[2]), 'current_trip_id': row[3]
-    } for row in cur.fetchall()]
-    
-    # Check available drivers
-    available_drivers = get_available_drivers()
-    debug_info['available_drivers'] = available_drivers
-    
-    # Check unassigned bookings
-    cur.execute("""
-        SELECT t.id, t.pickup_location, t.drop_location, t.status, t.accepted_by,
-               bq.status as queue_status, bq.assigned_driver
-        FROM Trip_Details t
-        LEFT JOIN Booking_Queue bq ON bq.trip_id = t.id
-        WHERE t.status = 'Confirmed'
-        ORDER BY t.created_at DESC
-        LIMIT 10
-    """)
-    debug_info['recent_bookings'] = [{
-        'trip_id': row[0], 'pickup': row[1], 'drop': row[2], 
-        'status': row[3], 'accepted_by': row[4],
-        'queue_status': row[5], 'assigned_driver': row[6]
-    } for row in cur.fetchall()]
-    
-    # Check booking queue
-    cur.execute("""
-        SELECT bq.trip_id, bq.assigned_driver, bq.status, bq.timeout_at, bq.retry_count
-        FROM Booking_Queue bq
-        ORDER BY bq.created_at DESC
-        LIMIT 10
-    """)
-    debug_info['booking_queue'] = [{
-        'trip_id': row[0], 'assigned_driver': row[1], 'status': row[2],
-        'timeout_at': str(row[3]) if row[3] else None, 'retry_count': row[4]
-    } for row in cur.fetchall()]
-    
-    cur.close(); conn.close()
-    return jsonify(debug_info)
-
-@app.route('/api/force-distribute')
-def api_force_distribute():
-    """Force immediate booking distribution for testing."""
-    try:
-        auto_distribute_bookings()
-        return jsonify({'success': True, 'message': 'Booking distribution triggered'})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/set-driver-online/<username>')
-def api_set_driver_online(username):
-    """Manually set driver online for testing."""
-    try:
-        update_driver_online_status(username, True)
-        return jsonify({'success': True, 'message': f'Driver {username} set online'})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/create-test-booking')
-def api_create_test_booking():
-    """Create a test booking for testing purposes."""
-    try:
-        conn = get_db()
-        if not conn:
-            return jsonify({'success': False, 'error': 'Database connection failed'})
-        
+    if conn:
         cur = conn.cursor()
-        
-        # Create a test rider if not exists
-        cur.execute("SELECT id FROM Rider_Details WHERE username='rider1'")
-        rider = cur.fetchone()
-        if not rider:
-            cur.execute(
-                "INSERT INTO Rider_Details (username, mobile, email, password_hash) VALUES (%s, %s, %s, %s)",
-                ('rider1', '9876543210', 'rider1@test.com', hash_password('password123'))
-            )
-            conn.commit()
-            rider_id = cur.lastrowid
-        else:
-            rider_id = rider[0]
-        
-        # Create test booking
         cur.execute(
-            "INSERT INTO Trip_Details (rider_id, pickup_location, drop_location, distance_km, fare, ride_date, ride_time, otp) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
-            (rider_id, 'Test Pickup Location', 'Test Drop Location', 5.5, 250.00, '2024-01-15', '14:30:00', '1234')
+            """SELECT t.id, t.rider_id, t.pickup_location, t.drop_location,
+                      t.distance_km, t.fare, t.ride_date, t.ride_time,
+                      t.accepted_by, t.otp, t.status,
+                      r.username AS rider_name, r.mobile AS rider_mobile
+               FROM Trip_Details t
+               LEFT JOIN Rider_Details r ON r.id = t.rider_id
+               WHERE t.status='Confirmed' AND (t.accepted_by IS NULL OR t.accepted_by='')
+               AND t.rider_id IS NOT NULL
+               AND t.id NOT IN (
+                   SELECT trip_id FROM Driver_Skipped_Trips WHERE driver_name=%s
+               )
+               ORDER BY t.id DESC LIMIT 1""",
+            (driver_name,)
         )
-        conn.commit()
-        trip_id = cur.lastrowid
-        
+        row = cur.fetchone()
+        if row:
+            b = row_to_dict(cur, row)
+            b['fare']      = format_fare(b['fare'])
+            b['ride_date'] = str(b['ride_date'])
+            b['ride_time'] = str(b['ride_time'])
+            cur.close(); conn.close()
+            return jsonify({'booking': b, 'picked': False})
+        # Check if there was a recently accepted booking (picked by another driver)
+        cur.execute(
+            "SELECT id, accepted_by FROM Trip_Details WHERE status='Confirmed' AND accepted_by IS NOT NULL AND accepted_by != '' ORDER BY id DESC LIMIT 1"
+        )
+        picked = cur.fetchone()
         cur.close(); conn.close()
-        
-        return jsonify({
-            'success': True, 
-            'message': f'Test booking created with ID {trip_id}',
-            'trip_id': trip_id
-        })
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/driver-stats/<username>')
-def api_driver_stats(username):
-    """Get driver statistics for fair rotation tracking."""
-    conn = get_db()
-    if not conn:
-        return jsonify({'error': 'Database connection failed'}), 500
-    
-    cur = conn.cursor()
-    
-    # Get driver stats
-    cur.execute("""
-        SELECT 
-            COUNT(*) as total_trips,
-            AVG(CASE WHEN t.status = 'Completed' THEN 1 ELSE 0 END) as completion_rate,
-            COUNT(CASE WHEN DATE(t.created_at) = CURDATE() THEN 1 END) as today_trips,
-            AVG(t.fare) as avg_fare,
-            COUNT(CASE WHEN bq.assigned_driver = %s AND bq.created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN 1 END) as assignments_today
-        FROM Trip_Details t
-        LEFT JOIN Booking_Queue bq ON bq.trip_id = t.id
-        WHERE t.accepted_by = %s
-        AND t.created_at > DATE_SUB(NOW(), INTERVAL 30 DAY)
-    """, (username, username))
-    
-    stats = cur.fetchone()
-    if stats:
-        total_trips, completion_rate, today_trips, avg_fare, assignments_today = stats
-        
-        result = {
-            'total_trips': total_trips or 0,
-            'completion_rate': round((completion_rate or 0) * 100, 1),
-            'today_trips': today_trips or 0,
-            'avg_fare': float(avg_fare or 0),
-            'assignments_today': assignments_today or 0
-        }
-    else:
-        result = {
-            'total_trips': 0,
-            'completion_rate': 0,
-            'today_trips': 0,
-            'avg_fare': 0,
-            'assignments_today': 0
-        }
-    
-    cur.close(); conn.close()
-    return jsonify(result)
+        if picked:
+            return jsonify({'booking': None, 'picked': True, 'picked_by': picked[1]})
+    return jsonify({'booking': None, 'picked': False})
 
 @app.route('/driver-logout/<username>')
 def driver_logout(username):
@@ -830,41 +434,14 @@ def driver_cancel_trip():
 
 @app.route('/accept-trip', methods=['POST'])
 def accept_trip():
-    trip_id = request.form.get('trip_id')
+    trip_id     = request.form.get('trip_id')
     driver_name = request.form.get('driver_name', 'Unknown Driver')
-    
     conn = get_db()
     booking = None
-    
     if conn:
         cur = conn.cursor()
-        
-        # Check if booking is still available (not accepted by another driver)
-        cur.execute("""
-            SELECT t.id FROM Trip_Details t
-            WHERE t.id = %s 
-            AND t.status = 'Confirmed'
-            AND (t.accepted_by IS NULL OR t.accepted_by = '')
-        """, (trip_id,))
-        
-        available = cur.fetchone()
-        if not available:
-            cur.close(); conn.close()
-            return redirect(url_for('driver_home', username=driver_name))
-        
-        # Accept the trip (first come, first served)
         cur.execute("UPDATE Trip_Details SET accepted_by=%s WHERE id=%s", (driver_name, trip_id))
-        
-        # Update driver status to indicate they're on a trip
-        cur.execute("""
-            UPDATE Driver_Online_Status 
-            SET current_trip_id = %s 
-            WHERE driver_username = %s
-        """, (trip_id, driver_name))
-        
         conn.commit()
-        
-        # Get booking details
         cur.execute("""
             SELECT t.id, t.pickup_location, t.drop_location, t.fare, t.distance_km,
                    r.username AS rider_name, r.mobile AS rider_mobile
@@ -872,14 +449,11 @@ def accept_trip():
             LEFT JOIN Rider_Details r ON r.id = t.rider_id
             WHERE t.id=%s
         """, (trip_id,))
-        
         row = cur.fetchone()
         if row:
             booking = row_to_dict(cur, row)
             booking['fare'] = format_fare(booking['fare'])
-        
         cur.close(); conn.close()
-    
     return render_template('driver_accept.html', booking=booking, driver_name=driver_name)
 
 @app.route('/start-trip/<username>')
@@ -908,27 +482,9 @@ def complete_trip():
     conn = get_db()
     if conn:
         cur = conn.cursor()
-        
-        # Complete the trip
         cur.execute("UPDATE Trip_Details SET status='Completed' WHERE id=%s", (booking_id,))
-        
-        # Clear driver's current trip
-        cur.execute("""
-            UPDATE Driver_Online_Status 
-            SET current_trip_id = NULL
-            WHERE driver_username = %s
-        """, (username,))
-        
-        # Mark booking queue as completed
-        cur.execute("""
-            UPDATE Booking_Queue 
-            SET status = 'completed' 
-            WHERE trip_id = %s
-        """, (booking_id,))
-        
         conn.commit()
         cur.close(); conn.close()
-    
     return redirect(url_for('driver_home', username=username))
 
 @app.route('/driver-profile')
@@ -1102,7 +658,6 @@ def submit():
         conn.commit()
         order_id = cur.lastrowid
         cur.close(); conn.close()
-    
     riders_orders = session.setdefault('last_order', {})
     riders_orders[username] = order_id
     session.modified = True
@@ -1329,109 +884,6 @@ def admin_toggle_driver():
         cur.close(); conn.close()
     return safe_redirect(request.form.get('next'), url_for('admin_dashboard'))
 
-
-@app.route('/admin-booking-system')
-@admin_required
-def admin_booking_system():
-    """Admin dashboard for monitoring booking distribution system."""
-    conn = get_db()
-    if not conn:
-        return render_template('admin_booking_system.html', 
-                             online_drivers=[], booking_queue=[], system_stats={})
-    
-    cur = conn.cursor()
-    
-    # Get online drivers
-    cur.execute("""
-        SELECT dos.driver_username, dos.is_online, dos.last_seen, 
-               dos.location_lat, dos.location_lng, dos.current_trip_id, dos.last_assignment_time,
-               dd.car_make, dd.car_model, dd.reg_number,
-               COUNT(bq.id) as total_assignments_today
-        FROM Driver_Online_Status dos
-        JOIN Driver_Details dd ON dd.username = dos.driver_username
-        LEFT JOIN Booking_Queue bq ON bq.assigned_driver = dos.driver_username 
-               AND bq.created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)
-        WHERE dd.account_status = 'Active'
-        GROUP BY dos.driver_username
-        ORDER BY dos.is_online DESC, total_assignments_today ASC, dos.last_assignment_time ASC
-    """)
-    
-    online_drivers = []
-    for row in cur.fetchall():
-        driver = {
-            'username': row[0],
-            'is_online': bool(row[1]),
-            'last_seen': row[2],
-            'location_lat': row[3],
-            'location_lng': row[4],
-            'current_trip_id': row[5],
-            'last_assignment_time': row[6],
-            'car': f"{row[7]} {row[8]}",
-            'reg_number': row[9],
-            'total_assignments_today': row[10] or 0
-        }
-        online_drivers.append(driver)
-    
-    # Get booking queue
-    cur.execute("""
-        SELECT bq.id, bq.trip_id, bq.assigned_driver, bq.assignment_time,
-               bq.timeout_at, bq.retry_count, bq.status,
-               t.pickup_location, t.drop_location, t.fare,
-               r.username as rider_name
-        FROM Booking_Queue bq
-        JOIN Trip_Details t ON t.id = bq.trip_id
-        LEFT JOIN Rider_Details r ON r.id = t.rider_id
-        WHERE bq.status IN ('pending', 'assigned')
-        ORDER BY bq.created_at DESC
-        LIMIT 20
-    """)
-    
-    booking_queue = []
-    for row in cur.fetchall():
-        booking = {
-            'queue_id': row[0],
-            'trip_id': row[1],
-            'assigned_driver': row[2],
-            'assignment_time': row[3],
-            'timeout_at': row[4],
-            'retry_count': row[5],
-            'status': row[6],
-            'pickup_location': row[7],
-            'drop_location': row[8],
-            'fare': format_fare(row[9]),
-            'rider_name': row[10]
-        }
-        booking_queue.append(booking)
-    
-    # Get system statistics
-    cur.execute("""
-        SELECT 
-            COUNT(CASE WHEN dos.is_online = TRUE THEN 1 END) as online_drivers,
-            COUNT(CASE WHEN dos.current_trip_id IS NOT NULL THEN 1 END) as busy_drivers,
-            COUNT(CASE WHEN bq.status = 'pending' THEN 1 END) as pending_bookings,
-            COUNT(CASE WHEN bq.status = 'assigned' THEN 1 END) as assigned_bookings,
-            AVG(bq.retry_count) as avg_retry_count
-        FROM Driver_Online_Status dos
-        LEFT JOIN Booking_Queue bq ON bq.status IN ('pending', 'assigned')
-        WHERE dos.last_seen > DATE_SUB(NOW(), INTERVAL 10 MINUTE)
-    """)
-    
-    stats_row = cur.fetchone()
-    system_stats = {
-        'online_drivers': stats_row[0] or 0,
-        'busy_drivers': stats_row[1] or 0,
-        'available_drivers': (stats_row[0] or 0) - (stats_row[1] or 0),
-        'pending_bookings': stats_row[2] or 0,
-        'assigned_bookings': stats_row[3] or 0,
-        'avg_retry_count': round(stats_row[4] or 0, 1)
-    }
-    
-    cur.close(); conn.close()
-    
-    return render_template('admin_booking_system.html',
-                         online_drivers=online_drivers,
-                         booking_queue=booking_queue,
-                         system_stats=system_stats)
 
 @app.route('/admin-toggle-rider', methods=['POST'])
 @admin_required
