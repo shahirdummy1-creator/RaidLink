@@ -255,10 +255,23 @@
 
     <!-- Success alert -->
     {% if order_id %}
-    <div class="booking-alert">
-        <i class="bi bi-check-circle-fill fs-5"></i>
-        <div>Booking confirmed! Order <strong>#{{ order_id }}</strong> placed successfully.
-        Share the OTP with your driver to start the trip.</div>
+    <div class="booking-alert d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center gap-3">
+            <i class="bi bi-check-circle-fill fs-5"></i>
+            <div>
+                Booking confirmed! Order <strong>#{{ order_id }}</strong> placed successfully.
+                Share the OTP with your driver to start the trip.
+            </div>
+        </div>
+        <form method="POST" action="{{ url_for('cancel_booking') }}" style="margin:0;">
+            <input type="hidden" name="booking_id" value="{{ order_id }}">
+            <input type="hidden" name="username" value="{{ rider_name }}">
+            <button type="submit" class="btn btn-sm btn-outline-danger" 
+                    style="border-radius: 8px; font-weight: 600; padding: 5px 15px;"
+                    onclick="return confirm('Cancel this booking?')">
+                Cancel Now
+            </button>
+        </form>
     </div>
     {% endif %}
 
@@ -353,9 +366,12 @@
                            class="btn-view-driver">
                             <i class="bi bi-person-badge"></i> View Driver
                         </a>
+                        <a href="{{ url_for('track_trip', booking_id=b.id) }}"
+                           class="btn btn-primary" style="border-radius: 8px; padding: 6px 16px; font-size: .8rem; font-weight: 600;">
+                            <i class="bi bi-geo-alt"></i> Track Ride
+                        </a>
                         {% endif %}
                     </div>
-                    {% if not b.accepted_by %}
                     <form method="POST" action="{{ url_for('cancel_booking') }}" style="margin:0;">
                         <input type="hidden" name="booking_id" value="{{ b.id }}">
                         <input type="hidden" name="username" value="{{ rider_name }}">
@@ -364,7 +380,6 @@
                             <i class="bi bi-x-circle"></i> Cancel
                         </button>
                     </form>
-                    {% endif %}
                 </div>
             </div>
             {% endfor %}

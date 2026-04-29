@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Tracking – RaidLink</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        #map {
+            height: 100vh;
+            width: 100vw;
+            z-index: 1;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px 24px;
+            border-radius: 50px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 200px;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .status-text {
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 0.95rem;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            background: #9ca3af; /* Gray initially */
+            border-radius: 50%;
+        }
+
+        .dot.live {
+            background: #22c55e;
+            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+
+        /* Bike Emoji Icon */
+        .bike-icon {
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Toast Message */
+        #toast {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #111827;
+            color: white;
+            padding: 16px 32px;
+            border-radius: 12px;
+            font-weight: 600;
+            z-index: 2000;
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        #toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="status-bar" id="statusBar">
+        <div class="dot" id="statusDot"></div>
+        <span class="status-text" id="statusText">Connecting...</span>
+    </div>
+
+    <div id="map"></div>
+
+    <div id="toast">You have arrived! 🏁</div>
+
+    <!-- Socket.IO Client -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        const rideId = "{{ ride_id }}";
+        let map, driverMarker;
+        let startPos = null;
+        let targetPos = null;
+        let animationStartTime = null;
+        const animationDuration = 2000; // 2 seconds as requested
+
+        // Initialize Map
+        function initMap() {
+            map = L.map('map', {
+                zoomControl: false // Cleaner UI
+            }).setView([20.5937, 78.9629], 5); // Default center (India)
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+        }
+
+        // Bike Emoji Marker Icon
+        const bikeIcon = L.divIcon({
+            html: '<div class="bike-icon">🏍️</div>',
+            className: 'custom-div-icon',
+            iconSize: [30, 30],
+            iconAnchor: [15, 15]
+        });
+
+        // Socket.IO Connection
+        const socket = io();
+
+        socket.on('connect', () => {
+            console.log('Connected to server');
+            socket.emit('join_ride', { ride_id: rideId, role: 'rider' });
+        });
+
+        // Handle Live Location Updates
+        socket.on('driver_location', (data) => {
+            const { lat, lng } = data;
+            console.log('New location received:', lat, lng);
+
+            updateStatusLive();
+
+            if (!driverMarker) {
+                // First time: Create marker and center map
+                driverMarker = L.marker([lat, lng], { icon: bikeIcon }).addTo(map);
+                map.setView([lat, lng], 16);
+            } else {
+                // Subsequent times: Animate movement
+                startPos = driverMarker.getLatLng();
+                targetPos = { lat: lat, lng: lng };
+                animationStartTime = performance.now();
+                requestAnimationFrame(animateMarker);
+            }
+        });
+
+        // Smooth Animation Logic
+        function animateMarker(currentTime) {
+            if (!animationStartTime) return;
+
+            const elapsed = currentTime - animationStartTime;
+            const progress = Math.min(elapsed / animationDuration, 1);
+
+            // Linear interpolation (LERP)
+            const currentLat = startPos.lat + (targetPos.lat - startPos.lat) * progress;
+            const currentLng = startPos.lng + (targetPos.lng - startPos.lng) * progress;
+
+            driverMarker.setLatLng([currentLat, currentLng]);
+
+            if (progress < 1) {
+                requestAnimationFrame(animateMarker);
+            } else {
+                animationStartTime = null; // Animation finished
+            }
+        }
+
+        // Handle Ride End
+        socket.on('ride_ended', () => {
+            document.getElementById('statusText').innerText = "Arrived";
+            document.getElementById('statusDot').classList.remove('live');
+            
+            const toast = document.getElementById('toast');
+            toast.classList.add('show');
+        });
+
+        function updateStatusLive() {
+            const text = document.getElementById('statusText');
+            const dot = document.getElementById('statusDot');
+            
+            if (text.innerText !== "Driver is live") {
+                text.innerText = "Driver is live";
+                dot.classList.add('live');
+            }
+        }
+
+        // Initialize
+        window.onload = initMap;
+    </script>
+</body>
+</html>

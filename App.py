@@ -1,18 +1,55 @@
+# 1. Add eventlet monkey-patching at the very top (required for async support in SocketIO)
+import eventlet
+eventlet.monkey_patch()
+
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+# 2. Import SocketIO
+from flask_socketio import SocketIO
 from db import get_db, init_db
 from werkzeug.utils import secure_filename
 import hashlib
 import os
 import random
-
 from datetime import timedelta
 
 app = Flask(__name__)
+# 3. Initialize SocketIO with the app and allow CORS
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+# Database Configuration for SQLAlchemy
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:0604@127.0.0.1/taxi_app_db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+from models import db, Ride, User
+from flask_migrate import Migrate
+from flask_login import LoginManager
+
+db.init_app(app)
+migrate = Migrate(app, db)
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'rider_login'
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+
+from models import Ride
+import sockets
+from routes.ride import ride_bp
+app.register_blueprint(ride_bp)
+
 app.secret_key = os.environ.get('SECRET_KEY', 'raidlink_secret_2024')
 app.permanent_session_lifetime = timedelta(days=7)
 
 UPLOAD_FOLDER = os.path.join('static', 'uploads', 'drivers')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# Global dictionary for live driver tracking
+# Format: { booking_id_str: { 'lat': float, 'lng': float, 'stage': 'to_pickup'|'to_drop' } }
+LIVE_TRACKING = {}
 
 ALLOWED_EXT = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
@@ -691,6 +728,8 @@ def cancel_booking():
             )
             conn.commit()
             cur.close(); conn.close()
+            # Clear live tracking if exists
+            LIVE_TRACKING.pop(str(booking_id), None)
     return redirect(url_for('rider_bookings', username=username))
 
 @app.route('/rider-bookings/<username>')
@@ -900,5 +939,54 @@ def admin_toggle_rider():
     return safe_redirect(request.form.get('next'), url_for('admin_dashboard'))
 
 
+# ════════════════════════════════════════════════════════════
+#  REAL-TIME TRACKING ROUTES
+# ════════════════════════════════════════════════════════════
+
+@app.route('/api/update-location', methods=['POST'])
+def api_update_location():
+    data = request.json
+    booking_id = str(data.get('booking_id'))
+    lat = data.get('lat')
+    lng = data.get('lng')
+    stage = data.get('stage')
+    if booking_id and lat is not None and lng is not None:
+        LIVE_TRACKING[booking_id] = {
+            'lat': float(lat),
+            'lng': float(lng),
+            'stage': stage
+        }
+    return jsonify({'ok': True})
+
+@app.route('/api/get-location/<booking_id>', methods=['GET'])
+def api_get_location(booking_id):
+    loc = LIVE_TRACKING.get(str(booking_id))
+    if loc:
+        return jsonify({'found': True, 'lat': loc['lat'], 'lng': loc['lng'], 'stage': loc['stage']})
+    return jsonify({'found': False})
+
+@app.route('/track-trip/<int:booking_id>')
+def track_trip(booking_id):
+    # Verify the rider owns this booking or just load it
+    conn = get_db()
+    booking = None
+    rider_name = None
+    if conn:
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM Trip_Details WHERE id=%s", (booking_id,))
+        row = cur.fetchone()
+        if row:
+            booking = row_to_dict(cur, row)
+            cur.execute("SELECT username FROM Rider_Details WHERE id=%s", (booking['rider_id'],))
+            r_row = cur.fetchone()
+            if r_row:
+                rider_name = r_row[0]
+        cur.close(); conn.close()
+
+    if not booking:
+        return "Booking not found", 404
+    return render_template('rider_track.html', booking=booking, rider_name=rider_name)
+
+# 4. Change app.run() to socketio.run() to support WebSockets
 if __name__ == '__main__':
-    app.run(debug=os.environ.get('FLASK_DEBUG', 'false').lower() == 'true')
+    socketio.run(app, debug=True)

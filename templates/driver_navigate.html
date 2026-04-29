@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Navigation – RaidLink</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: #0f172a;
+            color: #ffffff;
+            overflow: hidden;
+        }
+
+        #map {
+            height: 100vh;
+            width: 100vw;
+            z-index: 1;
+        }
+
+        /* Dark Map Tiles Filter */
+        .leaflet-tile {
+            filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+        }
+
+        .leaflet-container {
+            background: #0f172a;
+        }
+
+        /* Overlay UI */
+        .ui-overlay {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 24px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            border-top-left-radius: 24px;
+            border-top-right-radius: 24px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 12px;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #f1f5f9;
+        }
+
+        .btn-action {
+            width: 100%;
+            padding: 16px;
+            border-radius: 16px;
+            border: none;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-start {
+            background: #2563eb;
+            color: white;
+        }
+
+        .btn-start:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-stop {
+            background: #dc2626;
+            color: white;
+        }
+
+        .btn-stop:hover {
+            background: #b91c1c;
+        }
+
+        /* Driver blue dot */
+        .driver-dot {
+            width: 16px;
+            height: 16px;
+            background: #3b82f6;
+            border: 3px solid white;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+    <div class="ui-overlay">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Coordinates</div>
+                <div class="stat-value" id="coords">-- , --</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Speed</div>
+                <div class="stat-value" id="speed">0 km/h</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Accuracy</div>
+                <div class="stat-value" id="accuracy">-- m</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Status</div>
+                <div class="stat-value" id="status" style="color: #94a3b8;">Idle</div>
+            </div>
+        </div>
+
+        <button id="actionBtn" class="btn-action btn-start" onclick="toggleBroadcasting()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            Start Broadcasting
+        </button>
+    </div>
+
+    <!-- Socket.IO & Leaflet -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        const rideId = "{{ ride_id }}";
+        const driverId = "{{ driver_id }}";
+        let map, driverMarker;
+        let watchId = null;
+        let isBroadcasting = false;
+        let lastEmitTime = 0;
+        const EMIT_THROTTLE = 2500; // ms
+
+        // Initialize Map
+        function initMap() {
+            map = L.map('map', { zoomControl: false }).setView([20.5937, 78.9629], 5);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19
+            }).addTo(map);
+        }
+
+        const socket = io();
+
+        socket.on('connect', () => {
+            console.log('Connected to server');
+            socket.emit('join_ride', { ride_id: rideId, role: 'driver' });
+        });
+
+        // Driver blue dot icon
+        const blueDotIcon = L.divIcon({
+            html: '<div class="driver-dot"></div>',
+            className: 'custom-div-icon',
+            iconSize: [22, 22],
+            iconAnchor: [11, 11]
+        });
+
+        function toggleBroadcasting() {
+            const btn = document.getElementById('actionBtn');
+            const statusText = document.getElementById('status');
+
+            if (!isBroadcasting) {
+                // START BROADCASTING
+                if (!navigator.geolocation) {
+                    alert("Geolocation is not supported by your browser");
+                    return;
+                }
+
+                watchId = navigator.geolocation.watchPosition(
+                    handleGpsUpdate,
+                    handleGpsError,
+                    { enableHighAccuracy: true, maximumAge: 0 }
+                );
+
+                isBroadcasting = true;
+                btn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12"></rect></svg> Stop Broadcasting';
+                btn.classList.remove('btn-start');
+                btn.classList.add('btn-stop');
+                statusText.innerText = "Broadcasting";
+                statusText.style.color = "#4ade80";
+            } else {
+                // STOP BROADCASTING
+                if (watchId !== null) {
+                    navigator.geolocation.clearWatch(watchId);
+                    watchId = null;
+                }
+
+                socket.emit('ride_completed', { ride_id: rideId });
+
+                isBroadcasting = false;
+                btn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Start Broadcasting';
+                btn.classList.remove('btn-stop');
+                btn.classList.add('btn-start');
+                statusText.innerText = "Completed";
+                statusText.style.color = "#94a3b8";
+            }
+        }
+
+        function handleGpsUpdate(position) {
+            const lat = position.coords.latitude;
+            const lng = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+            const speedMs = position.coords.speed || 0; // m/s
+            const speedKmh = Math.round(speedMs * 3.6); // km/h
+
+            // Update UI Stats
+            document.getElementById('coords').innerText = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+            document.getElementById('speed').innerText = `${speedKmh} km/h`;
+            document.getElementById('accuracy').innerText = `${Math.round(accuracy)} m`;
+
+            // Update Map Marker
+            if (!driverMarker) {
+                driverMarker = L.marker([lat, lng], { icon: blueDotIcon }).addTo(map);
+                map.setView([lat, lng], 17);
+            } else {
+                driverMarker.setLatLng([lat, lng]);
+                map.panTo([lat, lng]);
+            }
+
+            // Throttled Emission
+            const now = Date.now();
+            if (now - lastEmitTime >= EMIT_THROTTLE) {
+                socket.emit('update_location', {
+                    ride_id: rideId,
+                    lat: lat,
+                    lng: lng,
+                    speed: speedKmh
+                });
+                lastEmitTime = now;
+                console.log('Location emitted');
+            }
+        }
+
+        function handleGpsError(error) {
+            let msg = "Error getting location: ";
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    msg += "Permission denied. Please enable GPS.";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    msg += "Position unavailable.";
+                    break;
+                case error.TIMEOUT:
+                    msg += "Request timed out.";
+                    break;
+                default:
+                    msg += "Unknown error.";
+            }
+            alert(msg);
+            if (isBroadcasting) toggleBroadcasting(); // Stop if active
+        }
+
+        window.onload = initMap;
+    </script>
+</body>
+</html>

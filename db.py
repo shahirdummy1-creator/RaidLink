@@ -2,20 +2,26 @@ import mysql.connector
 from mysql.connector import Error
 import os
 
+import config
+
 DB_CONFIG = {
-    'host':     os.environ.get('MYSQLHOST',     os.environ.get('DB_HOST',     '127.0.0.1')),
+    'host':     os.environ.get('MYSQLHOST',     os.environ.get('DB_HOST',     config.MYSQL_HOST)),
     'port': int(os.environ.get('MYSQLPORT',     os.environ.get('DB_PORT',     '3306'))),
-    'user':     os.environ.get('MYSQLUSER',     os.environ.get('DB_USER',     'root')),
-    'password': os.environ.get('MYSQLPASSWORD', os.environ.get('DB_PASSWORD', 'sqlbook123')),
-    'database': os.environ.get('MYSQLDATABASE', os.environ.get('DB_NAME',     'raidlink_db'))
+    'user':     os.environ.get('MYSQLUSER',     os.environ.get('DB_USER',     config.MYSQL_USER)),
+    'password': os.environ.get('MYSQLPASSWORD', os.environ.get('DB_PASSWORD', config.MYSQL_PASSWORD)),
+    'database': os.environ.get('MYSQLDATABASE', os.environ.get('DB_NAME',     config.MYSQL_DB))
 }
 
+import traceback
+
 def get_db():
+    print(">>> Calling get_db()...")
     try:
         conn = mysql.connector.connect(**DB_CONFIG)
         return conn
-    except Error as e:
-        print(f"[DB ERROR] {e}")
+    except Exception as e:
+        print(f"[DB CONNECTION ERROR] {e}")
+        traceback.print_exc()
         return None
 
 def init_db():

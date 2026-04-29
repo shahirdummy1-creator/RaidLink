@@ -171,6 +171,7 @@
 <script>
 // ── Trip data from server ─────────────────────────────────
 const TOTAL_KM = parseFloat('{{ booking.distance_km if booking else 0 }}') || 0;
+const TRIP_ID  = '{{ booking.id if booking else "" }}';
 
 // ── Map init ──────────────────────────────────────────────
 const map = L.map('map').setView([20.5937, 78.9629], 5);
@@ -239,6 +240,15 @@ function onPosition(lat, lng, accuracy) {
         .addTo(map)
         .bindPopup('<b>🚗 Your Location</b>')
         .openPopup();
+
+    // Push live tracking data to server
+    if (TRIP_ID) {
+        fetch('/api/update-location', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ booking_id: TRIP_ID, lat: lat, lng: lng, stage: 'to_drop' })
+        }).catch(err => console.error('Tracking push failed', err));
+    }
 
     // Update route line
     if (routeLine) map.removeLayer(routeLine);

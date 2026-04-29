@@ -292,6 +292,15 @@ function onPosition(lat, lng, accuracy) {
     driverMarker = L.marker([lat, lng], { icon: blueIcon })
         .addTo(map).bindPopup('<b>🚗 You</b>');
 
+    // Push live tracking data to server
+    if (TRIP_ID) {
+        fetch('/api/update-location', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ booking_id: TRIP_ID, lat: lat, lng: lng, stage: 'to_pickup' })
+        }).catch(err => console.error('Tracking push failed', err));
+    }
+
     // Draw route to pickup
     if (routeLine) map.removeLayer(routeLine);
     if (pickupCoords) {
