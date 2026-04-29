@@ -523,6 +523,9 @@ def driver_profile():
 @app.route('/update-driver-profile', methods=['POST'])
 def update_driver_profile():
     username = request.form.get('username')
+    email = request.form.get('email')
+    mobile = request.form.get('mobile')
+    
     if not username:
         return redirect(url_for('driver_login'))
     
@@ -537,15 +540,27 @@ def update_driver_profile():
             if file and file.filename:
                 profile_photo = save_file(file, f"{secure_filename(username)}_profile")
         
-        # Update only profile photo
-        if profile_photo:
+        # Update profile data
+        if profile_photo and email and mobile:
+            cur.execute(
+                "UPDATE Driver_Details SET email=%s, mobile=%s, profile_photo=%s WHERE username=%s",
+                (email, mobile, profile_photo, username)
+            )
+        elif profile_photo:
             cur.execute(
                 "UPDATE Driver_Details SET profile_photo=%s WHERE username=%s",
                 (profile_photo, username)
             )
-            conn.commit()
-            
-            # Update session cache
+        elif email and mobile:
+            cur.execute(
+                "UPDATE Driver_Details SET email=%s, mobile=%s WHERE username=%s",
+                (email, mobile, username)
+            )
+        
+        conn.commit()
+        
+        # Update session cache
+        if profile_photo:
             drivers = session.get('drivers', {})
             if username in drivers:
                 drivers[username]['photo'] = profile_photo
