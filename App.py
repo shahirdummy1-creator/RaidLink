@@ -600,6 +600,7 @@ def driver_earnings():
         cur.close(); conn.close()
     return render_template('driver_earnings.html',
         driver_name     = username,
+        driver_photo    = driver['photo'],
         trips           = trips,
         total_earnings  = f"\u20b9{total:,.2f}",
         daily_earnings  = f"\u20b9{daily:,.2f}",

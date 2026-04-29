@@ -145,7 +145,7 @@
 <body>
 <nav class="navbar navbar-dark bg-primary">
     <div class="container">
-        <a class="navbar-brand fw-bold" href="{{ url_for('welcome') }}">🚕 RaidLink Technologies</a>
+        <a class="navbar-brand fw-bold" href="{{ url_for('welcome') }}">RaidLink Technologies</a>
         <a href="{{ url_for('driver_home', username=driver_name) }}" class="btn btn-outline-light">
             <i class="bi bi-arrow-left me-1"></i> Dashboard
         </a>
@@ -161,7 +161,16 @@
             </div>
             <div class="col-md-4 text-md-end">
                 <div class="d-flex align-items-center justify-content-md-end">
-                    <i class="bi bi-person-circle me-2" style="font-size: 2rem;"></i>
+                    {% if driver_photo %}
+                    <img src="{{ url_for('static', filename=driver_photo) }}" 
+                         alt="{{ driver_name }}" class="rounded-circle me-2" 
+                         style="width: 48px; height: 48px; object-fit: cover; border: 2px solid rgba(255,255,255,0.3);">
+                    {% else %}
+                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2" 
+                         style="width: 48px; height: 48px; background: rgba(255,255,255,0.2); color: white; font-weight: 700; font-size: 1.2rem; border: 2px solid rgba(255,255,255,0.3);">
+                        {{ driver_name[0] | upper }}
+                    </div>
+                    {% endif %}
                     <div>
                         <div class="fw-bold">{{ driver_name }}</div>
                         <small class="opacity-75">Professional Driver</small>
@@ -238,13 +247,7 @@
 
     <!-- Charts Row -->
     <div class="row g-4 mb-4">
-        <div class="col-lg-8">
-            <div class="chart-container">
-                <h5 class="mb-3"><i class="bi bi-bar-chart me-2"></i>Earnings Trend</h5>
-                <canvas id="earningsChart" height="100"></canvas>
-            </div>
-        </div>
-        <div class="col-lg-4">
+        <div class="col-12">
             <div class="chart-container">
                 <h5 class="mb-3"><i class="bi bi-pie-chart me-2"></i>Trip Distribution</h5>
                 <canvas id="tripChart" height="200"></canvas>
@@ -302,41 +305,6 @@
     
     // Initialize charts
     function initCharts() {
-        // Earnings Trend Chart
-        const ctx1 = document.getElementById('earningsChart').getContext('2d');
-        new Chart(ctx1, {
-            type: 'line',
-            data: {
-                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                datasets: [{
-                    label: 'Daily Earnings (₹)',
-                    data: [1200, 1900, 800, 1500, 2000, 2500, 1800],
-                    borderColor: '#0d6efd',
-                    backgroundColor: 'rgba(13, 110, 253, 0.1)',
-                    borderWidth: 3,
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            callback: function(value) {
-                                return '₹' + value;
-                            }
-                        }
-                    }
-                }
-            }
-        });
-
         // Trip Distribution Chart
         const ctx2 = document.getElementById('tripChart').getContext('2d');
         new Chart(ctx2, {
