@@ -319,6 +319,18 @@ def api_driver_status(username):
             return jsonify({'status': row[0]})
     return jsonify({'status': 'Unknown'})
 
+@app.route('/api/driver-data/<username>')
+def api_driver_data(username):
+    conn = get_db()
+    if conn:
+        cur = conn.cursor()
+        cur.execute("SELECT email, mobile FROM Driver_Details WHERE username=%s", (username,))
+        row = cur.fetchone()
+        cur.close(); conn.close()
+        if row:
+            return jsonify({'email': row[0], 'mobile': row[1]})
+    return jsonify({'email': '', 'mobile': ''})
+
 @app.route('/api/latest-booking')
 def api_latest_booking():
     from flask import jsonify
@@ -507,6 +519,50 @@ def driver_profile():
     if not driver:
         return redirect(url_for('driver_login'))
     return render_template('driver_profile.html', driver=driver, completed_trips=completed_trips)
+
+@app.route('/update-driver-profile', methods=['POST'])
+def update_driver_profile():
+    username = request.form.get('username')
+    if not username:
+        return redirect(url_for('driver_login'))
+    
+    email = request.form.get('email', '').strip()
+    mobile = request.form.get('mobile', '').strip()
+    
+    conn = get_db()
+    if conn:
+        cur = conn.cursor()
+        
+        # Handle profile photo upload
+        profile_photo = None
+        if 'profile_photo' in request.files:
+            file = request.files['profile_photo']
+            if file and file.filename:
+                profile_photo = save_file(file, f"{secure_filename(username)}_profile")
+        
+        # Update profile
+        if profile_photo:
+            cur.execute(
+                "UPDATE Driver_Details SET email=%s, mobile=%s, profile_photo=%s WHERE username=%s",
+                (email, mobile, profile_photo, username)
+            )
+        else:
+            cur.execute(
+                "UPDATE Driver_Details SET email=%s, mobile=%s WHERE username=%s",
+                (email, mobile, username)
+            )
+        
+        conn.commit()
+        cur.close(); conn.close()
+        
+        # Update session cache
+        drivers = session.get('drivers', {})
+        if username in drivers:
+            if profile_photo:
+                drivers[username]['photo'] = profile_photo
+            session.modified = True
+    
+    return redirect(url_for('driver_profile', username=username))
 
 @app.route('/driver-earnings')
 def driver_earnings():
