@@ -34,12 +34,14 @@
             <div class="step-dot done"><i class="bi bi-check"></i></div>
             <div class="step-line done"></div>
             <div class="step-dot done"><i class="bi bi-check"></i></div>
-            <div class="step-line done"></div>
+            <div class="step-line"></div>
             <div class="step-dot active">3</div>
+            <div class="step-line"></div>
+            <div class="step-dot pending">💳</div>
         </div>
 
         <div class="step-title">Documents & Validity</div>
-        <div class="step-sub">Step 3 of 3 — Upload documents and enter validity dates</div>
+        <div class="step-sub">Step 3 of 4 — Upload documents and enter validity dates</div>
 
         {% if error %}
         <div class="alert alert-danger py-2">{{ error }}</div>
@@ -99,9 +101,17 @@
                 <a href="{{ url_for('driver_signup_step2') }}" class="btn btn-outline-secondary w-50 fw-bold py-2">
                     <i class="bi bi-arrow-left me-1"></i> Back
                 </a>
-                <button type="submit" class="btn btn-success w-50 fw-bold py-2">
-                    <i class="bi bi-check-circle me-1"></i> Create Account
+                <button type="submit" class="btn btn-primary w-50 fw-bold py-2">
+                    <i class="bi bi-arrow-right me-1"></i> Proceed to Payment
                 </button>
+            </div>
+            
+            <!-- Payment Info -->
+            <div class="alert alert-info mt-3 d-flex align-items-center">
+                <i class="bi bi-info-circle me-2"></i>
+                <div>
+                    <strong>Next Step:</strong> Complete your registration with a one-time payment of ₹50 to join the RaidLink platform.
+                </div>
             </div>
         </form>
     </div>
