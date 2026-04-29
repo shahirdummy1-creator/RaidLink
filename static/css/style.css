@@ -21,6 +21,12 @@ h1 {
     max-width: 520px;
 }
 
+.driver-signup-card {
+    width: 60vw;
+    max-width: 60vw;
+    margin: 0 auto;
+}
+
 .login-card {
     width: 100%;
     max-width: 440px;

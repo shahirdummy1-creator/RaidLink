@@ -1,4 +1,4 @@
-MYSQL_HOST = 'localhost'
+MYSQL_HOST = '127.0.0.1'
 MYSQL_USER = 'root'
-MYSQL_PASSWORD = 'sqlbook123'
+MYSQL_PASSWORD = '0604'
 MYSQL_DB = 'taxi_app_db'

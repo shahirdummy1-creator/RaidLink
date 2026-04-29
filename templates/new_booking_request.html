@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Order</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow-lg border-primary">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-taxi me-2"></i>New Booking Request
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Rider Name</label>
+                        <p class="form-control-plaintext border rounded p-2 bg-light">{{ rider_name or 'John Doe' }}</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Pickup Location</label>
+                        <p class="form-control-plaintext border rounded p-2 bg-light">{{ pickup_location or 'Airport Terminal 1' }}</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Drop Location</label>
+                        <p class="form-control-plaintext border rounded p-2 bg-light">{{ drop_location or 'Downtown Hotel' }}</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Estimated Distance</label>
+                        <p class="form-control-plaintext border rounded p-2 bg-light">{{ distance or '25 km' }}</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Estimated Fare</label>
+                        <p class="form-control-plaintext border rounded p-2 bg-light fw-bold text-success">{{ fare or '₹2,500' }}</p>
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="button" class="btn btn-outline-danger me-md-2" onclick="cancelBooking()">
+                            <i class="fas fa-times me-1"></i>Cancel
+                        </button>
+                        <button type="button" class="btn btn-success" onclick="acceptBooking()">
+                            <i class="fas fa-check me-1"></i>Accept Booking
+                        </button>
+                    </div>
+                </div>
+                <div class="card-footer text-muted">
+                    <small>Booking ID: {{ booking_id or '#TRP001' }} | Time: {{ booking_time or '14:30' }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function acceptBooking() {
+    // Handle booking acceptance
+    alert('Booking accepted! Redirecting to trip...');
+    // You can add logic to redirect or update status
+}
+
+function cancelBooking() {
+    // Handle booking cancellation
+    if (confirm('Are you sure you want to cancel this booking?')) {
+        alert('Booking cancelled.');
+        // You can add logic to update status or go back
+    }
+}
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

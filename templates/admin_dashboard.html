@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard – RaidLink</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        body { background: #f0f2f7; font-family: 'Segoe UI', sans-serif; margin: 0; }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            width: 240px;
+            min-height: 100vh;
+            background: #0d6efd;
+            position: fixed;
+            top: 0; left: 0;
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar-brand {
+            padding: 22px 24px 18px;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+        }
+        .sidebar-brand .brand-name {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: .02em;
+        }
+        .sidebar-brand .brand-sub {
+            font-size: .72rem;
+            color: rgba(255,255,255,0.6);
+            text-transform: uppercase;
+            letter-spacing: .1em;
+        }
+        .nav-section {
+            font-size: .68rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .12em;
+            color: rgba(255,255,255,0.5);
+            padding: 18px 24px 6px;
+        }
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 11px 24px;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            font-size: .9rem;
+            font-weight: 500;
+            border-left: 3px solid transparent;
+            transition: all .18s;
+        }
+        .sidebar-link i { font-size: 1rem; }
+        .sidebar-link:hover {
+            color: #fff;
+            background: rgba(255,255,255,0.12);
+            border-left-color: rgba(255,255,255,0.6);
+        }
+        .sidebar-link.active {
+            color: #fff;
+            background: rgba(255,255,255,0.18);
+            border-left-color: #fff;
+        }
+        .sidebar-footer {
+            margin-top: auto;
+            padding: 16px 24px;
+            border-top: 1px solid rgba(255,255,255,0.15);
+        }
+        .sidebar-footer a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            font-size: .85rem;
+            transition: color .18s;
+        }
+        .sidebar-footer a:hover { color: #fff; }
+
+        /* ── Main ── */
+        .main-content { margin-left: 240px; padding: 32px 36px; }
+
+        /* ── Top bar ── */
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+        }
+        .page-title { font-size: 1.45rem; font-weight: 700; color: #111827; margin: 0; }
+        .page-sub   { font-size: .82rem; color: #6b7280; margin-top: 2px; }
+        .live-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: #d1fae5;
+            color: #065f46;
+            font-size: .78rem;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 20px;
+            letter-spacing: .03em;
+        }
+        .live-dot {
+            width: 7px; height: 7px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: blink 1.4s ease-in-out infinite;
+        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
+
+        /* ── Stat cards ── */
+        .stat-card {
+            background: #fff;
+            border-radius: 14px;
+            border: none;
+            padding: 22px 24px;
+            box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            transition: transform .2s, box-shadow .2s;
+        }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+        .stat-icon {
+            width: 52px; height: 52px;
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.35rem;
+            flex-shrink: 0;
+        }
+        .stat-label { font-size: .75rem; color: #6b7280; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; }
+        .stat-value { font-size: 1.75rem; font-weight: 700; color: #111827; line-height: 1.1; }
+
+        /* ── Panel cards ── */
+        .panel-card {
+            background: #fff;
+            border-radius: 14px;
+            border: none;
+            padding: 26px 28px;
+            box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            transition: transform .2s, box-shadow .2s;
+        }
+        .panel-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 30px rgba(13,110,253,0.14);
+            color: inherit;
+        }
+        .panel-icon {
+            width: 56px; height: 56px;
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 14px;
+        }
+        .panel-title { font-size: 1.05rem; font-weight: 700; color: #111827; margin-bottom: 4px; }
+        .panel-desc  { font-size: .82rem; color: #6b7280; margin-bottom: 16px; }
+        .panel-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 18px;
+            border-radius: 8px;
+            font-size: .82rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            transition: opacity .18s;
+        }
+        .panel-btn:hover { opacity: .85; }
+        .panel-btn-primary { background: #0d6efd; color: #fff; }
+        .panel-btn-success { background: #198754; color: #fff; }
+
+        /* ── Section card ── */
+        .section-card {
+            background: #fff;
+            border-radius: 14px;
+            border: none;
+            box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+            padding: 24px 26px;
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+        .section-title { font-size: 1rem; font-weight: 700; color: #111827; }
+
+        /* ── Search ── */
+        .search-wrap { position: relative; }
+        .search-wrap .bi-search {
+            position: absolute;
+            left: 14px; top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+            font-size: .95rem;
+            pointer-events: none;
+        }
+        .search-wrap input {
+            padding-left: 38px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            background: #f9fafb;
+            font-size: .88rem;
+        }
+        .search-wrap input:focus {
+            background: #fff;
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 3px rgba(13,110,253,.1);
+        }
+
+        /* ── Table ── */
+        .table thead th {
+            font-size: .75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            color: #6b7280;
+            border-bottom: 1px solid #f3f4f6;
+            background: #f9fafb;
+            padding: 10px 14px;
+        }
+        .table tbody td { font-size: .875rem; padding: 11px 14px; vertical-align: middle; color: #374151; }
+        .table tbody tr:hover td { background: #f8faff; }
+
+        /* ── Badges ── */
+        .badge-confirmed { background: #eff6ff; color: #1d4ed8; font-size: .75rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; }
+        .badge-completed { background: #f0fdf4; color: #166534; font-size: .75rem; font-weight: 600; padding: 4px 10px; border-radius: 6px; }
+        .badge-type-driver  { background: #eff6ff; color: #1d4ed8; font-size: .72rem; font-weight: 600; padding: 3px 9px; border-radius: 5px; }
+        .badge-type-rider   { background: #f0fdf4; color: #166534; font-size: .72rem; font-weight: 600; padding: 3px 9px; border-radius: 5px; }
+        .badge-type-booking { background: #fefce8; color: #854d0e; font-size: .72rem; font-weight: 600; padding: 3px 9px; border-radius: 5px; }
+
+        /* ── Profile cards ── */
+        .profile-card {
+            background: #fff;
+            border-radius: 12px;
+            border: none;
+            box-shadow: 0 1px 8px rgba(0,0,0,0.06);
+            padding: 18px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            transition: box-shadow .2s;
+        }
+        .profile-card:hover { box-shadow: 0 4px 18px rgba(0,0,0,0.1); }
+        .profile-avatar {
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: .95rem; font-weight: 700;
+            flex-shrink: 0;
+        }
+        .profile-name  { font-size: .9rem; font-weight: 700; color: #111827; line-height: 1.2; }
+        .profile-meta  { font-size: .75rem; color: #6b7280; margin-top: 1px; }
+        .profile-info  { flex: 1; min-width: 0; }
+        .status-pill { font-size: .7rem; font-weight: 600; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+        .status-active    { background: #f0fdf4; color: #166534; }
+        .status-suspended { background: #fef2f2; color: #991b1b; }
+        .btn-allow {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 5px 13px; border-radius: 7px;
+            font-size: .75rem; font-weight: 600;
+            border: 1.5px solid #198754; color: #198754; background: transparent;
+            cursor: pointer; transition: all .18s; white-space: nowrap;
+        }
+        .btn-allow:hover { background: #198754; color: #fff; }
+        .btn-suspend {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 5px 13px; border-radius: 7px;
+            font-size: .75rem; font-weight: 600;
+            border: 1.5px solid #dc3545; color: #dc3545; background: transparent;
+            cursor: pointer; transition: all .18s; white-space: nowrap;
+        }
+        .btn-suspend:hover { background: #dc3545; color: #fff; }
+        .profiles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 12px;
+        }
+
+        /* ── Action button ── */
+        .btn-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 16px;
+            border-radius: 8px;
+            font-size: .82rem;
+            font-weight: 600;
+            border: 1.5px solid #0d6efd;
+            color: #0d6efd;
+            background: transparent;
+            text-decoration: none;
+            transition: all .18s;
+        }
+        .btn-action:hover { background: #0d6efd; color: #fff; }
+    </style>
+</head>
+<body>
+
+<!-- ── Sidebar ── -->
+<aside class="sidebar">
+    <div class="sidebar-brand">
+        <div class="brand-name">RaidLink</div>
+        <div class="brand-sub">Admin Console</div>
+    </div>
+
+    <div class="nav-section">Overview</div>
+    <a href="{{ url_for('admin_dashboard') }}" class="sidebar-link active">
+        <i class="bi bi-grid-1x2"></i> Dashboard
+    </a>
+
+    <div class="nav-section">Management</div>
+    <a href="{{ url_for('admin_drivers') }}" class="sidebar-link">
+        <i class="bi bi-person-badge"></i> Drivers
+    </a>
+    <a href="{{ url_for('admin_riders') }}" class="sidebar-link">
+        <i class="bi bi-people"></i> Riders
+    </a>
+
+    <div class="sidebar-footer">
+        <a href="{{ url_for('welcome') }}">
+            <i class="bi bi-house"></i> Main Site
+        </a>
+        <a href="{{ url_for('admin_logout') }}" style="margin-top:10px;">
+            <i class="bi bi-box-arrow-left"></i> Sign Out
+        </a>
+    </div>
+</aside>
+
+<!-- ── Main Content ── -->
+<main class="main-content">
+
+    <!-- Topbar -->
+    <div class="topbar">
+        <div>
+            <div class="page-title">Dashboard</div>
+            <div class="page-sub">Welcome back, Administrator</div>
+        </div>
+        <div class="live-badge">
+            <span class="live-dot"></span> Live
+        </div>
+    </div>
+
+    <!-- Stat Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#eff6ff;">
+                    <i class="bi bi-people text-primary"></i>
+                </div>
+                <div>
+                    <div class="stat-label">Total Riders</div>
+                    <div class="stat-value">{{ total_riders }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#f0fdf4;">
+                    <i class="bi bi-person-badge text-success"></i>
+                </div>
+                <div>
+                    <div class="stat-label">Total Drivers</div>
+                    <div class="stat-value">{{ total_drivers }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#fffbeb;">
+                    <i class="bi bi-map text-warning"></i>
+                </div>
+                <div>
+                    <div class="stat-label">Total Trips</div>
+                    <div class="stat-value">{{ total_trips }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#f0f9ff;">
+                    <i class="bi bi-check-circle text-info"></i>
+                </div>
+                <div>
+                    <div class="stat-label">Completed Trips</div>
+                    <div class="stat-value">{{ completed_trips }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="panel-card">
+                <div class="panel-icon" style="background:#eff6ff;">
+                    <i class="bi bi-person-badge fs-4 text-primary"></i>
+                </div>
+                <div class="panel-title">Driver Management</div>
+                <div class="panel-desc">View driver profiles, trip history and performance metrics.</div>
+                <div class="d-flex align-items-center gap-3">
+                    <a href="{{ url_for('admin_drivers') }}" class="panel-btn panel-btn-primary">
+                        <i class="bi bi-arrow-right-circle"></i> Open Driver Panel
+                    </a>
+                    <span style="font-size:.8rem;color:#6b7280;">{{ total_drivers }} registered</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="panel-card">
+                <div class="panel-icon" style="background:#f0fdf4;">
+                    <i class="bi bi-people fs-4 text-success"></i>
+                </div>
+                <div class="panel-title">Rider Management</div>
+                <div class="panel-desc">Monitor rider bookings, profiles and real-time activity.</div>
+                <div class="d-flex align-items-center gap-3">
+                    <a href="{{ url_for('admin_riders') }}" class="panel-btn panel-btn-success">
+                        <i class="bi bi-arrow-right-circle"></i> Open Rider Panel
+                    </a>
+                    <span style="font-size:.8rem;color:#6b7280;">{{ active_bookings }} active bookings</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search -->
+    <div class="section-card mb-4">
+        <div class="section-header">
+            <div class="section-title">Global Search</div>
+            <small class="text-muted">Search across drivers, riders and bookings</small>
+        </div>
+        <div class="search-wrap mb-3">
+            <i class="bi bi-search"></i>
+            <input type="text" id="globalSearch" class="form-control" placeholder="Search by name, location, booking ID, registration number…" oninput="runSearch()">
+        </div>
+        <div id="searchResults"></div>
+    </div>
+
+    <!-- Recent Bookings -->
+    <div class="section-card">
+        <div class="section-header">
+            <div class="section-title">Recent Bookings</div>
+            <a href="{{ url_for('admin_riders') }}" class="btn-action">
+                <i class="bi bi-arrow-up-right"></i> View All
+            </a>
+        </div>
+        <div class="table-responsive">
+            <table class="table mb-0">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Rider</th>
+                        <th>Pickup Location</th>
+                        <th>Drop Location</th>
+                        <th>Distance</th>
+                        <th>Fare</th>
+                        <th>Accepted By</th>
+                        <th>Date &amp; Time</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for b in recent_bookings %}
+                    <tr>
+                        <td><span style="font-weight:600;color:#111827;">#{{ b.id }}</span></td>
+                        <td style="font-weight:600;color:#1d4ed8;">{{ b.rider_name or '—' }}</td>
+                        <td>{{ b.pickup_location | capitalize }}</td>
+                        <td>{{ b.drop_location | capitalize }}</td>
+                        <td>{{ b.distance_km }} km</td>
+                        <td style="font-weight:600;color:#166534;">{{ b.fare if b.fare else '—' }}</td>
+                        <td>
+                            {% if b.accepted_by and b.accepted_by != '—' %}
+                            <span style="font-weight:600;color:#1d4ed8;">{{ b.accepted_by }}</span>
+                            {% else %}
+                            <span style="color:#9ca3af;">Not assigned</span>
+                            {% endif %}
+                        </td>
+                        <td style="color:#6b7280;">{{ b.ride_date }}&nbsp;&nbsp;{{ b.ride_time }}</td>
+                        <td>
+                            {% if b.status == 'Completed' %}
+                                <span class="badge-completed">Completed</span>
+                            {% elif b.accepted_by and b.accepted_by != '—' %}
+                                <span class="badge-confirmed">In Progress</span>
+                            {% else %}
+                                <span style="background:#fff7ed;color:#c2410c;font-size:.75rem;font-weight:600;padding:4px 10px;border-radius:6px;">Waiting for driver</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="9" class="text-center text-muted py-4">No bookings recorded yet.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</main>
+
+<script>
+const SEARCH_DATA = {{ search_data | tojson }};
+
+function runSearch() {
+    const q   = document.getElementById('globalSearch').value.trim().toLowerCase();
+    const box = document.getElementById('searchResults');
+    if (!q) { box.innerHTML = ''; return; }
+
+    const hits = SEARCH_DATA.filter(item =>
+        Object.values(item).some(v => String(v).toLowerCase().includes(q))
+    );
+
+    if (!hits.length) {
+        box.innerHTML = '<p class="text-muted mb-0" style="font-size:.85rem;">No results found.</p>';
+        return;
+    }
+
+    const rows = hits.map(h => {
+        const cls = h.type === 'Driver' ? 'badge-type-driver' : h.type === 'Rider' ? 'badge-type-rider' : 'badge-type-booking';
+        return `<tr>
+            <td><span class="${cls}">${h.type}</span></td>
+            <td style="font-weight:600;">${h.name}</td>
+            <td>${h.detail}</td>
+            <td style="color:#6b7280;">${h.extra}</td>
+        </tr>`;
+    }).join('');
+
+    box.innerHTML = `
+        <div class="table-responsive">
+        <table class="table mb-0">
+            <thead><tr><th>Type</th><th>Name / ID</th><th>Detail</th><th>Extra</th></tr></thead>
+            <tbody>${rows}</tbody>
+        </table></div>`;
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

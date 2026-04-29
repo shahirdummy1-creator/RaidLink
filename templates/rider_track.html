@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Ride - RaidLink</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body,
+        html {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: #f8fafc;
+        }
+
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .header-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .btn-back {
+            background: #f1f5f9;
+            color: #475569;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-back:hover {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+
+        #map {
+            position: fixed;
+            top: 60px;
+            bottom: 120px;
+            left: 0;
+            right: 0;
+            z-index: 1;
+        }
+
+        .status-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            padding: 20px;
+            border-top-left-radius: 24px;
+            border-top-right-radius: 24px;
+            box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            background: #e0f2fe;
+            color: #0284c7;
+            align-self: flex-start;
+        }
+
+        .driver-info {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .driver-name {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0;
+        }
+
+        .car-details {
+            font-size: 0.85rem;
+            color: #64748b;
+            margin: 0;
+        }
+
+        .otp-display {
+            text-align: right;
+        }
+
+        .otp-label {
+            font-size: 0.7rem;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 2px;
+        }
+
+        .otp-code {
+            font-size: 1.3rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            color: #0f172a;
+            margin: 0;
+            background: #f1f5f9;
+            padding: 4px 10px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <h1 class="header-title">Live Tracking</h1>
+        <a href="javascript:history.back()" class="btn-back"><i class="bi bi-arrow-left"></i> Back</a>
+    </div>
+
+    <div id="map"></div>
+
+    <div class="status-panel">
+        <div id="status-badge" class="status-badge"><i class="bi bi-broadcast me-1"></i> Locating Driver...</div>
+        <div class="driver-info">
+            <div>
+                <h2 class="driver-name">{{ booking.accepted_by }}</h2>
+                <p class="car-details">Driver is on the way</p>
+            </div>
+            {% if booking.otp %}
+            <div class="otp-display">
+                <div class="otp-label">Trip OTP</div>
+                <div class="otp-code">{{ booking.otp }}</div>
+            </div>
+            {% endif %}
+        </div>
+        <div class="mt-2">
+            <form method="POST" action="{{ url_for('cancel_booking') }}">
+                <input type="hidden" name="booking_id" value="{{ booking.id }}">
+                <input type="hidden" name="username" value="{{ rider_name }}">
+                <button type="submit" class="btn btn-outline-danger w-100 py-2" 
+                        style="border-radius: 12px; font-weight: 600; font-size: 0.9rem;"
+                        onclick="return confirm('Cancel this ride?')">
+                    <i class="bi bi-x-circle me-1"></i> Cancel Ride
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const TRIP_ID = '{{ booking.id }}';
+        const PICKUP = '{{ booking.pickup_location }}';
+        const DROP = '{{ booking.drop_location }}';
+
+        // Custom Icons using Bootstrap Icons
+        const pickupIcon = L.divIcon({
+            html: '<div style="background: #dcfce7; border: 2px solid #166534; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2);"><i class="bi bi-car-front-fill" style="color: #166534; font-size: 18px;"></i></div>',
+            className: 'custom-marker',
+            iconSize: [34, 34],
+            iconAnchor: [17, 17]
+        });
+
+        const dropIcon = L.divIcon({
+            html: '<div style="background: #fee2e2; border: 2px solid #991b1b; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2);"><i class="bi bi-flag-fill" style="color: #991b1b; font-size: 18px;"></i></div>',
+            className: 'custom-marker',
+            iconSize: [34, 34],
+            iconAnchor: [17, 17]
+        });
+
+        const carIcon = L.divIcon({
+            html: '<div style="background: #0d6efd; border: 2px solid #fff; border-radius: 50%; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(13,110,253,0.5); transform: rotate(0deg);"><i class="bi bi-cursor-fill" style="color: #fff; font-size: 20px;"></i></div>',
+            className: 'custom-marker',
+            iconSize: [38, 38],
+            iconAnchor: [19, 19]
+        });
+
+        const map = L.map('map').setView([20.5937, 78.9629], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap', maxZoom: 19
+        }).addTo(map);
+
+        let pickupCoords = null, dropCoords = null;
+        let pickupMarker = null, dropMarker = null, carMarker = null;
+        let currentRouteLine = null;
+
+        async function geocode(address) {
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address + ', India')}&format=json&limit=1`, { headers: { 'Accept-Language': 'en' } });
+                const data = await res.json();
+                if (data.length) return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+            } catch { }
+            return null;
+        }
+
+        async function initMap() {
+            pickupCoords = await geocode(PICKUP);
+            dropCoords = await geocode(DROP);
+
+            if (pickupCoords) pickupMarker = L.marker(pickupCoords, { icon: pickupIcon }).addTo(map).bindPopup('<b>📍 Pickup</b>').openPopup();
+            if (dropCoords) dropMarker = L.marker(dropCoords, { icon: dropIcon }).addTo(map).bindPopup('<b>🏁 Destination</b>');
+
+            if (pickupCoords && dropCoords) {
+                map.fitBounds([pickupCoords, dropCoords], { padding: [50, 50] });
+            } else if (pickupCoords) {
+                map.setView(pickupCoords, 14);
+            }
+
+            // Start polling for driver location
+            pollLocation();
+            setInterval(pollLocation, 3000);
+        }
+
+        async function pollLocation() {
+            try {
+                const res = await fetch(`/api/get-location/${TRIP_ID}`);
+                const data = await res.json();
+                if (data.found) {
+                    updateTracking(data.lat, data.lng, data.stage);
+                }
+            } catch (err) {
+                console.error('Polling error', err);
+            }
+        }
+
+        function updateTracking(lat, lng, stage) {
+            const driverCoords = [lat, lng];
+
+            // Update car marker
+            if (carMarker) {
+                carMarker.setLatLng(driverCoords);
+            } else {
+                carMarker = L.marker(driverCoords, { icon: carIcon, zIndexOffset: 1000 }).addTo(map).bindPopup('<b>🚗 Driver</b>');
+            }
+
+            // Update UI status
+            const statusBadge = document.getElementById('status-badge');
+
+            if (currentRouteLine) map.removeLayer(currentRouteLine);
+
+            if (stage === 'to_pickup' && pickupCoords) {
+                statusBadge.innerHTML = '<i class="bi bi-car-front-fill me-1"></i> Driver is heading to you';
+                statusBadge.style.background = '#e0f2fe'; statusBadge.style.color = '#0284c7';
+
+                // Draw black path from driver to pickup
+                currentRouteLine = L.polyline([driverCoords, pickupCoords], { color: '#000000', weight: 4, dashArray: '8,6' }).addTo(map);
+            }
+            else if (stage === 'to_drop' && pickupCoords && dropCoords) {
+                statusBadge.innerHTML = '<i class="bi bi-geo-alt-fill me-1"></i> Trip in progress';
+                statusBadge.style.background = '#dcfce7'; statusBadge.style.color = '#166534';
+
+                // Draw solid black path from pickup to drop
+                currentRouteLine = L.polyline([pickupCoords, dropCoords], { color: '#000000', weight: 4 }).addTo(map);
+            }
+
+            // Keep driver in view
+            map.panTo(driverCoords);
+        }
+
+        initMap();
+    </script>
+</body>
+
+</html>
