@@ -3,130 +3,378 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Joining Fee Payment – RaidLink</title>
+    <title>Driver Payment - RaidLink</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
-        .fee-card {
-            max-width: 480px;
-            margin: 0 auto;
-            border-radius: 16px;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            font-family: 'Segoe UI', sans-serif;
         }
-        .fee-amount {
+        .payment-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        .brand-logo {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #0d6efd, #6610f2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 800;
+        }
+        .step-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
+            margin-bottom: 20px;
+        }
+        .step-dot {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.82rem;
+            font-weight: 700;
+        }
+        .step-dot.done { background: #198754; color: #fff; }
+        .step-dot.active { background: #0d6efd; color: #fff; }
+        .step-line {
+            width: 60px;
+            height: 3px;
+            background: #198754;
+        }
+        .payment-amount {
             font-size: 3rem;
             font-weight: 800;
             color: #0d6efd;
+            text-align: center;
+            margin: 20px 0;
         }
-        .secure-badge {
-            font-size: .78rem;
-            color: #6b7280;
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-list li {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            color: #374151;
+        }
+        .feature-list i {
+            color: #10b981;
+            font-size: 1.1rem;
         }
         .btn-pay {
-            background: #0d6efd;
-            color: #fff;
+            background: linear-gradient(135deg, #10b981, #059669);
             border: none;
-            border-radius: 10px;
-            padding: 14px;
-            font-size: 1.05rem;
+            border-radius: 12px;
+            padding: 15px 30px;
             font-weight: 700;
+            font-size: 1.1rem;
+            color: white;
             width: 100%;
-            transition: background .2s;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
         }
-        .btn-pay:hover { background: #0b5ed7; }
+        .btn-pay:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+            color: white;
+        }
+        .btn-pay:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .security-badges {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .security-badge {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+        .loading-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ffffff;
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
-<nav class="navbar navbar-dark bg-primary">
-    <div class="container justify-content-center">
-        <a class="navbar-brand fw-bold text-center" href="{{ url_for('welcome') }}">RaidLink Technologies</a>
-    </div>
-</nav>
-
-<section class="hero-section py-5">
     <div class="container">
-        <div class="fee-card card p-4">
-
+        <div class="payment-card p-5">
             <div class="text-center mb-4">
-                <div class="mb-2">
-                    <i class="bi bi-shield-lock-fill text-primary" style="font-size:2.5rem;"></i>
-                </div>
-                <h4 class="fw-bold mb-1">Driver Joining Fee</h4>
-                <p class="text-muted mb-0" style="font-size:.9rem;">One-time registration fee to activate your driver account</p>
+                <div class="brand-logo">🚕 RaidLink</div>
+                <h3 class="mt-3 mb-2">Complete Your Registration</h3>
+                <p class="text-muted">Welcome, {{ driver_name }}!</p>
             </div>
 
-            <div class="text-center mb-4">
-                <div class="fee-amount">₹50</div>
-                <small class="text-muted">One-time · Non-refundable</small>
+            <!-- Step Indicator -->
+            <div class="step-indicator">
+                <div class="step-dot done">1</div>
+                <div class="step-line"></div>
+                <div class="step-dot done">2</div>
+                <div class="step-line"></div>
+                <div class="step-dot done">3</div>
+                <div class="step-line"></div>
+                <div class="step-dot active">💳</div>
             </div>
 
-            <div class="bg-light rounded-3 p-3 mb-4">
-                <div class="d-flex justify-content-between mb-1">
-                    <span class="text-muted" style="font-size:.85rem;">Driver</span>
-                    <span class="fw-600" style="font-size:.85rem;">{{ driver_name }}</span>
-                </div>
-                <div class="d-flex justify-content-between mb-1">
-                    <span class="text-muted" style="font-size:.85rem;">Email</span>
-                    <span style="font-size:.85rem;">{{ driver_email }}</span>
-                </div>
-                <div class="d-flex justify-content-between">
-                    <span class="text-muted" style="font-size:.85rem;">Mobile</span>
-                    <span style="font-size:.85rem;">{{ driver_mobile }}</span>
-                </div>
+            <!-- Payment Amount -->
+            <div class="payment-amount">₹50</div>
+            <p class="text-center text-muted mb-4">One-time platform registration fee</p>
+
+            <!-- Features -->
+            <div class="mb-4">
+                <h5 class="mb-3">What you get:</h5>
+                <ul class="feature-list">
+                    <li>
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>Verified driver profile on RaidLink platform</span>
+                    </li>
+                    <li>
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>Access to ride requests in your area</span>
+                    </li>
+                    <li>
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>Real-time earnings tracking dashboard</span>
+                    </li>
+                    <li>
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>24/7 customer support</span>
+                    </li>
+                    <li>
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>Weekly payment settlements</span>
+                    </li>
+                </ul>
             </div>
 
-            <button class="btn-pay mb-3" onclick="openRazorpay()">
-                <i class="bi bi-credit-card me-2"></i> Pay ₹50 via UPI / Card
+            <!-- Payment Button -->
+            <button id="payButton" class="btn btn-pay" onclick="initiatePayment()">
+                <span id="payButtonText">
+                    <i class="bi bi-credit-card me-2"></i>Pay ₹50 & Complete Registration
+                </span>
+                <div class="loading-spinner" id="loadingSpinner"></div>
             </button>
 
-            <div class="text-center secure-badge">
-                <i class="bi bi-lock-fill me-1"></i> Secured by Razorpay &nbsp;|&nbsp; UPI · Cards · Net Banking
+            <!-- Security Badges -->
+            <div class="security-badges">
+                <div class="security-badge">
+                    <i class="bi bi-shield-check"></i>
+                    <span>Secure Payment</span>
+                </div>
+                <div class="security-badge">
+                    <i class="bi bi-lock-fill"></i>
+                    <span>256-bit SSL</span>
+                </div>
+                <div class="security-badge">
+                    <i class="bi bi-credit-card"></i>
+                    <span>Razorpay</span>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <small class="text-muted">
+                    <i class="bi bi-info-circle me-1"></i>
+                    This is a one-time fee to verify your account and join our platform
+                </small>
             </div>
         </div>
     </div>
-</section>
 
-<!-- Hidden form to submit payment result -->
-<form id="paymentForm" method="POST" action="{{ url_for('driver_payment_success') }}">
-    <input type="hidden" name="razorpay_payment_id" id="razorpay_payment_id">
-    <input type="hidden" name="razorpay_order_id"   id="razorpay_order_id">
-    <input type="hidden" name="razorpay_signature"  id="razorpay_signature">
-</form>
+    <!-- Success Modal -->
+    <div class="modal fade" id="successModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center p-5">
+                    <div class="mb-4">
+                        <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+                    </div>
+                    <h4 class="mb-3">Registration Complete!</h4>
+                    <p class="text-muted mb-4">
+                        Welcome to RaidLink, {{ driver_name }}! Your payment has been processed successfully 
+                        and your driver account is now active.
+                    </p>
+                    <button class="btn btn-primary" onclick="redirectToLogin()">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>Go to Login
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-function openRazorpay() {
-    const options = {
-        key:         '{{ razorpay_key }}',
-        amount:      {{ amount }},
-        currency:    'INR',
-        name:        'RaidLink Technologies',
-        description: 'Driver Joining Fee',
-        order_id:    '{{ order_id }}',
-        prefill: {
-            name:    '{{ driver_name }}',
-            email:   '{{ driver_email }}',
-            contact: '{{ driver_mobile }}'
-        },
-        theme: { color: '#0d6efd' },
-        method: { upi: true, card: true, netbanking: true, wallet: true },
-        handler: function(response) {
-            document.getElementById('razorpay_payment_id').value = response.razorpay_payment_id;
-            document.getElementById('razorpay_order_id').value   = response.razorpay_order_id   || '';
-            document.getElementById('razorpay_signature').value  = response.razorpay_signature  || '';
-            document.getElementById('paymentForm').submit();
-        },
-        modal: {
-            ondismiss: function() {
-                alert('Payment cancelled. Please complete the payment to register.');
+    <!-- Error Modal -->
+    <div class="modal fade" id="errorModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center p-4">
+                    <div class="mb-3">
+                        <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size: 3rem;"></i>
+                    </div>
+                    <h5 class="mb-3">Payment Failed</h5>
+                    <p class="text-muted mb-4" id="errorMessage">
+                        There was an issue processing your payment. Please try again.
+                    </p>
+                    <button class="btn btn-primary" data-bs-dismiss="modal">Try Again</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script>
+        const RAZORPAY_KEY_ID = '{{ razorpay_key_id }}';
+        
+        function setLoading(loading) {
+            const button = document.getElementById('payButton');
+            const buttonText = document.getElementById('payButtonText');
+            const spinner = document.getElementById('loadingSpinner');
+            
+            if (loading) {
+                button.disabled = true;
+                buttonText.style.display = 'none';
+                spinner.style.display = 'inline-block';
+            } else {
+                button.disabled = false;
+                buttonText.style.display = 'inline-block';
+                spinner.style.display = 'none';
             }
         }
-    };
-    const rzp = new Razorpay(options);
-    rzp.open();
-}
-</script>
+        
+        async function initiatePayment() {
+            try {
+                setLoading(true);
+                
+                // Create order
+                const response = await fetch('/api/create-order', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to create order');
+                }
+                
+                const orderData = await response.json();
+                
+                // Configure Razorpay options
+                const options = {
+                    key: RAZORPAY_KEY_ID,
+                    amount: orderData.amount,
+                    currency: orderData.currency,
+                    order_id: orderData.order_id,
+                    name: 'RaidLink Technologies',
+                    description: 'Driver Registration Fee',
+                    image: '/static/logo.png', // Add your logo here
+                    handler: function(response) {
+                        verifyPayment(response);
+                    },
+                    prefill: {
+                        name: '{{ driver_name }}',
+                        email: '', // You can add email from session if needed
+                        contact: '' // You can add mobile from session if needed
+                    },
+                    theme: {
+                        color: '#0d6efd'
+                    },
+                    modal: {
+                        ondismiss: function() {
+                            setLoading(false);
+                        }
+                    }
+                };
+                
+                setLoading(false);
+                
+                // Open Razorpay checkout
+                const rzp = new Razorpay(options);
+                rzp.open();
+                
+            } catch (error) {
+                console.error('Payment initiation error:', error);
+                setLoading(false);
+                showError('Failed to initiate payment. Please try again.');
+            }
+        }
+        
+        async function verifyPayment(paymentResponse) {
+            try {
+                setLoading(true);
+                
+                const response = await fetch('/api/verify-payment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        razorpay_order_id: paymentResponse.razorpay_order_id,
+                        razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                        razorpay_signature: paymentResponse.razorpay_signature
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    // Payment successful
+                    showSuccess();
+                } else {
+                    throw new Error(result.error || 'Payment verification failed');
+                }
+                
+            } catch (error) {
+                console.error('Payment verification error:', error);
+                showError(error.message || 'Payment verification failed. Please contact support.');
+            } finally {
+                setLoading(false);
+            }
+        }
+        
+        function showSuccess() {
+            const modal = new bootstrap.Modal(document.getElementById('successModal'));
+            modal.show();
+        }
+        
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            const modal = new bootstrap.Modal(document.getElementById('errorModal'));
+            modal.show();
+        }
+        
+        function redirectToLogin() {
+            window.location.href = '/driver-login';
+        }
+    </script>
 </body>
 </html>

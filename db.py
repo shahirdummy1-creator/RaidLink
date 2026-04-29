@@ -136,6 +136,19 @@ def init_db():
             )
         """)
 
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS Driver_Payments (
+                id                  INT AUTO_INCREMENT PRIMARY KEY,
+                username            VARCHAR(100) NOT NULL,
+                razorpay_order_id   VARCHAR(100) NOT NULL,
+                razorpay_payment_id VARCHAR(100) NOT NULL,
+                amount              INT NOT NULL,
+                status              ENUM('pending','completed','failed') NOT NULL DEFAULT 'pending',
+                created_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uq_payment (razorpay_payment_id)
+            )
+        """)
+
         conn.commit()
         cursor.close()
         conn.close()
