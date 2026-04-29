@@ -712,12 +712,30 @@ def driver_payment_step1():
             # Mark payment as completed and proceed to step 2
             s1['payment_verified'] = True
             session.modified = True
+            
+            # If this is an AJAX request, return JSON response
+            if request.headers.get('Content-Type') == 'application/x-www-form-urlencoded' and 'XMLHttpRequest' in str(request.headers.get('User-Agent', '')):
+                return jsonify({'success': True, 'redirect': '/driver-signup/step2'})
+            
             return redirect(url_for('driver_signup_step2'))
     
     return render_template('driver_payment_step1.html',
                          driver_name=s1['username'],
                          driver_email=s1['email'],
                          driver_mobile=s1['mobile'])
+
+@app.route('/api/payment-success', methods=['POST'])
+def api_payment_success():
+    """API endpoint for payment success callback"""
+    if 'signup_step1' not in session:
+        return jsonify({'error': 'Session expired'}), 400
+    
+    # Mark payment as verified
+    s1 = session['signup_step1']
+    s1['payment_verified'] = True
+    session.modified = True
+    
+    return jsonify({'success': True, 'redirect': '/driver-signup/step2'})
 
 @app.route('/api/verify-payment-step1', methods=['POST'])
 def verify_payment_step1():
