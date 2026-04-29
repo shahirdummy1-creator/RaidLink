@@ -263,6 +263,55 @@ def debug_session():
         'razorpay_key_id': RAZORPAY_KEY_ID is not None
     })
 
+@app.route('/test-payment-flow')
+def test_payment_flow():
+    """Test route to simulate signup flow and test payment"""
+    # Clear any existing session data
+    session.pop('signup_step1', None)
+    session.pop('signup_step2', None)
+    session.pop('signup_step3', None)
+    
+    # Simulate step 1 data
+    session['signup_step1'] = {
+        'username': 'testdriver',
+        'mobile': '9876543210',
+        'email': 'test@example.com',
+        'password': hash_password('testpass'),
+        'profile_photo': None,
+        'admin_name': 'TestAdmin'
+    }
+    
+    # Simulate step 2 data
+    session['signup_step2'] = {
+        'car_make': 'Toyota',
+        'car_model': 'Innova',
+        'car_color': 'White',
+        'reg_number': 'KA01AB1234',
+        'aadhaar_number': '123456789012'
+    }
+    
+    # Simulate step 3 data
+    session['signup_step3'] = {
+        'licence_validity': '2025-12-31',
+        'fitness_validity': '2025-12-31',
+        'pollution_validity': '2025-12-31',
+        'permit_validity': '2025-12-31',
+        'licence_img': None,
+        'rc_img': None,
+        'aadhaar_img': None,
+        'permit_img': None,
+        'pollution_img': None,
+        'profile_photo': None
+    }
+    
+    session.modified = True
+    
+    return jsonify({
+        'message': 'Test session data created',
+        'session_keys': list(session.keys()),
+        'redirect_to': '/driver-payment'
+    })
+
 @app.route('/home')
 def home():
     return render_template('welcome.html')
@@ -546,6 +595,10 @@ def driver_signup_step3():
     error = None
     if request.method == 'POST':
         print("Step 3 POST request received")
+        
+        # Make session permanent to ensure it persists across redirects
+        session.permanent = True
+        
         s1 = session['signup_step1']
         s2 = session['signup_step2']
         prefix = secure_filename(s1['username'])
