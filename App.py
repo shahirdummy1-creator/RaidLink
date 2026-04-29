@@ -546,21 +546,18 @@ def driver_signup():
 @app.route('/driver-signup/step1', methods=['GET', 'POST'])
 def driver_signup_step1():
     error = None
-    form  = session.get('signup_step1', {})
+    form = session.get('signup_step1', {})
     
     if request.method == 'POST':
         username = request.form.get('username', '').strip()
-        mobile   = request.form.get('mobile', '').strip()
-        email    = request.form.get('email', '').strip()
+        mobile = request.form.get('mobile', '').strip()
+        email = request.form.get('email', '').strip()
         password = request.form.get('password', '')
         admin_name = request.form.get('admin_name', '').strip()
-        payment_verified = request.form.get('payment_verified', 'false')
-        razorpay_payment_id = request.form.get('razorpay_payment_id', '')
-        razorpay_order_id = request.form.get('razorpay_order_id', '')
         
-        # Validate payment (unless bypassed for testing)
-        if payment_verified not in ['true', 'bypassed']:
-            error = 'Payment verification required. Please complete the payment to continue.'
+        # Validate basic info
+        if not all([username, mobile, email, password]):
+            error = 'Please fill all required fields.'
         else:
             conn = get_db()
             if conn:
@@ -577,36 +574,16 @@ def driver_signup_step1():
                     session['signup_step1'] = {
                         'username': username, 'mobile': mobile,
                         'email': email, 'password': hash_password(password),
-                        'profile_photo': profile_photo, 'admin_name': admin_name,
-                        'payment_verified': payment_verified,
-                        'razorpay_payment_id': razorpay_payment_id,
-                        'razorpay_order_id': razorpay_order_id
+                        'profile_photo': profile_photo, 'admin_name': admin_name
                     }
                     session.permanent = True
                     session.modified = True
                     
-                    # Store payment record if payment was made
-                    if payment_verified == 'true' and razorpay_payment_id:
-                        try:
-                            conn = get_db()
-                            if conn:
-                                cur = conn.cursor()
-                                cur.execute(
-                                    """INSERT INTO Driver_Payments (username, razorpay_order_id, razorpay_payment_id, amount, status, created_at)
-                                       VALUES (%s, %s, %s, %s, %s, NOW())""",
-                                    (username, razorpay_order_id, razorpay_payment_id, 5000, 'completed')
-                                )
-                                conn.commit()
-                                cur.close(); conn.close()
-                                print(f"Payment record stored for user: {username}")
-                        except Exception as e:
-                            print(f"Payment record error (non-critical): {e}")
-                    
-                    return redirect(url_for('driver_signup_step2'))
+                    # Redirect to payment page
+                    return redirect(url_for('driver_payment_step1'))
             else:
                 error = 'Database connection failed.'
     
-    # Pass Razorpay key to template
     return render_template('driver_signup_step1.html', 
                          error=error, 
                          form=form,
@@ -705,7 +682,89 @@ def driver_signup_step3():
     
     return render_template('driver_signup_step3.html', error=error)
 
-# ── Driver App ───────────────────────────────────────────────
+@app.route('/driver-payment-step1', methods=['GET', 'POST'])
+def driver_payment_step1():
+    """Payment page after personal information entry"""
+    if 'signup_step1' not in session:
+        return redirect(url_for('driver_signup_step1'))
+    
+    s1 = session['signup_step1']
+    
+    if request.method == 'POST':
+        skip_payment = request.form.get('skip_payment')
+        if skip_payment == 'true':
+            # Skip payment and proceed to step 2
+            return redirect(url_for('driver_signup_step2'))
+    
+    return render_template('driver_payment_step1.html',
+                         driver_name=s1['username'],
+                         driver_email=s1['email'],
+                         driver_mobile=s1['mobile'],
+                         razorpay_key_id=RAZORPAY_KEY_ID)
+
+@app.route('/api/verify-payment-step1', methods=['POST'])
+def verify_payment_step1():
+    """Verify payment for step 1 and proceed to step 2"""
+    if not razorpay_client or not RAZORPAY_KEY_SECRET:
+        return jsonify({'error': 'Payment service unavailable'}), 503
+        
+    if 'signup_step1' not in session:
+        return jsonify({'error': 'Session expired. Please restart registration.'}), 400
+        
+    try:
+        # Get payment details from request
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No payment data received'}), 400
+            
+        razorpay_order_id = data.get('razorpay_order_id')
+        razorpay_payment_id = data.get('razorpay_payment_id')
+        razorpay_signature = data.get('razorpay_signature')
+        
+        if not all([razorpay_order_id, razorpay_payment_id, razorpay_signature]):
+            return jsonify({'error': 'Missing payment details'}), 400
+        
+        # Verify signature
+        generated_signature = hmac.new(
+            RAZORPAY_KEY_SECRET.encode(),
+            f"{razorpay_order_id}|{razorpay_payment_id}".encode(),
+            hashlib.sha256
+        ).hexdigest()
+        
+        if generated_signature != razorpay_signature:
+            return jsonify({'error': 'Invalid payment signature'}), 400
+        
+        # Payment verified - store payment info in session
+        s1 = session['signup_step1']
+        s1['payment_verified'] = True
+        s1['razorpay_order_id'] = razorpay_order_id
+        s1['razorpay_payment_id'] = razorpay_payment_id
+        session.modified = True
+        
+        # Store payment record
+        try:
+            conn = get_db()
+            if conn:
+                cur = conn.cursor()
+                cur.execute(
+                    """INSERT INTO Driver_Payments (username, razorpay_order_id, razorpay_payment_id, amount, status, created_at)
+                       VALUES (%s, %s, %s, %s, %s, NOW())""",
+                    (s1['username'], razorpay_order_id, razorpay_payment_id, 5000, 'completed')
+                )
+                conn.commit()
+                cur.close(); conn.close()
+                print(f"Payment record stored for user: {s1['username']}")
+        except Exception as e:
+            print(f"Payment record error (non-critical): {e}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Payment verified successfully'
+        })
+            
+    except Exception as e:
+        print(f"Payment verification error: {e}")
+        return jsonify({'error': f'Payment verification failed: {str(e)}'}), 500
 
 @app.route('/api/create-order', methods=['POST'])
 def create_order():

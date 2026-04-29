@@ -22,84 +22,6 @@
         .step-line.done { background: #198754; }
         .step-title { font-size: 1.3rem; font-weight: 700; color: #111827; margin-bottom: 6px; }
         .step-sub   { font-size: .85rem; color: #6b7280; margin-bottom: 28px; }
-        
-        .payment-section {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            border-radius: 15px;
-            padding: 25px;
-            margin: 25px 0;
-            border: 2px solid #0d6efd;
-            position: relative;
-        }
-        .payment-badge {
-            position: absolute;
-            top: -12px;
-            left: 20px;
-            background: #0d6efd;
-            color: white;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-        .fee-amount {
-            font-size: 2.5rem;
-            font-weight: 800;
-            color: #0d6efd;
-            text-align: center;
-            margin: 15px 0;
-        }
-        .btn-pay {
-            background: linear-gradient(135deg, #10b981, #059669);
-            border: none;
-            border-radius: 12px;
-            padding: 12px 25px;
-            font-weight: 700;
-            color: white;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
-        }
-        .btn-pay:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
-            color: white;
-        }
-        .btn-pay:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-        .loading-spinner {
-            display: none;
-            width: 18px;
-            height: 18px;
-            border: 2px solid #ffffff;
-            border-top: 2px solid transparent;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .form-section {
-            opacity: 0.5;
-            pointer-events: none;
-            transition: all 0.3s ease;
-        }
-        .form-section.enabled {
-            opacity: 1;
-            pointer-events: auto;
-        }
-        .payment-success {
-            background: #d1e7dd;
-            border: 1px solid #badbcc;
-            color: #0f5132;
-            padding: 15px;
-            border-radius: 10px;
-            margin: 20px 0;
-            display: none;
-        }
     </style>
 </head>
 <body>
@@ -113,120 +35,77 @@
     <div class="step-card">
         <!-- Step indicator -->
         <div class="step-indicator">
-            <div class="step-dot active">💳</div>
-            <div class="step-line"></div>
-            <div class="step-dot pending">1</div>
+            <div class="step-dot active">1</div>
             <div class="step-line"></div>
             <div class="step-dot pending">2</div>
             <div class="step-line"></div>
             <div class="step-dot pending">3</div>
         </div>
 
-        <div class="step-title">Driver Registration</div>
-        <div class="step-sub">Pay joining fee and complete your registration</div>
+        <div class="step-title">Personal Information</div>
+        <div class="step-sub">Step 1 of 3 — Enter your basic details</div>
 
         {% if error %}
         <div class="alert alert-danger py-2">{{ error }}</div>
         {% endif %}
 
-        <!-- Payment Section -->
-        <div class="payment-section" id="paymentSection">
-            <div class="payment-badge">JOINING FEE</div>
-            <div class="fee-amount">₹50</div>
-            <p class="text-center text-muted mb-3">One-time platform registration fee</p>
-            
-            <div class="text-center">
-                {% if razorpay_key_id %}
-                <button id="payButton" class="btn btn-pay" onclick="initiatePayment()">
-                    <span id="payButtonText">
-                        <i class="bi bi-credit-card me-2"></i>Pay ₹50 to Continue
-                    </span>
-                    <div class="loading-spinner" id="loadingSpinner"></div>
-                </button>
-                {% else %}
-                <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-triangle me-2"></i>
-                    Payment service temporarily unavailable. Registration will proceed without payment.
-                    <button class="btn btn-sm btn-primary ms-2" onclick="enableForm()">
-                        Continue Without Payment
+        <!-- Profile photo -->
+        <div class="text-center mb-4">
+            <div style="position:relative;display:inline-block;">
+                <img id="photoPreview"
+                     src="https://ui-avatars.com/api/?name=Driver&background=0d6efd&color=fff&size=120&rounded=true"
+                     style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:4px solid #0d6efd;cursor:pointer;"
+                     onclick="document.getElementById('profile_photo').click()">
+                <label for="profile_photo"
+                       style="position:absolute;bottom:2px;right:2px;width:28px;height:28px;background:#0d6efd;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid #fff;">
+                    <i class="bi bi-camera-fill text-white" style="font-size:.75rem;"></i>
+                </label>
+                <input type="file" class="d-none" id="profile_photo" name="profile_photo_preview" accept="image/*" onchange="previewPhoto(this)">
+            </div>
+            <div class="mt-2 text-muted" style="font-size:.78rem;">Click to upload profile photo</div>
+        </div>
+
+        <form method="POST" action="{{ url_for('driver_signup_step1') }}" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Username</label>
+                <input type="text" class="form-control" name="username" placeholder="Choose a username" value="{{ form.username or '' }}" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Mobile Number</label>
+                <input type="tel" class="form-control" name="mobile" placeholder="Enter mobile number" value="{{ form.mobile or '' }}" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Email ID</label>
+                <input type="email" class="form-control" name="email" placeholder="Enter email address" value="{{ form.email or '' }}" required>
+            </div>
+            <div class="mb-4">
+                <label class="form-label fw-semibold">Password</label>
+                <div class="input-group">
+                    <input type="password" class="form-control" id="password" name="password" placeholder="Create password" minlength="8" required>
+                    <button type="button" class="btn btn-outline-secondary" onclick="togglePw()">
+                        <i class="bi bi-eye" id="pwIcon"></i>
                     </button>
                 </div>
-                {% endif %}
             </div>
             
-            <div class="text-center mt-3">
-                <small class="text-muted">
-                    <i class="bi bi-shield-check me-1"></i>
-                    Secure payment powered by Razorpay
-                </small>
+            <div class="mb-4">
+                <label class="form-label fw-semibold">Admin Name</label>
+                <input type="text" class="form-control" name="admin_name" 
+                       placeholder="Enter admin name" 
+                       value="{{ form.admin_name or '' }}">
             </div>
-        </div>
-
-        <!-- Payment Success Message -->
-        <div class="payment-success" id="paymentSuccess">
-            <i class="bi bi-check-circle-fill me-2"></i>
-            <strong>Payment Successful!</strong> You can now complete your registration.
-        </div>
-
-        <!-- Form Section (Initially Disabled) -->
-        <div class="form-section" id="formSection">
-            <!-- Profile photo -->
-            <div class="text-center mb-4">
-                <div style="position:relative;display:inline-block;">
-                    <img id="photoPreview"
-                         src="https://ui-avatars.com/api/?name=Driver&background=0d6efd&color=fff&size=120&rounded=true"
-                         style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:4px solid #0d6efd;cursor:pointer;"
-                         onclick="document.getElementById('profile_photo').click()">
-                    <label for="profile_photo"
-                           style="position:absolute;bottom:2px;right:2px;width:28px;height:28px;background:#0d6efd;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid #fff;">
-                        <i class="bi bi-camera-fill text-white" style="font-size:.75rem;"></i>
-                    </label>
-                    <input type="file" class="d-none" id="profile_photo" name="profile_photo_preview" accept="image/*" onchange="previewPhoto(this)">
-                </div>
-                <div class="mt-2 text-muted" style="font-size:.78rem;">Click to upload profile photo</div>
+            <!-- Hidden profile photo carried forward -->
+            <input type="file" class="d-none" id="profile_photo_real" name="profile_photo" accept="image/*">
+            
+            <div class="alert alert-info mb-3">
+                <i class="bi bi-info-circle me-2"></i>
+                <strong>Next:</strong> After submitting your details, you'll need to pay ₹50 joining fee to continue registration.
             </div>
-
-            <form method="POST" action="{{ url_for('driver_signup_step1') }}" enctype="multipart/form-data" id="signupForm">
-                <!-- Hidden payment verification field -->
-                <input type="hidden" id="payment_verified" name="payment_verified" value="false">
-                <input type="hidden" id="razorpay_payment_id" name="razorpay_payment_id" value="">
-                <input type="hidden" id="razorpay_order_id" name="razorpay_order_id" value="">
-                
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Username</label>
-                    <input type="text" class="form-control" name="username" placeholder="Choose a username" value="{{ form.username or '' }}" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Mobile Number</label>
-                    <input type="tel" class="form-control" name="mobile" placeholder="Enter mobile number" value="{{ form.mobile or '' }}" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Email ID</label>
-                    <input type="email" class="form-control" name="email" placeholder="Enter email address" value="{{ form.email or '' }}" required>
-                </div>
-                <div class="mb-4">
-                    <label class="form-label fw-semibold">Password</label>
-                    <div class="input-group">
-                        <input type="password" class="form-control" id="password" name="password" placeholder="Create password" minlength="8" required>
-                        <button type="button" class="btn btn-outline-secondary" onclick="togglePw()">
-                            <i class="bi bi-eye" id="pwIcon"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="mb-4">
-                    <label class="form-label fw-semibold">Admin Name</label>
-                    <input type="text" class="form-control" name="admin_name" 
-                           placeholder="Enter admin name" 
-                           value="{{ form.admin_name or '' }}">
-                </div>
-                <!-- Hidden profile photo carried forward -->
-                <input type="file" class="d-none" id="profile_photo_real" name="profile_photo" accept="image/*">
-                <button type="submit" class="btn btn-primary w-100 fw-bold py-2" id="submitBtn" disabled>
-                    Next <i class="bi bi-arrow-right ms-1"></i>
-                </button>
-            </form>
-        </div>
+            
+            <button type="submit" class="btn btn-primary w-100 fw-bold py-2">
+                Continue to Payment <i class="bi bi-arrow-right ms-1"></i>
+            </button>
+        </form>
 
         <div class="text-center mt-3">
             <small class="text-muted">Already registered? <a href="{{ url_for('driver_login') }}">Login</a></small>
@@ -234,55 +113,14 @@
     </div>
 </div>
 
-<!-- Success Modal -->
-<div class="modal fade" id="successModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-body text-center p-4">
-                <div class="mb-3">
-                    <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
-                </div>
-                <h5 class="mb-3">Payment Successful!</h5>
-                <p class="text-muted mb-3">
-                    Your payment has been processed successfully. You can now complete your registration.
-                </p>
-                <button class="btn btn-primary" onclick="enableFormAfterPayment()">Continue Registration</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Error Modal -->
-<div class="modal fade" id="errorModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-body text-center p-4">
-                <div class="mb-3">
-                    <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size: 3rem;"></i>
-                </div>
-                <h5 class="mb-3">Payment Failed</h5>
-                <p class="text-muted mb-4" id="errorMessage">
-                    There was an issue processing your payment. Please try again.
-                </p>
-                <button class="btn btn-primary" data-bs-dismiss="modal">Try Again</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
-const RAZORPAY_KEY_ID = '{{ razorpay_key_id }}';
-let paymentCompleted = false;
-
 function togglePw() {
     const inp = document.getElementById('password');
     const ico = document.getElementById('pwIcon');
     inp.type = inp.type === 'password' ? 'text' : 'password';
     ico.className = inp.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
 }
-
 function previewPhoto(input) {
     if (input.files && input.files[0]) {
         const reader = new FileReader();
@@ -294,131 +132,6 @@ function previewPhoto(input) {
         document.getElementById('profile_photo_real').files = dt.files;
     }
 }
-
-function setLoading(loading) {
-    const button = document.getElementById('payButton');
-    const buttonText = document.getElementById('payButtonText');
-    const spinner = document.getElementById('loadingSpinner');
-    
-    if (button && buttonText && spinner) {
-        if (loading) {
-            button.disabled = true;
-            buttonText.style.display = 'none';
-            spinner.style.display = 'inline-block';
-        } else {
-            button.disabled = false;
-            buttonText.style.display = 'inline-block';
-            spinner.style.display = 'none';
-        }
-    }
-}
-
-function enableForm() {
-    const formSection = document.getElementById('formSection');
-    const submitBtn = document.getElementById('submitBtn');
-    const paymentSection = document.getElementById('paymentSection');
-    
-    formSection.classList.add('enabled');
-    submitBtn.disabled = false;
-    paymentSection.style.display = 'none';
-    
-    // Set payment as bypassed
-    document.getElementById('payment_verified').value = 'bypassed';
-}
-
-function enableFormAfterPayment() {
-    const modal = bootstrap.Modal.getInstance(document.getElementById('successModal'));
-    modal.hide();
-    
-    const formSection = document.getElementById('formSection');
-    const submitBtn = document.getElementById('submitBtn');
-    const paymentSection = document.getElementById('paymentSection');
-    const paymentSuccess = document.getElementById('paymentSuccess');
-    
-    formSection.classList.add('enabled');
-    submitBtn.disabled = false;
-    paymentSection.style.display = 'none';
-    paymentSuccess.style.display = 'block';
-    
-    paymentCompleted = true;
-}
-
-async function initiatePayment() {
-    try {
-        setLoading(true);
-        
-        // Create order
-        const response = await fetch('/api/create-order', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        if (!response.ok) {
-            throw new Error('Failed to create order');
-        }
-        
-        const orderData = await response.json();
-        
-        // Configure Razorpay options
-        const options = {
-            key: RAZORPAY_KEY_ID,
-            amount: orderData.amount,
-            currency: orderData.currency,
-            order_id: orderData.order_id,
-            name: 'RaidLink Technologies',
-            description: 'Driver Registration Fee',
-            handler: function(response) {
-                handlePaymentSuccess(response);
-            },
-            theme: {
-                color: '#0d6efd'
-            },
-            modal: {
-                ondismiss: function() {
-                    setLoading(false);
-                }
-            }
-        };
-        
-        setLoading(false);
-        
-        // Open Razorpay checkout
-        const rzp = new Razorpay(options);
-        rzp.open();
-        
-    } catch (error) {
-        console.error('Payment initiation error:', error);
-        setLoading(false);
-        showError('Failed to initiate payment. Please try again.');
-    }
-}
-
-function handlePaymentSuccess(paymentResponse) {
-    // Store payment details
-    document.getElementById('payment_verified').value = 'true';
-    document.getElementById('razorpay_payment_id').value = paymentResponse.razorpay_payment_id;
-    document.getElementById('razorpay_order_id').value = paymentResponse.razorpay_order_id;
-    
-    // Show success modal
-    const modal = new bootstrap.Modal(document.getElementById('successModal'));
-    modal.show();
-}
-
-function showError(message) {
-    document.getElementById('errorMessage').textContent = message;
-    const modal = new bootstrap.Modal(document.getElementById('errorModal'));
-    modal.show();
-}
-
-// Initialize form state
-document.addEventListener('DOMContentLoaded', function() {
-    {% if not razorpay_key_id %}
-    // If Razorpay not available, enable form immediately
-    enableForm();
-    {% endif %}
-});
 </script>
 </body>
 </html>
