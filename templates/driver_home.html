@@ -500,13 +500,7 @@
 
     // Load driver data for edit modal
     function loadDriverData() {
-        fetch(`/api/driver-data/${DRIVER_USERNAME}`)
-            .then(r => r.json())
-            .then(data => {
-                if (data.email) document.getElementById('editEmail').value = data.email;
-                if (data.mobile) document.getElementById('editMobile').value = data.mobile;
-            })
-            .catch(err => console.log('Failed to load driver data:', err));
+        // No need to load email/mobile data since we're only editing photo
     }
 
     // Preview uploaded photo
@@ -545,37 +539,25 @@
                     
                     <!-- Profile Photo -->
                     <div class="mb-3 text-center">
-                        <div class="mb-2">
+                        <div class="mb-3">
                             {% if driver_photo %}
                             <img src="{{ url_for('static', filename=driver_photo) }}" 
-                                 alt="Profile" class="rounded-circle" width="80" height="80" 
+                                 alt="Profile" class="rounded-circle" width="120" height="120" 
                                  style="object-fit:cover;border:3px solid #0d6efd;" id="previewImg">
                             {% else %}
                             <div class="rounded-circle d-inline-flex align-items-center justify-content-center" 
-                                 style="width:80px;height:80px;background:#0d6efd;color:#fff;font-size:2rem;font-weight:700;border:3px solid #0d6efd;" 
+                                 style="width:120px;height:120px;background:#0d6efd;color:#fff;font-size:3rem;font-weight:700;border:3px solid #0d6efd;" 
                                  id="previewInitial">{{ driver_name[0] | upper }}</div>
                             {% endif %}
                         </div>
                         <input type="file" class="form-control" name="profile_photo" accept="image/*" 
-                               onchange="previewPhoto(this)">
-                        <small class="text-muted">Upload new profile picture (optional)</small>
-                    </div>
-                    
-                    <!-- Email -->
-                    <div class="mb-3">
-                        <label class="form-label">Email</label>
-                        <input type="email" class="form-control" name="email" id="editEmail" required>
-                    </div>
-                    
-                    <!-- Mobile -->
-                    <div class="mb-3">
-                        <label class="form-label">Mobile Number</label>
-                        <input type="tel" class="form-control" name="mobile" id="editMobile" required>
+                               onchange="previewPhoto(this)" required>
+                        <small class="text-muted mt-2 d-block">Select a new profile picture</small>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Update Profile</button>
+                    <button type="submit" class="btn btn-primary">Update Photo</button>
                 </div>
             </form>
         </div>
