@@ -245,16 +245,6 @@
         </div>
     </div>
 
-    <!-- Charts Row -->
-    <div class="row g-4 mb-4">
-        <div class="col-12">
-            <div class="chart-container">
-                <h5 class="mb-3"><i class="bi bi-pie-chart me-2"></i>Trip Distribution</h5>
-                <canvas id="tripChart" height="200"></canvas>
-            </div>
-        </div>
-    </div>
-
     <!-- Earnings Table -->
     <div class="earnings-table">
         <div class="table-responsive">
@@ -305,32 +295,7 @@
     
     // Initialize charts
     function initCharts() {
-        // Trip Distribution Chart
-        const ctx2 = document.getElementById('tripChart').getContext('2d');
-        new Chart(ctx2, {
-            type: 'doughnut',
-            data: {
-                labels: ['Short Trips', 'Medium Trips', 'Long Trips'],
-                datasets: [{
-                    data: [45, 35, 20],
-                    backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            padding: 20,
-                            usePointStyle: true
-                        }
-                    }
-                }
-            }
-        });
+        // Charts removed for cleaner UI
     }
 
     // Filter functionality
