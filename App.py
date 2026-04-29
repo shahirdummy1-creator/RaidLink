@@ -304,12 +304,15 @@ def test_payment_flow():
         'profile_photo': None
     }
     
+    session.permanent = True
     session.modified = True
     
     return jsonify({
         'message': 'Test session data created',
         'session_keys': list(session.keys()),
-        'redirect_to': '/driver-payment'
+        'redirect_to': '/driver-payment',
+        'razorpay_available': razorpay_client is not None,
+        'razorpay_key_set': RAZORPAY_KEY_ID is not None
     })
 
 @app.route('/home')
@@ -702,9 +705,13 @@ def verify_payment():
         
     try:
         # Get payment details from request
-        razorpay_order_id = request.json.get('razorpay_order_id')
-        razorpay_payment_id = request.json.get('razorpay_payment_id')
-        razorpay_signature = request.json.get('razorpay_signature')
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No payment data received'}), 400
+            
+        razorpay_order_id = data.get('razorpay_order_id')
+        razorpay_payment_id = data.get('razorpay_payment_id')
+        razorpay_signature = data.get('razorpay_signature')
         
         if not all([razorpay_order_id, razorpay_payment_id, razorpay_signature]):
             return jsonify({'error': 'Missing payment details'}), 400
@@ -717,72 +724,92 @@ def verify_payment():
         ).hexdigest()
         
         if generated_signature != razorpay_signature:
-            return jsonify({'error': 'Invalid signature'}), 400
+            return jsonify({'error': 'Invalid payment signature'}), 400
         
         # Payment verified successfully - Complete driver signup
-        return complete_driver_signup_with_payment(razorpay_order_id, razorpay_payment_id)
+        result = complete_driver_signup_with_payment(razorpay_order_id, razorpay_payment_id)
+        return result
             
     except Exception as e:
         print(f"Payment verification error: {e}")
-        return jsonify({'error': 'Payment verification failed'}), 500
+        return jsonify({'error': f'Payment verification failed: {str(e)}'}), 500
 
 # Helper function to complete signup with payment
 def complete_driver_signup_with_payment(razorpay_order_id, razorpay_payment_id):
-    if 'signup_step1' in session and 'signup_step2' in session and 'signup_step3' in session:
-        s1 = session['signup_step1']
-        s2 = session['signup_step2']
-        s3 = session['signup_step3']
+    print(f"Completing signup with payment for order: {razorpay_order_id}")
+    print(f"Session keys available: {list(session.keys())}")
+    
+    if not all(key in session for key in ['signup_step1', 'signup_step2', 'signup_step3']):
+        print("Missing session data for signup completion")
+        return jsonify({'error': 'Signup session data missing. Please restart signup process.'}), 400
         
-        conn = get_db()
-        if conn:
-            cur = conn.cursor()
-            try:
-                cur.execute(
-                    """INSERT INTO Driver_Details
-                       (username, mobile, email, password_hash, car_make, car_model, car_color,
-                        reg_number, aadhaar_number, licence_validity, fitness_validity,
-                        pollution_validity, permit_validity,
-                        licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo, admin_name)
-                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-                    (s1['username'], s1['mobile'], s1['email'], s1['password'],
-                     s2['car_make'], s2['car_model'], s2['car_color'],
-                     s2['reg_number'], s2['aadhaar_number'],
-                     s3['licence_validity'], s3['fitness_validity'], s3['pollution_validity'], s3['permit_validity'],
-                     s3['licence_img'], s3['rc_img'], s3['aadhaar_img'], s3['permit_img'], s3['pollution_img'], s3['profile_photo'],
-                     s1.get('admin_name'))
-                )
-                conn.commit()
-                
-                # Store payment details (optional - for record keeping)
-                try:
-                    cur.execute(
-                        """INSERT INTO Driver_Payments (username, razorpay_order_id, razorpay_payment_id, amount, status)
-                           VALUES (%s, %s, %s, %s, %s)""",
-                        (s1['username'], razorpay_order_id, razorpay_payment_id, 5000, 'completed')
-                    )
-                    conn.commit()
-                except Exception as e:
-                    print(f"Payment record error: {e}")
-                    # Continue even if payment record fails
-                
-                cur.close(); conn.close()
-                
-                # Clear signup session data
-                session.pop('signup_step1', None)
-                session.pop('signup_step2', None)
-                session.pop('signup_step3', None)
-                session.modified = True
-                
-                return jsonify({'success': True, 'message': 'Payment verified and account created successfully'})
-                
-            except Exception as e:
-                print(f"Database error: {e}")
-                cur.close(); conn.close()
-                return jsonify({'error': 'Failed to create account'}), 500
-        else:
-            return jsonify({'error': 'Database connection failed'}), 500
-    else:
-        return jsonify({'error': 'Signup session expired'}), 400
+    s1 = session['signup_step1']
+    s2 = session['signup_step2']
+    s3 = session['signup_step3']
+    
+    print(f"Creating account for user: {s1['username']}")
+    
+    conn = get_db()
+    if not conn:
+        return jsonify({'error': 'Database connection failed'}), 500
+        
+    cur = conn.cursor()
+    try:
+        # Check if username already exists
+        cur.execute("SELECT id FROM Driver_Details WHERE username=%s", (s1['username'],))
+        if cur.fetchone():
+            return jsonify({'error': 'Username already exists'}), 400
+            
+        # Insert driver details
+        cur.execute(
+            """INSERT INTO Driver_Details
+               (username, mobile, email, password_hash, car_make, car_model, car_color,
+                reg_number, aadhaar_number, licence_validity, fitness_validity,
+                pollution_validity, permit_validity,
+                licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo, admin_name)
+               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+            (s1['username'], s1['mobile'], s1['email'], s1['password'],
+             s2['car_make'], s2['car_model'], s2['car_color'],
+             s2['reg_number'], s2['aadhaar_number'],
+             s3['licence_validity'], s3['fitness_validity'], s3['pollution_validity'], s3['permit_validity'],
+             s3['licence_img'], s3['rc_img'], s3['aadhaar_img'], s3['permit_img'], s3['pollution_img'], s3['profile_photo'],
+             s1.get('admin_name'))
+        )
+        conn.commit()
+        print(f"Driver account created successfully for: {s1['username']}")
+        
+        # Store payment details
+        try:
+            cur.execute(
+                """INSERT INTO Driver_Payments (username, razorpay_order_id, razorpay_payment_id, amount, status, created_at)
+                   VALUES (%s, %s, %s, %s, %s, NOW())""",
+                (s1['username'], razorpay_order_id, razorpay_payment_id, 5000, 'completed')
+            )
+            conn.commit()
+            print(f"Payment record stored for: {s1['username']}")
+        except Exception as e:
+            print(f"Payment record error (non-critical): {e}")
+        
+        cur.close(); conn.close()
+        
+        # Clear signup session data
+        session.pop('signup_step1', None)
+        session.pop('signup_step2', None)
+        session.pop('signup_step3', None)
+        session.modified = True
+        print("Session data cleared")
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Payment verified and account created successfully',
+            'redirect_url': url_for('driver_login')
+        })
+        
+    except Exception as e:
+        print(f"Database error during signup: {e}")
+        conn.rollback()
+        cur.close(); conn.close()
+        return jsonify({'error': f'Failed to create account: {str(e)}'}), 500
 
 # Fallback route for completing signup without payment (temporary)
 @app.route('/complete-signup-without-payment')

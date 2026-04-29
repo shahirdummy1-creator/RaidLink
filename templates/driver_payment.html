@@ -351,6 +351,7 @@
         async function verifyPayment(paymentResponse) {
             try {
                 setLoading(true);
+                console.log('Verifying payment:', paymentResponse);
                 
                 const response = await fetch('/api/verify-payment', {
                     method: 'POST',
@@ -365,6 +366,7 @@
                 });
                 
                 const result = await response.json();
+                console.log('Verification result:', result);
                 
                 if (response.ok && result.success) {
                     // Payment successful
