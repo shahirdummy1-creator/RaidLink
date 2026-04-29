@@ -38,10 +38,15 @@ if RAZORPAY_AVAILABLE and RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET:
     try:
         razorpay_client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
         print("Razorpay client initialized successfully")
+        print(f"Key ID: {RAZORPAY_KEY_ID}")
     except Exception as e:
         print(f"Razorpay initialization failed: {e}")
+        razorpay_client = None
 else:
     print("Warning: Razorpay credentials not found or Razorpay not available. Payment features will be disabled.")
+    print(f"RAZORPAY_AVAILABLE: {RAZORPAY_AVAILABLE}")
+    print(f"RAZORPAY_KEY_ID: {RAZORPAY_KEY_ID is not None}")
+    print(f"RAZORPAY_KEY_SECRET: {RAZORPAY_KEY_SECRET is not None}")
 
 UPLOAD_FOLDER = os.path.join('static', 'uploads', 'drivers')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -252,6 +257,17 @@ def health_check():
             'status': 'unhealthy',
             'error': str(e)
         }), 500
+
+@app.route('/debug-razorpay')
+def debug_razorpay():
+    """Debug endpoint to check Razorpay status"""
+    return jsonify({
+        'razorpay_available': RAZORPAY_AVAILABLE,
+        'razorpay_key_id_set': RAZORPAY_KEY_ID is not None,
+        'razorpay_key_secret_set': RAZORPAY_KEY_SECRET is not None,
+        'razorpay_client_initialized': razorpay_client is not None,
+        'razorpay_key_id': RAZORPAY_KEY_ID[:10] + '...' if RAZORPAY_KEY_ID else None
+    })
 
 @app.route('/debug-session')
 def debug_session():
