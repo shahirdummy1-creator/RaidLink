@@ -607,6 +607,68 @@ def driver_earnings():
         monthly_earnings= f"\u20b9{monthly:,.2f}"
     )
 
+@app.route('/api/earnings-data/<username>')
+def api_earnings_data(username):
+    period = request.args.get('period', 'all')
+    from_date = request.args.get('from_date')
+    to_date = request.args.get('to_date')
+    
+    driver = get_driver(username)
+    if not driver:
+        return jsonify({'error': 'Driver not found'})
+    
+    conn = get_db()
+    if not conn:
+        return jsonify({'error': 'Database connection failed'})
+    
+    # Build date filter based on period
+    date_filter = ""
+    params = [username]
+    
+    if period == 'today':
+        date_filter = "AND DATE(t.ride_date) = CURDATE()"
+    elif period == 'week':
+        date_filter = "AND t.ride_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)"
+    elif period == 'month':
+        date_filter = "AND MONTH(t.ride_date) = MONTH(CURDATE()) AND YEAR(t.ride_date) = YEAR(CURDATE())"
+    elif period == 'year':
+        date_filter = "AND YEAR(t.ride_date) = YEAR(CURDATE())"
+    elif from_date and to_date:
+        date_filter = "AND DATE(t.ride_date) BETWEEN %s AND %s"
+        params.extend([from_date, to_date])
+    
+    cur = conn.cursor()
+    cur.execute(f"""
+        SELECT t.*, r.username AS rider_name
+        FROM Trip_Details t
+        LEFT JOIN Rider_Details r ON r.id = t.rider_id
+        WHERE t.status='Completed' AND t.accepted_by=%s {date_filter}
+        ORDER BY t.ride_date DESC, t.ride_time DESC
+    """, params)
+    
+    trips = []
+    total_earnings = 0
+    trip_count = 0
+    
+    for row in cur.fetchall():
+        t = row_to_dict(cur, row)
+        fare_val = parse_fare(str(t['fare']))
+        t['fare'] = format_fare(t['fare'])
+        t['ride_date'] = str(t['ride_date'])
+        t['ride_time'] = str(t['ride_time'])
+        total_earnings += fare_val
+        trip_count += 1
+        trips.append(t)
+    
+    cur.close(); conn.close()
+    
+    return jsonify({
+        'trips': trips,
+        'total_earnings': f"\u20b9{total_earnings:,.2f}",
+        'trip_count': trip_count,
+        'average_fare': f"\u20b9{(total_earnings/trip_count if trip_count > 0 else 0):,.2f}"
+    })
+
 @app.route('/driver-trips')
 def driver_trips():
     username = request.args.get('username', '')
