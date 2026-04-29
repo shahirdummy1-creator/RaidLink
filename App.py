@@ -707,16 +707,17 @@ def driver_payment_step1():
     s1 = session['signup_step1']
     
     if request.method == 'POST':
-        skip_payment = request.form.get('skip_payment')
-        if skip_payment == 'true':
-            # Skip payment and proceed to step 2
+        payment_completed = request.form.get('payment_completed')
+        if payment_completed == 'true':
+            # Mark payment as completed and proceed to step 2
+            s1['payment_verified'] = True
+            session.modified = True
             return redirect(url_for('driver_signup_step2'))
     
     return render_template('driver_payment_step1.html',
                          driver_name=s1['username'],
                          driver_email=s1['email'],
-                         driver_mobile=s1['mobile'],
-                         razorpay_key_id=RAZORPAY_KEY_ID)
+                         driver_mobile=s1['mobile'])
 
 @app.route('/api/verify-payment-step1', methods=['POST'])
 def verify_payment_step1():
