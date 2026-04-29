@@ -136,18 +136,22 @@ def init_db():
             )
         """)
 
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS Driver_Payments (
-                id                  INT AUTO_INCREMENT PRIMARY KEY,
-                username            VARCHAR(100) NOT NULL,
-                razorpay_order_id   VARCHAR(100) NOT NULL,
-                razorpay_payment_id VARCHAR(100) NOT NULL,
-                amount              INT NOT NULL,
-                status              ENUM('pending','completed','failed') NOT NULL DEFAULT 'pending',
-                created_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE KEY uq_payment (razorpay_payment_id)
-            )
-        """)
+        # Create Driver_Payments table (optional - for Razorpay integration)
+        try:
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS Driver_Payments (
+                    id                  INT AUTO_INCREMENT PRIMARY KEY,
+                    username            VARCHAR(100) NOT NULL,
+                    razorpay_order_id   VARCHAR(100) NOT NULL,
+                    razorpay_payment_id VARCHAR(100) NOT NULL,
+                    amount              INT NOT NULL,
+                    status              ENUM('pending','completed','failed') NOT NULL DEFAULT 'pending',
+                    created_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE KEY uq_payment (razorpay_payment_id)
+                )
+            """)
+        except Exception as e:
+            print(f"[DB] Warning: Could not create Driver_Payments table: {e}")
 
         conn.commit()
         cursor.close()
