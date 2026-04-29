@@ -198,74 +198,43 @@
             </div>
 
             <!-- Payment Button -->
-            <div class="text-center mb-3">
-                <form><script src="https://checkout.razorpay.com/v1/payment-button.js" data-payment_button_id="pl_SjI93qizy7nki8" async> </script> </form>
-            </div>
+            <a href="https://razorpay.com/payment-link/plink_SjPPvrYcE0QrhI" target="_blank" class="btn btn-pay text-decoration-none">
+                <i class="bi bi-credit-card me-2"></i>Pay ₹50 & Continue Registration
+            </a>
             
             <!-- Auto-redirect script -->
             <script>
-                // Function to handle payment success
-                function handlePaymentSuccess() {
-                    // Show loading state
-                    document.body.style.cursor = 'wait';
-                    
-                    // Call API to mark payment as completed
-                    fetch('/api/payment-success', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        }
-                    }).then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // Show success message briefly then redirect
-                            const successMsg = document.createElement('div');
-                            successMsg.className = 'alert alert-success mt-3';
-                            successMsg.innerHTML = '<i class="bi bi-check-circle me-2"></i>Payment successful! Redirecting...';
-                            document.querySelector('.payment-card').appendChild(successMsg);
-                            
-                            setTimeout(() => {
-                                window.location.href = data.redirect;
-                            }, 1500);
-                        } else {
-                            throw new Error('Payment verification failed');
-                        }
-                    }).catch(error => {
-                        console.error('Error:', error);
-                        document.body.style.cursor = 'default';
-                        // Show manual continue button as fallback
-                        document.getElementById('manualContinue').style.display = 'block';
-                        const errorMsg = document.createElement('div');
-                        errorMsg.className = 'alert alert-warning mt-3';
-                        errorMsg.innerHTML = '<i class="bi bi-exclamation-triangle me-2"></i>Auto-redirect failed. Please click "Continue" below.';
-                        document.querySelector('.payment-card').appendChild(errorMsg);
-                    });
-                }
-                
-                // Listen for Razorpay payment success events
-                window.addEventListener('message', function(event) {
-                    // Check for Razorpay payment success
-                    if (event.data && (event.data.event === 'payment.success' || event.data.type === 'payment_success')) {
-                        handlePaymentSuccess();
-                    }
-                });
-                
-                // Alternative: Check for URL parameters indicating payment success
+                // Check for URL parameters indicating payment success (when user returns from payment link)
                 const urlParams = new URLSearchParams(window.location.search);
                 if (urlParams.get('payment_status') === 'success' || urlParams.get('status') === 'success') {
-                    setTimeout(handlePaymentSuccess, 1000);
+                    // Auto-redirect after payment success
+                    setTimeout(() => {
+                        fetch('/api/payment-success', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            }
+                        }).then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                window.location.href = data.redirect;
+                            }
+                        }).catch(error => {
+                            console.error('Error:', error);
+                            // Show manual continue button as fallback
+                            document.getElementById('manualContinue').style.display = 'block';
+                        });
+                    }, 1000);
                 }
                 
-                // Fallback: Show manual continue button after 30 seconds
+                // Show manual continue button after 10 seconds for user convenience
                 setTimeout(() => {
-                    if (document.getElementById('manualContinue').style.display === 'none') {
-                        document.getElementById('manualContinue').style.display = 'block';
-                        const infoMsg = document.createElement('div');
-                        infoMsg.className = 'alert alert-info mt-3';
-                        infoMsg.innerHTML = '<i class="bi bi-info-circle me-2"></i>If you have completed the payment, click "Continue" below.';
-                        document.querySelector('.payment-card').appendChild(infoMsg);
-                    }
-                }, 30000);
+                    document.getElementById('manualContinue').style.display = 'block';
+                    const infoMsg = document.createElement('div');
+                    infoMsg.className = 'alert alert-info mt-3';
+                    infoMsg.innerHTML = '<i class="bi bi-info-circle me-2"></i>After completing payment, click "Continue" below to proceed.';
+                    document.querySelector('.payment-card').appendChild(infoMsg);
+                }, 10000);
             </script>
             
             <div class="alert alert-info mt-3">
