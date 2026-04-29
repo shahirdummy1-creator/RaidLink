@@ -208,16 +208,50 @@ def get_driver(username):
 @app.route('/welcome')
 @app.route('/index')
 def welcome():
-    return render_template('welcome.html')
+    try:
+        return render_template('welcome.html')
+    except Exception as e:
+        # Fallback if template loading fails
+        return f"""
+        <!DOCTYPE html>
+        <html>
+        <head><title>RaidLink Technologies</title></head>
+        <body>
+            <h1>🚕 RaidLink Technologies</h1>
+            <p>Taxi Booking Platform</p>
+            <p><a href="/rider-login">Rider Login</a> | <a href="/driver-login">Driver Login</a> | <a href="/admin-login">Admin Login</a></p>
+            <p><small>Status: Running (Template Error: {str(e)})</small></p>
+        </body>
+        </html>
+        """, 200
 
 @app.route('/health')
 def health_check():
     """Health check endpoint for deployment platforms"""
-    return jsonify({
-        'status': 'healthy',
-        'message': 'RaidLink API is running',
-        'razorpay_available': razorpay_client is not None
-    }), 200
+    try:
+        # Test database connection
+        db_status = 'connected'
+        try:
+            conn = get_db()
+            if conn:
+                conn.close()
+            else:
+                db_status = 'disconnected'
+        except Exception:
+            db_status = 'error'
+        
+        return jsonify({
+            'status': 'healthy',
+            'message': 'RaidLink API is running',
+            'database': db_status,
+            'razorpay_available': razorpay_client is not None,
+            'port': os.environ.get('PORT', 'not_set')
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'status': 'unhealthy',
+            'error': str(e)
+        }), 500
 
 @app.route('/home')
 def home():
