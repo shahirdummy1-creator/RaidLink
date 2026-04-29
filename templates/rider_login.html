@@ -57,6 +57,12 @@
                         <button type="submit" class="btn btn-primary w-100 fw-bold py-2">Login</button>
                     </form>
 
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('forgot_password', type='rider') }}" class="text-decoration-none">
+                            <i class="bi bi-key me-1"></i>Forgot Password?
+                        </a>
+                    </div>
+
                     <div class="text-center mt-4">
                         <p class="mb-1 text-muted">Don't have an account?</p>
                         <a href="{{ url_for('rider_signup') }}" class="btn btn-outline-primary">Create Rider Account</a>

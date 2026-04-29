@@ -122,6 +122,19 @@ def init_db():
             )
         """)
 
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS Password_Reset_Tokens (
+                id         INT AUTO_INCREMENT PRIMARY KEY,
+                user_id    INT NOT NULL,
+                user_type  ENUM('rider','driver','admin') NOT NULL,
+                email      VARCHAR(150) NOT NULL,
+                token      VARCHAR(64) NOT NULL UNIQUE,
+                expires_at DATETIME NOT NULL,
+                created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uq_user_type (user_id, user_type)
+            )
+        """)
+
         conn.commit()
         cursor.close()
         conn.close()
