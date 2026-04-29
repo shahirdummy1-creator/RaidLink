@@ -416,6 +416,7 @@ def driver_signup_step1():
         mobile   = request.form.get('mobile', '').strip()
         email    = request.form.get('email', '').strip()
         password = request.form.get('password', '')
+        admin_referral = request.form.get('admin_referral', '').strip().upper()
         conn = get_db()
         if conn:
             cur = conn.cursor()
@@ -429,7 +430,7 @@ def driver_signup_step1():
                 session['signup_step1'] = {
                     'username': username, 'mobile': mobile,
                     'email': email, 'password': hash_password(password),
-                    'profile_photo': profile_photo
+                    'profile_photo': profile_photo, 'admin_referral': admin_referral
                 }
                 session.modified = True
                 return redirect(url_for('driver_signup_step2'))
@@ -483,13 +484,14 @@ def driver_signup_step3():
                        (username, mobile, email, password_hash, car_make, car_model, car_color,
                         reg_number, aadhaar_number, licence_validity, fitness_validity,
                         pollution_validity, permit_validity,
-                        licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo)
-                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                        licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo, admin_referral)
+                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                     (s1['username'], s1['mobile'], s1['email'], s1['password'],
                      s2['car_make'], s2['car_model'], s2['car_color'],
                      s2['reg_number'], s2['aadhaar_number'],
                      licence_validity, fitness_validity, pollution_validity, permit_validity,
-                     licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo)
+                     licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo,
+                     s1.get('admin_referral'))
                 )
                 conn.commit()
                 cur.close(); conn.close()
