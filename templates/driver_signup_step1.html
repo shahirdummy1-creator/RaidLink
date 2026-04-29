@@ -89,20 +89,10 @@
             </div>
             
             <div class="mb-4">
-                <label class="form-label fw-semibold">Admin Referral Code <span class="text-muted">(Optional)</span></label>
-                <div class="input-group">
-                    <span class="input-group-text bg-light">
-                        <i class="bi bi-person-badge text-muted"></i>
-                    </span>
-                    <input type="text" class="form-control" name="admin_referral" 
-                           placeholder="Enter admin referral code" 
-                           value="{{ form.admin_referral or '' }}"
-                           style="text-transform: uppercase;">
-                </div>
-                <small class="text-muted mt-1 d-block">
-                    <i class="bi bi-info-circle me-1"></i>
-                    Enter the referral code provided by your admin for faster approval
-                </small>
+                <label class="form-label fw-semibold">Admin Name</label>
+                <input type="text" class="form-control" name="admin_name" 
+                       placeholder="Enter admin name" 
+                       value="{{ form.admin_name or '' }}">
             </div>
             <!-- Hidden profile photo carried forward -->
             <input type="file" class="d-none" id="profile_photo_real" name="profile_photo" accept="image/*">

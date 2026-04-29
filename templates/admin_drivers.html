@@ -253,6 +253,7 @@
                             <th>Username</th>
                             <th>Mobile</th>
                             <th>Email</th>
+                            <th>Admin Name</th>
                             <th>Vehicle</th>
                             <th>Reg. Number</th>
                             <th>Licence Validity</th>
@@ -275,6 +276,13 @@
                             <td>{{ d.username }}</td>
                             <td>{{ d.mobile }}</td>
                             <td style="color:#6b7280;">{{ d.email }}</td>
+                            <td>
+                                {% if d.admin_name %}
+                                    <span style="font-weight:600;color:#059669;">{{ d.admin_name }}</span>
+                                {% else %}
+                                    <span style="color:#9ca3af;">—</span>
+                                {% endif %}
+                            </td>
                             <td>{{ d.car_make }} {{ d.car_model }}</td>
                             <td><span class="badge-reg">{{ d.reg_number }}</span></td>
                             <td>{{ d.licence_validity or '—' }}</td>
@@ -307,7 +315,7 @@
                             </td>
                         </tr>
                         {% else %}
-                        <tr><td colspan="12" class="text-center text-muted py-5">No drivers registered yet.</td></tr>
+                        <tr><td colspan="13" class="text-center text-muted py-5">No drivers registered yet.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
