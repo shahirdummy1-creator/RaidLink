@@ -184,6 +184,26 @@
                 </span>
                 <div class="loading-spinner" id="loadingSpinner"></div>
             </button>
+            
+            <!-- Fallback for when Razorpay is not available -->
+            {% if not razorpay_key_id %}
+            <div class="alert alert-warning mt-3">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <strong>Payment service temporarily unavailable.</strong> 
+                Your account will be created without payment for now.
+                <button class="btn btn-sm btn-primary ms-2" onclick="completeWithoutPayment()">
+                    Complete Registration
+                </button>
+            </div>
+            <script>
+                // Hide payment button if Razorpay not available
+                document.getElementById('payButton').style.display = 'none';
+                
+                function completeWithoutPayment() {
+                    window.location.href = '/complete-signup-without-payment';
+                }
+            </script>
+            {% endif %}
 
             <!-- Security Badges -->
             <div class="security-badges">

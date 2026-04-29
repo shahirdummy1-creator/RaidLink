@@ -253,6 +253,16 @@ def health_check():
             'error': str(e)
         }), 500
 
+@app.route('/debug-session')
+def debug_session():
+    """Debug endpoint to check session data"""
+    return jsonify({
+        'session_keys': list(session.keys()),
+        'session_data': dict(session),
+        'razorpay_available': razorpay_client is not None,
+        'razorpay_key_id': RAZORPAY_KEY_ID is not None
+    })
+
 @app.route('/home')
 def home():
     return render_template('welcome.html')
@@ -535,6 +545,7 @@ def driver_signup_step3():
         return redirect(url_for('driver_signup_step1'))
     error = None
     if request.method == 'POST':
+        print("Step 3 POST request received")
         s1 = session['signup_step1']
         s2 = session['signup_step2']
         prefix = secure_filename(s1['username'])
@@ -563,8 +574,11 @@ def driver_signup_step3():
             'profile_photo': profile_photo
         }
         session.modified = True
+        print(f"Step 3 data stored in session for user: {s1['username']}")
+        print(f"Session keys after step 3: {list(session.keys())}")
         
         # Redirect to payment page instead of completing signup
+        print("Redirecting to payment page")
         return redirect(url_for('driver_payment'))
     return render_template('driver_signup_step3.html', error=error)
 
@@ -572,15 +586,26 @@ def driver_signup_step3():
 
 @app.route('/driver-payment')
 def driver_payment():
+    # Debug session data
+    print(f"Session keys: {list(session.keys())}")
+    print(f"Step1 in session: {'signup_step1' in session}")
+    print(f"Step2 in session: {'signup_step2' in session}")
+    print(f"Step3 in session: {'signup_step3' in session}")
+    print(f"Razorpay client available: {razorpay_client is not None}")
+    print(f"Razorpay key ID: {RAZORPAY_KEY_ID is not None}")
+    
     if 'signup_step1' not in session or 'signup_step2' not in session or 'signup_step3' not in session:
+        print("Missing session data, redirecting to step 1")
         return redirect(url_for('driver_signup_step1'))
     
     # Check if Razorpay is available
     if not razorpay_client or not RAZORPAY_KEY_ID:
+        print("Razorpay not available, completing signup without payment")
         # Fallback: Complete signup without payment for now
         return redirect(url_for('complete_signup_without_payment'))
     
     s1 = session['signup_step1']
+    print(f"Rendering payment page for user: {s1['username']}")
     return render_template('driver_payment.html', 
                          driver_name=s1['username'],
                          razorpay_key_id=RAZORPAY_KEY_ID)
@@ -709,10 +734,15 @@ def complete_driver_signup_with_payment(razorpay_order_id, razorpay_payment_id):
 # Fallback route for completing signup without payment (temporary)
 @app.route('/complete-signup-without-payment')
 def complete_signup_without_payment():
+    print("Fallback route called - completing signup without payment")
+    print(f"Session keys: {list(session.keys())}")
+    
     if 'signup_step1' in session and 'signup_step2' in session and 'signup_step3' in session:
         s1 = session['signup_step1']
         s2 = session['signup_step2']
         s3 = session['signup_step3']
+        
+        print(f"Completing signup for user: {s1['username']}")
         
         conn = get_db()
         if conn:
@@ -735,12 +765,15 @@ def complete_signup_without_payment():
                 conn.commit()
                 cur.close(); conn.close()
                 
+                print(f"Account created successfully for: {s1['username']}")
+                
                 # Clear signup session data
                 session.pop('signup_step1', None)
                 session.pop('signup_step2', None)
                 session.pop('signup_step3', None)
                 session.modified = True
                 
+                print("Session cleared, redirecting to login")
                 return redirect(url_for('driver_login'))
                 
             except Exception as e:
@@ -748,8 +781,10 @@ def complete_signup_without_payment():
                 cur.close(); conn.close()
                 return redirect(url_for('driver_signup_step1'))
         else:
+            print("Database connection failed")
             return redirect(url_for('driver_signup_step1'))
     else:
+        print("Missing session data in fallback route")
         return redirect(url_for('driver_signup_step1'))
 
 
