@@ -180,12 +180,32 @@
             socket.emit('join_ride', { ride_id: rideId, role: 'driver' });
         });
 
+        // Listen for location updates (from Rider)
+        socket.on('driver_location', (data) => {
+            const { lat, lng, speed } = data;
+            
+            // Update UI Stats
+            document.getElementById('coords').innerText = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+            if (speed !== undefined) document.getElementById('speed').innerText = `${speed} km/h`;
+            document.getElementById('status').innerText = "Following Rider";
+            document.getElementById('status').style.color = "#4ade80";
+
+            // Update Map Marker
+            if (!driverMarker) {
+                driverMarker = L.marker([lat, lng], { icon: carIcon }).addTo(map);
+                map.setView([lat, lng], 17);
+            } else {
+                driverMarker.setLatLng([lat, lng]);
+                map.panTo([lat, lng]);
+            }
+        });
+
         // Driver blue dot icon
-        const blueDotIcon = L.divIcon({
-            html: '<div class="driver-dot"></div>',
-            className: 'custom-div-icon',
-            iconSize: [22, 22],
-            iconAnchor: [11, 11]
+        const carIcon = L.icon({
+            iconUrl: 'https://tse4.mm.bing.net/th/id/OIP.m118W9O5Wl1KH4A1SON5rgHaFV?pid=ImgDet&w=182&h=131&c=7&o=7&rm=3',
+            iconSize: [50, 36],
+            iconAnchor: [25, 18],
+            className: 'car-marker-icon'
         });
 
         function toggleBroadcasting() {
@@ -230,38 +250,13 @@
         }
 
         function handleGpsUpdate(position) {
+            // Local GPS update only, no emission to server
             const lat = position.coords.latitude;
             const lng = position.coords.longitude;
             const accuracy = position.coords.accuracy;
-            const speedMs = position.coords.speed || 0; // m/s
-            const speedKmh = Math.round(speedMs * 3.6); // km/h
-
-            // Update UI Stats
-            document.getElementById('coords').innerText = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-            document.getElementById('speed').innerText = `${speedKmh} km/h`;
+            
             document.getElementById('accuracy').innerText = `${Math.round(accuracy)} m`;
-
-            // Update Map Marker
-            if (!driverMarker) {
-                driverMarker = L.marker([lat, lng], { icon: blueDotIcon }).addTo(map);
-                map.setView([lat, lng], 17);
-            } else {
-                driverMarker.setLatLng([lat, lng]);
-                map.panTo([lat, lng]);
-            }
-
-            // Throttled Emission
-            const now = Date.now();
-            if (now - lastEmitTime >= EMIT_THROTTLE) {
-                socket.emit('update_location', {
-                    ride_id: rideId,
-                    lat: lat,
-                    lng: lng,
-                    speed: speedKmh
-                });
-                lastEmitTime = now;
-                console.log('Location emitted');
-            }
+            console.log('Local GPS update received (Not emitted)');
         }
 
         function handleGpsError(error) {

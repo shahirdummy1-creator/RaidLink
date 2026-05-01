@@ -94,8 +94,13 @@
                     <div class="mb-3">
                         <div class="section-label"><i class="bi bi-geo-alt-fill text-success me-1"></i>Pickup Location</div>
                         <div class="autocomplete-wrap">
-                            <input type="text" class="form-control" id="pickup" name="pickup"
-                                   placeholder="Search pickup location..." required autocomplete="off">
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="pickup" name="pickup"
+                                       placeholder="Search pickup location..." required autocomplete="off">
+                                <button type="button" class="btn btn-outline-primary" onclick="useCurrentLocation()" title="Use Current Location">
+                                    <i class="bi bi-crosshair"></i>
+                                </button>
+                            </div>
                             <div class="autocomplete-list" id="pickup-list"></div>
                         </div>
                         <div id="pickup-badge"></div>
@@ -193,6 +198,9 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('ride_date').value = now.toISOString().split('T')[0];
     document.getElementById('ride_time').value = now.toTimeString().substring(0, 5);
 
+    // Auto-detect location
+    setTimeout(useCurrentLocation, 500);
+
     // Manual distance → update fare
     document.getElementById('distance').addEventListener('input', function () {
         const d = parseFloat(this.value);
@@ -213,6 +221,27 @@ function haversineKm(lat1, lon1, lat2, lon2) {
     const dLat = r(lat2-lat1), dLon = r(lon2-lon1);
     const a = Math.sin(dLat/2)**2 + Math.cos(r(lat1))*Math.cos(r(lat2))*Math.sin(dLon/2)**2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function useCurrentLocation() {
+    if (!navigator.geolocation) {
+        alert("Geolocation is not supported by your browser.");
+        return;
+    }
+    document.getElementById('pickup-badge').innerHTML = 
+        '<span class="loc-badge"><i class="bi bi-hourglass-split"></i> Detecting current location...</span>';
+    
+    navigator.geolocation.getCurrentPosition(pos => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        reverseGeocode(lat, lng, 'pickup');
+        // Center map on current location
+        if (map) map.setView([lat, lng], 15);
+    }, err => {
+        console.error("GPS Error:", err);
+        document.getElementById('pickup-badge').innerHTML = 
+            '<span class="text-danger small"><i class="bi bi-exclamation-triangle"></i> Location permission denied</span>';
+    }, { enableHighAccuracy: true });
 }
 
 // ── Set distance & fare ───────────────────────────────────

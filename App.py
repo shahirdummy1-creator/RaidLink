@@ -439,6 +439,9 @@ def api_verify_otp():
         row = cur.fetchone()
         cur.close(); conn.close()
         if row and str(row[0]) == str(otp):
+            # Update LIVE_TRACKING stage so rider knows trip has started
+            if str(trip_id) in LIVE_TRACKING:
+                LIVE_TRACKING[str(trip_id)]['stage'] = 'to_drop'
             return jsonify({'valid': True})
         return jsonify({'valid': False})
     return jsonify({'valid': False})
@@ -732,6 +735,10 @@ def cancel_booking():
             LIVE_TRACKING.pop(str(booking_id), None)
     return redirect(url_for('rider_bookings', username=username))
 
+@app.route('/rider-bookings/')
+def rider_bookings_none():
+    return redirect(url_for('welcome'))
+
 @app.route('/rider-bookings/<username>')
 def rider_bookings(username):
     rider_id = get_rider_id(username)
@@ -961,9 +968,28 @@ def api_update_location():
 @app.route('/api/get-location/<booking_id>', methods=['GET'])
 def api_get_location(booking_id):
     loc = LIVE_TRACKING.get(str(booking_id))
+    
+    # Also check database for status
+    status = 'Confirmed'
+    conn = get_db()
+    if conn:
+        cur = conn.cursor()
+        cur.execute("SELECT status FROM Trip_Details WHERE id=%s", (booking_id,))
+        row = cur.fetchone()
+        cur.close(); conn.close()
+        if row:
+            status = row[0]
+
     if loc:
-        return jsonify({'found': True, 'lat': loc['lat'], 'lng': loc['lng'], 'stage': loc['stage']})
-    return jsonify({'found': False})
+        return jsonify({
+            'found': True, 
+            'lat': loc['lat'], 
+            'lng': loc['lng'], 
+            'stage': loc['stage'],
+            'status': status
+        })
+    
+    return jsonify({'found': False, 'status': status})
 
 @app.route('/track-trip/<int:booking_id>')
 def track_trip(booking_id):

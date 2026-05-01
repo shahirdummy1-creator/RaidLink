@@ -115,6 +115,7 @@
 
     <script>
         const rideId = "{{ ride_id }}";
+        const riderName = "{{ current_user.username if current_user.is_authenticated else '' }}";
         let map, driverMarker;
         let startPos = null;
         let targetPos = null;
@@ -136,11 +137,11 @@
         }
 
         // Bike Emoji Marker Icon
-        const bikeIcon = L.divIcon({
-            html: '<div class="bike-icon">🏍️</div>',
-            className: 'custom-div-icon',
-            iconSize: [30, 30],
-            iconAnchor: [15, 15]
+        const carIcon = L.icon({
+            iconUrl: 'https://tse4.mm.bing.net/th/id/OIP.m118W9O5Wl1KH4A1SON5rgHaFV?pid=ImgDet&w=182&h=131&c=7&o=7&rm=3',
+            iconSize: [50, 36],
+            iconAnchor: [25, 18],
+            className: 'car-marker-icon'
         });
 
         // Socket.IO Connection
@@ -160,7 +161,7 @@
 
             if (!driverMarker) {
                 // First time: Create marker and center map
-                driverMarker = L.marker([lat, lng], { icon: bikeIcon }).addTo(map);
+                driverMarker = L.marker([lat, lng], { icon: carIcon }).addTo(map);
                 map.setView([lat, lng], 16);
             } else {
                 // Subsequent times: Animate movement
@@ -198,6 +199,15 @@
             
             const toast = document.getElementById('toast');
             toast.classList.add('show');
+
+            // Redirect after 3 seconds
+            setTimeout(() => {
+                if (riderName) {
+                    window.location.href = `/rider-bookings/${encodeURIComponent(riderName)}`;
+                } else {
+                    window.location.href = "/welcome";
+                }
+            }, 3000);
         });
 
         function updateStatusLive() {
@@ -208,6 +218,22 @@
                 text.innerText = "Driver is live";
                 dot.classList.add('live');
             }
+        }
+
+        // ── Rider Live Tracking (Source of Truth) ──────────────────
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition(pos => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                const speedKmh = Math.round((pos.coords.speed || 0) * 3.6);
+
+                socket.emit('update_location', {
+                    ride_id: rideId,
+                    lat: lat,
+                    lng: lng,
+                    speed: speedKmh
+                });
+            }, err => console.error('Rider GPS error', err), { enableHighAccuracy: true });
         }
 
         // Initialize

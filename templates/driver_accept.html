@@ -183,8 +183,8 @@
 
     <!-- Actions -->
     <div class="action-section">
-        <button class="btn-start" onclick="new bootstrap.Modal(document.getElementById('otpModal')).show()">
-            <i class="bi bi-play-circle-fill"></i> Enter OTP & Start Trip
+        <button class="btn-start" id="otpBtn" disabled onclick="new bootstrap.Modal(document.getElementById('otpModal')).show()" style="background: #9ca3af; box-shadow: none; cursor: not-allowed;">
+            <i class="bi bi-geo-alt-fill"></i> Arriving at Pickup...
         </button>
         <form method="POST" action="{{ url_for('driver_cancel_trip') }}" style="margin:0;">
             <input type="hidden" name="trip_id" value="{{ booking.id if booking else '' }}">
@@ -238,8 +238,17 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap', maxZoom: 19
 }).addTo(map);
 
-const greenIcon = L.icon({ iconUrl:'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png', shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png', iconSize:[25,41], iconAnchor:[12,41] });
-const blueIcon  = L.icon({ iconUrl:'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',  shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png', iconSize:[25,41], iconAnchor:[12,41] });
+const startIcon = L.divIcon({
+    html: '<div style="background:#22c55e; color:#fff; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2px solid #fff; box-shadow:0 2px 5px rgba(0,0,0,0.2);"><i class="bi bi-play-fill" style="font-size:18px;"></i></div>',
+    className: 'custom-div-icon', iconSize:[30,30], iconAnchor:[15,15]
+});
+
+const carIcon = L.icon({
+    iconUrl: 'https://tse4.mm.bing.net/th/id/OIP.m118W9O5Wl1KH4A1SON5rgHaFV?pid=ImgDet&w=182&h=131&c=7&o=7&rm=3',
+    iconSize: [50, 36],
+    iconAnchor: [25, 18],
+    className: 'car-marker-icon'
+});
 
 let driverMarker = null, pickupMarker = null, routeLine = null;
 let pickupCoords = null;
@@ -259,8 +268,8 @@ async function geocodePickup() {
         const data = await res.json();
         if (data.length) {
             pickupCoords = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
-            pickupMarker = L.marker(pickupCoords, { icon: greenIcon }).addTo(map)
-                .bindPopup(`<b>📍 Pickup</b><br>${PICKUP_ADDR}`).openPopup();
+            pickupMarker = L.marker(pickupCoords, { icon: startIcon }).addTo(map)
+                .bindPopup(`<b>📍 Pickup Point</b><br>${PICKUP_ADDR}`).openPopup();
             map.setView(pickupCoords, 13);
         }
     } catch {}
@@ -289,8 +298,8 @@ function onPosition(lat, lng, accuracy) {
 
     // Update driver marker
     if (driverMarker) map.removeLayer(driverMarker);
-    driverMarker = L.marker([lat, lng], { icon: blueIcon })
-        .addTo(map).bindPopup('<b>🚗 You</b>');
+    driverMarker = L.marker([lat, lng], { icon: carIcon })
+        .addTo(map).bindPopup('<b>🚗 You (Heading to Pickup)</b>');
 
     // Push live tracking data to server
     if (TRIP_ID) {
@@ -304,14 +313,34 @@ function onPosition(lat, lng, accuracy) {
     // Draw route to pickup
     if (routeLine) map.removeLayer(routeLine);
     if (pickupCoords) {
-        routeLine = L.polyline([[lat,lng], pickupCoords], { color:'#0d6efd', weight:4, dashArray:'8,6' }).addTo(map);
+        routeLine = L.polyline([[lat,lng], pickupCoords], { color:'#000000', weight:5 }).addTo(map);
         const dist = haversineKm(lat, lng, pickupCoords[0], pickupCoords[1]);
-        const etaMins = Math.ceil((dist / 30) * 60); // assume 30 km/h avg
+        const etaMins = Math.ceil((dist / 30) * 60); 
         document.getElementById('dist-to-pickup').textContent = dist.toFixed(1) + ' km';
         document.getElementById('eta-val').textContent = etaMins < 1 ? 'Arrived!' : etaMins + ' min';
 
-        // Fit both markers
-        map.fitBounds([[lat,lng], pickupCoords], { padding:[40,40] });
+        // Enable OTP button if reached (< 0.3km)
+        const otpBtn = document.getElementById('otpBtn');
+        if (dist <= 0.3) {
+            otpBtn.disabled = false;
+            otpBtn.style.background = 'linear-gradient(135deg,#059669,#047857)';
+            otpBtn.style.boxShadow = '0 4px 14px rgba(5,150,105,.35)';
+            otpBtn.style.cursor = 'pointer';
+            otpBtn.innerHTML = '<i class="bi bi-shield-lock-fill"></i> Enter OTP & Start Trip';
+        } else {
+            otpBtn.disabled = true;
+            otpBtn.style.background = '#9ca3af';
+            otpBtn.style.boxShadow = 'none';
+            otpBtn.style.cursor = 'not-allowed';
+            otpBtn.innerHTML = '<i class="bi bi-geo-alt-fill"></i> Arriving at Pickup...';
+        }
+
+        // Fit both markers, but avoid extreme zoom if they are same
+        if (dist > 0.05) {
+            map.fitBounds([[lat,lng], pickupCoords], { padding:[50,50] });
+        } else {
+            map.setView(pickupCoords, 16);
+        }
     } else {
         map.setView([lat, lng], 14);
     }
