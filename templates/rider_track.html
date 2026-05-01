@@ -152,16 +152,16 @@
         <div class="driver-info">
             <div>
                 <h2 class="driver-name">{{ booking.accepted_by }}</h2>
-                <p class="car-details">Driver is on the way</p>
+                <p id="trip-status-text" class="car-details">Driver is on the way</p>
             </div>
             {% if booking.otp %}
-            <div class="otp-display">
+            <div id="otp-container" class="otp-display">
                 <div class="otp-label">Trip OTP</div>
                 <div class="otp-code">{{ booking.otp }}</div>
             </div>
             {% endif %}
         </div>
-        <div class="mt-2">
+        <div id="cancel-container" class="mt-2">
             <form method="POST" action="{{ url_for('cancel_booking') }}">
                 <input type="hidden" name="booking_id" value="{{ booking.id }}">
                 <input type="hidden" name="username" value="{{ rider_name }}">
@@ -188,18 +188,18 @@
             iconAnchor: [17, 17]
         });
 
-        const dropIcon = L.divIcon({
-            html: '<div style="background: #fee2e2; border: 2px solid #991b1b; border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2);"><i class="bi bi-flag-fill" style="color: #991b1b; font-size: 18px;"></i></div>',
-            className: 'custom-marker',
-            iconSize: [34, 34],
-            iconAnchor: [17, 17]
+        const dropIcon = L.icon({
+            iconUrl: 'https://th.bing.com/th/id/OIP.Lmnrr8t0za7yP5eB3wLKzgHaHa?w=165&h=180&c=7&r=0&o=7&pid=1.7&rm=3',
+            iconSize: [40, 44],
+            iconAnchor: [20, 44],
+            className: 'drop-marker-icon'
         });
 
-        const carIcon = L.divIcon({
-            html: '<div style="background: #0d6efd; border: 2px solid #fff; border-radius: 50%; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 15px rgba(13,110,253,0.5); transform: rotate(0deg);"><i class="bi bi-cursor-fill" style="color: #fff; font-size: 20px;"></i></div>',
-            className: 'custom-marker',
-            iconSize: [38, 38],
-            iconAnchor: [19, 19]
+        const carIcon = L.icon({
+            iconUrl: 'https://tse4.mm.bing.net/th/id/OIP.m118W9O5Wl1KH4A1SON5rgHaFV?pid=ImgDet&w=182&h=131&c=7&o=7&rm=3',
+            iconSize: [50, 36], // Adjusted size to maintain aspect ratio
+            iconAnchor: [25, 18],
+            className: 'car-marker-icon'
         });
 
         const map = L.map('map').setView([20.5937, 78.9629], 5);
@@ -210,6 +210,13 @@
         let pickupCoords = null, dropCoords = null;
         let pickupMarker = null, dropMarker = null, carMarker = null;
         let currentRouteLine = null;
+        let currentStage = null; // Track current trip stage
+
+        function haversineKm(lat1, lon1, lat2, lon2) {
+            const R = 6371, r = x => x * Math.PI / 180;
+            const a = Math.sin(r(lat2 - lat1) / 2) ** 2 + Math.cos(r(lat1)) * Math.cos(r(lat2)) * Math.sin(r(lon2 - lon1) / 2) ** 2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        }
 
         async function geocode(address) {
             try {
@@ -224,13 +231,19 @@
             pickupCoords = await geocode(PICKUP);
             dropCoords = await geocode(DROP);
 
-            if (pickupCoords) pickupMarker = L.marker(pickupCoords, { icon: pickupIcon }).addTo(map).bindPopup('<b>📍 Pickup</b>').openPopup();
-            if (dropCoords) dropMarker = L.marker(dropCoords, { icon: dropIcon }).addTo(map).bindPopup('<b>🏁 Destination</b>');
+            if (pickupCoords) {
+                pickupMarker = L.marker(pickupCoords, { icon: pickupIcon }).addTo(map);
+                // Hover details only
+                pickupMarker.bindTooltip(`<b>Pickup (Drop Location)</b><br>${PICKUP}`, { sticky: true });
+            }
+            if (dropCoords) {
+                dropMarker = L.marker(dropCoords, { icon: dropIcon }).addTo(map).bindPopup('<b>🏁 Destination</b>');
+                // Initially hide if we want only driver and pickup
+                map.removeLayer(dropMarker);
+            }
 
-            if (pickupCoords && dropCoords) {
-                map.fitBounds([pickupCoords, dropCoords], { padding: [50, 50] });
-            } else if (pickupCoords) {
-                map.setView(pickupCoords, 14);
+            if (pickupCoords) {
+                map.setView(pickupCoords, 15);
             }
 
             // Start polling for driver location
@@ -238,10 +251,44 @@
             setInterval(pollLocation, 3000);
         }
 
+        let animationFrame = null;
+        let startPos = null;
+        let targetPos = null;
+        let startTime = null;
+        const duration = 3000; // Match polling interval
+
+        function animateCar(timestamp) {
+            if (!startTime) startTime = timestamp;
+            const progress = Math.min((timestamp - startTime) / duration, 1);
+
+            if (startPos && targetPos) {
+                const lat = startPos[0] + (targetPos[0] - startPos[0]) * progress;
+                const lng = startPos[1] + (targetPos[1] - startPos[1]) * progress;
+                carMarker.setLatLng([lat, lng]);
+            }
+
+            if (progress < 1) {
+                animationFrame = requestAnimationFrame(animateCar);
+            }
+        }
+
         async function pollLocation() {
             try {
                 const res = await fetch(`/api/get-location/${TRIP_ID}`);
                 const data = await res.json();
+                
+                // Redirect if trip is completed
+                if (data.status === 'Completed') {
+                    alert('Trip Completed! Thank you for riding with RaidLink.');
+                    const riderName = '{{ rider_name }}';
+                    if (riderName && riderName !== 'None') {
+                        window.location.href = `/rider-bookings/${encodeURIComponent(riderName)}`;
+                    } else {
+                        window.location.href = "/welcome";
+                    }
+                    return;
+                }
+
                 if (data.found) {
                     updateTracking(data.lat, data.lng, data.stage);
                 }
@@ -251,13 +298,20 @@
         }
 
         function updateTracking(lat, lng, stage) {
+            currentStage = stage; // Update global stage
             const driverCoords = [lat, lng];
 
-            // Update car marker
-            if (carMarker) {
-                carMarker.setLatLng(driverCoords);
-            } else {
+            // Update car marker with animation
+            if (!carMarker) {
                 carMarker = L.marker(driverCoords, { icon: carIcon, zIndexOffset: 1000 }).addTo(map).bindPopup('<b>🚗 Driver</b>');
+                startPos = driverCoords;
+                targetPos = driverCoords;
+            } else {
+                startPos = [carMarker.getLatLng().lat, carMarker.getLatLng().lng];
+                targetPos = driverCoords;
+                startTime = null; // Reset animation
+                if (animationFrame) cancelAnimationFrame(animationFrame);
+                animationFrame = requestAnimationFrame(animateCar);
             }
 
             // Update UI status
@@ -266,25 +320,71 @@
             if (currentRouteLine) map.removeLayer(currentRouteLine);
 
             if (stage === 'to_pickup' && pickupCoords) {
-                statusBadge.innerHTML = '<i class="bi bi-car-front-fill me-1"></i> Driver is heading to you';
-                statusBadge.style.background = '#e0f2fe'; statusBadge.style.color = '#0284c7';
+                const dist = haversineKm(lat, lng, pickupCoords[0], pickupCoords[1]);
+                
+                if (dist <= 0.3) {
+                    statusBadge.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i> Driver has arrived';
+                    statusBadge.style.background = '#dcfce7'; statusBadge.style.color = '#166534';
+                    document.getElementById('trip-status-text').innerText = 'Driver is at your pickup location';
+                } else {
+                    statusBadge.innerHTML = '<i class="bi bi-car-front-fill me-1"></i> Driver is heading to you';
+                    statusBadge.style.background = '#e0f2fe'; statusBadge.style.color = '#0284c7';
+                    document.getElementById('trip-status-text').innerText = 'Driver is on the way (' + dist.toFixed(1) + ' km away)';
+                }
+
+                // Show only Driver and Pickup
+                if (dropMarker) map.removeLayer(dropMarker);
+                if (pickupMarker && !map.hasLayer(pickupMarker)) pickupMarker.addTo(map);
 
                 // Draw black path from driver to pickup
-                currentRouteLine = L.polyline([driverCoords, pickupCoords], { color: '#000000', weight: 4, dashArray: '8,6' }).addTo(map);
+                currentRouteLine = L.polyline([carMarker.getLatLng(), pickupCoords], { color: '#000000', weight: 5 }).addTo(map);
+                
+                // Keep both in view, but avoid extreme zoom if they are same (testing on same machine)
+                if (dist > 0.05) {
+                    map.fitBounds([carMarker.getLatLng(), pickupCoords], { padding: [70, 70] });
+                } else {
+                    map.setView(pickupCoords, 16);
+                }
             }
             else if (stage === 'to_drop' && pickupCoords && dropCoords) {
-                statusBadge.innerHTML = '<i class="bi bi-geo-alt-fill me-1"></i> Trip in progress';
+                statusBadge.innerHTML = '<i class="bi bi-geo-alt-fill me-1"></i> In progress';
                 statusBadge.style.background = '#dcfce7'; statusBadge.style.color = '#166534';
+                document.getElementById('trip-status-text').innerText = 'Your trip is in progress';
+                
+                // Hide OTP and Cancel button once trip starts
+                const otpCont = document.getElementById('otp-container');
+                if (otpCont) otpCont.style.display = 'none';
+                const cancelCont = document.getElementById('cancel-container');
+                if (cancelCont) cancelCont.style.display = 'none';
 
+                // Show Pickup and Destination
+                if (dropMarker && !map.hasLayer(dropMarker)) dropMarker.addTo(map);
+                
                 // Draw solid black path from pickup to drop
-                currentRouteLine = L.polyline([pickupCoords, dropCoords], { color: '#000000', weight: 4 }).addTo(map);
+                currentRouteLine = L.polyline([pickupCoords, dropCoords], { color: '#000000', weight: 5 }).addTo(map);
+                
+                // Keep driver in view or fit all
+                map.panTo(driverCoords);
             }
-
-            // Keep driver in view
-            map.panTo(driverCoords);
         }
 
         initMap();
+
+        // ── Rider Live Tracking (Source of Truth) ──────────────────
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition(pos => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                // Only update server if we are in the 'to_drop' stage
+                if (currentStage === 'to_drop') {
+                    fetch('/api/update-location', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ booking_id: TRIP_ID, lat: lat, lng: lng, stage: 'to_drop' })
+                    }).catch(err => console.error('Rider tracking push failed', err));
+                }
+            }, err => console.error('Rider GPS error', err), { enableHighAccuracy: true });
+        }
     </script>
 </body>
 

@@ -180,9 +180,24 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(map);
 
 // Icons
-const greenIcon = L.icon({ iconUrl:'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png', shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png', iconSize:[25,41], iconAnchor:[12,41] });
-const redIcon   = L.icon({ iconUrl:'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',   shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png', iconSize:[25,41], iconAnchor:[12,41] });
-const blueIcon  = L.icon({ iconUrl:'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',  shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png', iconSize:[25,41], iconAnchor:[12,41] });
+const startIcon = L.divIcon({
+    html: '<div style="background:#22c55e; color:#fff; width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; border:2px solid #fff; box-shadow:0 2px 5px rgba(0,0,0,0.2);"><i class="bi bi-play-fill" style="font-size:18px;"></i></div>',
+    className: 'custom-div-icon', iconSize:[30,30], iconAnchor:[15,15]
+});
+
+const endIcon = L.icon({
+    iconUrl: 'https://th.bing.com/th/id/OIP.Lmnrr8t0za7yP5eB3wLKzgHaHa?w=165&h=180&c=7&r=0&o=7&pid=1.7&rm=3',
+    iconSize: [40, 44],
+    iconAnchor: [20, 44],
+    className: 'drop-marker-icon'
+});
+
+const carIcon = L.icon({
+    iconUrl: 'https://tse4.mm.bing.net/th/id/OIP.m118W9O5Wl1KH4A1SON5rgHaFV?pid=ImgDet&w=182&h=131&c=7&o=7&rm=3',
+    iconSize: [50, 36],
+    iconAnchor: [25, 18],
+    className: 'car-marker-icon'
+});
 
 let driverMarker = null, pickupMarker = null, dropMarker = null, routeLine = null;
 let startCoords  = null;
@@ -201,7 +216,7 @@ async function geocodeAndMark(query, iconType, label) {
         const data = await res.json();
         if (data.length) {
             const lat = parseFloat(data[0].lat), lng = parseFloat(data[0].lon);
-            const icon = iconType === 'green' ? greenIcon : redIcon;
+            const icon = iconType === 'green' ? startIcon : endIcon;
             const m = L.marker([lat, lng], { icon }).addTo(map).bindPopup(`<b>${label}</b>`);
             return [lat, lng];
         }
@@ -222,45 +237,47 @@ function startTracking() {
         pos => onPosition(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy),
         err => {
             document.getElementById('gps-status').textContent = '⚠️ GPS unavailable';
-            // Simulate movement if GPS denied
-            simulateMovement();
         },
         { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
     );
 }
 
 function onPosition(lat, lng, accuracy) {
-    document.getElementById('gps-status').textContent = `📡 GPS ±${Math.round(accuracy)}m`;
+    document.getElementById('gps-status').textContent = `📡 Device GPS ±${Math.round(accuracy)}m`;
+    // We no longer update driverMarker or push to server from here.
+    // The Rider's phone is now the source of truth for the trip location.
+}
 
-    if (!startCoords) startCoords = [lat, lng];
+async function pollRiderLocation() {
+    try {
+        const res = await fetch(`/api/get-location/${TRIP_ID}`);
+        const data = await res.json();
+        if (data.found) {
+            const { lat, lng } = data;
+            
+            if (!startCoords) startCoords = [lat, lng];
 
-    // Update driver marker
-    if (driverMarker) map.removeLayer(driverMarker);
-    driverMarker = L.marker([lat, lng], { icon: blueIcon })
-        .addTo(map)
-        .bindPopup('<b>🚗 Your Location</b>')
-        .openPopup();
+            // Update car marker (Rider's location)
+            if (driverMarker) map.removeLayer(driverMarker);
+            driverMarker = L.marker([lat, lng], { icon: carIcon })
+                .addTo(map)
+                .bindPopup('<b>🚗 Ride Location (from Rider)</b>');
 
-    // Push live tracking data to server
-    if (TRIP_ID) {
-        fetch('/api/update-location', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ booking_id: TRIP_ID, lat: lat, lng: lng, stage: 'to_drop' })
-        }).catch(err => console.error('Tracking push failed', err));
+            // Update route line
+            if (routeLine) map.removeLayer(routeLine);
+            if (dropCoords) {
+                routeLine = L.polyline([[lat, lng], dropCoords], { color:'#000000', weight:5 }).addTo(map);
+            }
+
+            // Pan map to car
+            map.setView([lat, lng], Math.max(map.getZoom(), 13));
+
+            // Update progress
+            updateProgress(lat, lng);
+        }
+    } catch (err) {
+        console.error('Polling rider location failed', err);
     }
-
-    // Update route line
-    if (routeLine) map.removeLayer(routeLine);
-    if (dropCoords) {
-        routeLine = L.polyline([[lat, lng], dropCoords], { color:'#0d6efd', weight:3, dashArray:'8,6' }).addTo(map);
-    }
-
-    // Pan map to driver
-    map.setView([lat, lng], Math.max(map.getZoom(), 13));
-
-    // Update progress
-    updateProgress(lat, lng);
 }
 
 // ── Progress calculation ──────────────────────────────────
@@ -275,20 +292,7 @@ function updateProgress(dLat, dLng) {
     document.getElementById('covered-km').innerHTML = distFromStart.toFixed(1) + ' <small style="font-size:.7rem;">km</small>';
 }
 
-// ── Simulate movement (fallback when GPS denied) ──────────
-let simStep = 0;
-function simulateMovement() {
-    if (!startCoords || !dropCoords) return;
-    const steps = 20;
-    const interval = setInterval(() => {
-        if (simStep >= steps) { clearInterval(interval); return; }
-        simStep++;
-        const t   = simStep / steps;
-        const lat = startCoords[0] + (dropCoords[0] - startCoords[0]) * t;
-        const lng = startCoords[1] + (dropCoords[1] - startCoords[1]) * t;
-        onPosition(lat, lng, 50);
-    }, 3000);
-}
+// Simulation removed as per user request
 
 // ── Timer ─────────────────────────────────────────────────
 let timerInterval = null, seconds = 0;
@@ -332,6 +336,7 @@ function onCompleteTrip() {
     }
 
     startTracking();
+    setInterval(pollRiderLocation, 3000); // Poll for rider's location every 3s
 })();
 </script>
 </body>
