@@ -477,14 +477,26 @@ def accept_trip():
     trip_id     = request.form.get('trip_id')
     driver_name = request.form.get('driver_name', 'Unknown Driver')
     conn = get_db()
-    booking = None
     if conn:
         cur = conn.cursor()
         cur.execute("UPDATE Trip_Details SET accepted_by=%s WHERE id=%s", (driver_name, trip_id))
         conn.commit()
+        cur.close(); conn.close()
+    return redirect(url_for('driver_navigation_page', username=driver_name, trip_id=trip_id))
+
+@app.route('/driver-navigation/<username>/<int:trip_id>')
+def driver_navigation_page(username, trip_id):
+    driver = get_driver(username)
+    if not driver:
+        return redirect(url_for('driver_login'))
+    
+    conn = get_db()
+    booking = None
+    if conn:
+        cur = conn.cursor()
         cur.execute("""
             SELECT t.id, t.pickup_location, t.drop_location, t.fare, t.distance_km,
-                   r.username AS rider_name, r.mobile AS rider_mobile
+                   t.accepted_by, r.username AS rider_name, r.mobile AS rider_mobile
             FROM Trip_Details t
             LEFT JOIN Rider_Details r ON r.id = t.rider_id
             WHERE t.id=%s
@@ -492,9 +504,17 @@ def accept_trip():
         row = cur.fetchone()
         if row:
             booking = row_to_dict(cur, row)
+            # Security check
+            if booking['accepted_by'] != username:
+                cur.close(); conn.close()
+                return redirect(url_for('driver_home', username=username))
             booking['fare'] = format_fare(booking['fare'])
         cur.close(); conn.close()
-    return render_template('driver_accept.html', booking=booking, driver_name=driver_name)
+    
+    if not booking:
+        return redirect(url_for('driver_home', username=username))
+        
+    return render_template('driver_accept.html', booking=booking, driver_name=username)
 
 @app.route('/start-trip/<username>')
 def start_trip(username):
