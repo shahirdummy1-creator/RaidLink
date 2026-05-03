@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS Trip_Details (
     fare             DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     ride_date        DATE          NOT NULL,
     ride_time        TIME          NOT NULL,
-    status           ENUM('Confirmed','Completed') NOT NULL DEFAULT 'Confirmed',
+    status           ENUM('Confirmed','Completed','Cancelled') NOT NULL DEFAULT 'Confirmed',
+    cancellation_reason TEXT          NULL,
     created_at       DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
