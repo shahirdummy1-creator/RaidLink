@@ -652,33 +652,33 @@ def driver_signup_step3():
         permit_img    = save_file(request.files.get('permit_img'),     f"{prefix}_permit")
         pollution_img = save_file(request.files.get('pollution_img'),  f"{prefix}_pollution")
         
-                # Complete driver registration immediately
-                conn = get_db()
-                if conn:
-                    cur = conn.cursor()
-                    try:
-                        # Check if username already exists
-                        cur.execute("SELECT id FROM Driver_Details WHERE username=%s", (s1['username'],))
-                        if cur.fetchone():
-                            error = 'Username already exists. Please choose another username.'
-                            cur.close(); conn.close()
-                            return render_template('driver_signup_step3.html', error=error)
-                        
-                        # Insert driver details without payment info
-                        cur.execute(
-                            """INSERT INTO Driver_Details
-                               (username, mobile, email, password_hash, car_make, car_model, car_color,
-                                reg_number, aadhaar_number, licence_validity, fitness_validity,
-                                pollution_validity, permit_validity,
-                                licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo, admin_name)
-                               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-                            (s1['username'], s1['mobile'], s1['email'], s1['password'],
-                             s2['car_make'], s2['car_model'], s2['car_color'],
-                             s2['reg_number'], s2['aadhaar_number'],
-                             licence_validity, fitness_validity, pollution_validity, permit_validity,
-                             licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo,
-                             s1.get('admin_name'))
-                        )
+        # Complete driver registration immediately
+        conn = get_db()
+        if conn:
+            cur = conn.cursor()
+            try:
+                # Check if username already exists
+                cur.execute("SELECT id FROM Driver_Details WHERE username=%s", (s1['username'],))
+                if cur.fetchone():
+                    error = 'Username already exists. Please choose another username.'
+                    cur.close(); conn.close()
+                    return render_template('driver_signup_step3.html', error=error)
+                
+                # Insert driver details without payment info
+                cur.execute(
+                    """INSERT INTO Driver_Details
+                       (username, mobile, email, password_hash, car_make, car_model, car_color,
+                        reg_number, aadhaar_number, licence_validity, fitness_validity,
+                        pollution_validity, permit_validity,
+                        licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo, admin_name)
+                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                    (s1['username'], s1['mobile'], s1['email'], s1['password'],
+                     s2['car_make'], s2['car_model'], s2['car_color'],
+                     s2['reg_number'], s2['aadhaar_number'],
+                     licence_validity, fitness_validity, pollution_validity, permit_validity,
+                     licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo,
+                     s1.get('admin_name'))
+                )
                 conn.commit()
                 print(f"Driver account created successfully for: {s1['username']}")
                 
