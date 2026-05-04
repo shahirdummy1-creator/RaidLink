@@ -600,14 +600,27 @@ def driver_signup_step1():
                     session.permanent = True
                     session.modified = True
                     
-                    # Redirect to step 2 directly
-                    return redirect(url_for('driver_signup_step2'))
+                    # Redirect to payment confirmation page
+                    return redirect(url_for('driver_payment_confirmation'))
             else:
                 error = 'Database connection failed.'
     
     return render_template('driver_signup_step1.html', 
                          error=error, 
                          form=form)
+
+@app.route('/driver-payment-confirmation')
+def driver_payment_confirmation():
+    """Payment confirmation page after step 1"""
+    if 'signup_step1' not in session:
+        return redirect(url_for('driver_signup_step1'))
+    
+    s1 = session['signup_step1']
+    
+    return render_template('driver_payment_confirmation.html',
+                         driver_name=s1['username'],
+                         driver_email=s1['email'],
+                         driver_mobile=s1['mobile'])
 
 @app.route('/driver-signup/step2', methods=['GET', 'POST'])
 def driver_signup_step2():
