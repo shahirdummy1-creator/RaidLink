@@ -156,22 +156,6 @@ def init_db():
         except Exception as e:
             print(f"[DB] Warning: Could not create Driver_Payments table: {e}")
 
-        # Create Unmatched_Payments table for webhook processing
-        try:
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS Unmatched_Payments (
-                    id         INT AUTO_INCREMENT PRIMARY KEY,
-                    payment_id VARCHAR(100) NOT NULL,
-                    amount     DECIMAL(10,2) NOT NULL,
-                    contact    VARCHAR(20) DEFAULT NULL,
-                    email      VARCHAR(150) DEFAULT NULL,
-                    processed  BOOLEAN NOT NULL DEFAULT FALSE,
-                    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE KEY uq_payment_id (payment_id)
-                )
-            """)
-        except Exception as e:
-            print(f"[DB] Warning: Could not create Unmatched_Payments table: {e}")
         conn.commit()
         cursor.close()
         conn.close()
