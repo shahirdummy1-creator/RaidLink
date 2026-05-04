@@ -974,11 +974,8 @@ def complete_trip():
         cur.close(); conn.close()
     return redirect(url_for('driver_home', username=username))
 
-@app.route('/driver-profile')
-def driver_profile():
-    username = request.args.get('username', '')
-    if not username:
-        return redirect(url_for('driver_login'))
+@app.route('/driver-profile/<username>')
+def driver_profile(username):
     conn = get_db()
     driver = None
     completed_trips = 0
