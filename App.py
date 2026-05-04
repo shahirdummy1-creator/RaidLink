@@ -972,24 +972,48 @@ def driver_home(username):
     driver = get_driver(username)
     if not driver:
         return redirect(url_for('driver_login'))
+    
+    # Get payment and expiry information
     conn = get_db()
-    booking = None
+    payment_info = None
     if conn:
         cur = conn.cursor()
+        cur.execute(
+            "SELECT payment_date, payment_expiry_date, payment_id FROM Driver_Details WHERE username=%s",
+            (username,)
+        )
+        payment_row = cur.fetchone()
+        if payment_row:
+            payment_date, expiry_date, payment_id = payment_row
+            days_left = 0
+            if expiry_date:
+                days_left = (expiry_date - datetime.now().date()).days
+            
+            payment_info = {
+                'payment_date': payment_date,
+                'expiry_date': expiry_date,
+                'payment_id': payment_id,
+                'days_left': days_left
+            }
+        
+        # Get latest booking
         cur.execute("SELECT * FROM Trip_Details WHERE status='Confirmed' ORDER BY id DESC LIMIT 1")
         row = cur.fetchone()
+        booking = None
         if row:
             booking = row_to_dict(cur, row)
             booking['fare']      = format_fare(booking['fare'])
             booking['ride_date'] = str(booking['ride_date'])
             booking['ride_time'] = str(booking['ride_time'])
         cur.close(); conn.close()
+    
     return render_template('driver_home.html',
         booking      = booking,
         driver_name  = driver['username'],
         driver_photo = driver['photo'],
         driver_car   = driver['car'],
-        driver_reg   = driver['reg']
+        driver_reg   = driver['reg'],
+        payment_info = payment_info
     )
 
 @app.route('/api/verify-otp', methods=['POST'])
