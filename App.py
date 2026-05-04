@@ -1473,27 +1473,47 @@ def razorpay_webhook():
     signature      = request.headers.get('X-Razorpay-Signature', '')
     payload        = request.get_data()
 
+    print(f"[WEBHOOK] Received. Signature present: {bool(signature)}, Secret set: {bool(webhook_secret)}")
+
     expected = hmac.new(webhook_secret.encode(), payload, hashlib.sha256).hexdigest()
     if not hmac.compare_digest(expected, signature):
+        print(f"[WEBHOOK] Signature mismatch. Expected: {expected[:20]}... Got: {signature[:20]}...")
         return jsonify({'error': 'Invalid signature'}), 400
 
     data = request.get_json()
-    if data.get('event') != 'payment.captured':
+    event = data.get('event')
+    print(f"[WEBHOOK] Event: {event}")
+
+    if event != 'payment.captured':
         return jsonify({'status': 'ignored'}), 200
 
     payment    = data['payload']['payment']['entity']
     payment_id = payment['id']
     paid_at    = datetime.fromtimestamp(payment['created_at'])
-    contact    = payment.get('contact', '').lstrip('+91').strip()
+    contact    = payment.get('contact', '')
+    print(f"[WEBHOOK] payment_id={payment_id}, paid_at={paid_at}, contact_raw={contact}")
+
+    # Strip +91 or 0 prefix to get 10-digit number
+    contact_clean = contact.lstrip('+').strip()
+    if contact_clean.startswith('91') and len(contact_clean) == 12:
+        contact_clean = contact_clean[2:]
+    print(f"[WEBHOOK] contact_clean={contact_clean}")
 
     conn = get_db()
     if conn:
         cur = conn.cursor()
-        cur.execute(
-            "UPDATE Driver_Details SET payment_id=%s, payment_date=%s WHERE mobile=%s AND payment_id IS NULL",
-            (payment_id, paid_at, contact)
-        )
-        conn.commit()
+        cur.execute("SELECT id, username, mobile FROM Driver_Details WHERE mobile=%s", (contact_clean,))
+        row = cur.fetchone()
+        print(f"[WEBHOOK] Driver lookup result: {row}")
+        if row:
+            cur.execute(
+                "UPDATE Driver_Details SET payment_id=%s, payment_date=%s WHERE mobile=%s",
+                (payment_id, paid_at, contact_clean)
+            )
+            conn.commit()
+            print(f"[WEBHOOK] Updated driver {row[1]} with payment_id={payment_id}")
+        else:
+            print(f"[WEBHOOK] No driver found with mobile={contact_clean}")
         cur.close(); conn.close()
 
     return jsonify({'status': 'ok'}), 200
