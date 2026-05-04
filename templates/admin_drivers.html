@@ -262,6 +262,7 @@
                             <th>Permit Validity</th>
                             <th>Payment ID</th>
                             <th>Payment Date</th>
+                            <th>Expiry Date</th>
                             <th>Status</th>
                             <th>Action</th>
                         </tr>
@@ -306,6 +307,20 @@
                                 {% endif %}
                             </td>
                             <td>
+                                {% if d.payment_expiry_date %}
+                                    {% set days_left = (d.payment_expiry_date - today).days if d.payment_expiry_date and today else 0 %}
+                                    {% if days_left < 0 %}
+                                        <span style="color:#dc3545;font-weight:600;font-size:0.8rem;">Expired {{ (-days_left) }} days ago</span>
+                                    {% elif days_left <= 7 %}
+                                        <span style="color:#f59e0b;font-weight:600;font-size:0.8rem;">{{ d.payment_expiry_date.strftime('%d %b %Y') }} ({{ days_left }} days left)</span>
+                                    {% else %}
+                                        <span style="color:#059669;font-size:0.8rem;">{{ d.payment_expiry_date.strftime('%d %b %Y') }}</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span style="color:#9ca3af;">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
                                 {% if d.get('account_status', 'Active') == 'Active' %}
                                     <span class="badge-active">Active</span>
                                 {% else %}
@@ -331,7 +346,7 @@
                             </td>
                         </tr>
                         {% else %}
-                        <tr><td colspan="15" class="text-center text-muted py-5">No drivers registered yet.</td></tr>
+                        <tr><td colspan="16" class="text-center text-muted py-5">No drivers registered yet.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>

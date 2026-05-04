@@ -34,6 +34,24 @@
                         <strong>Registration Successful!</strong> Your driver account has been created. You can now login.
                     </div>
                     {% endif %}
+                    {% if request.args.get('renewed') %}
+                    <div class="alert alert-success py-2">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        <strong>Subscription Renewed!</strong> Your account has been reactivated. You can now login.
+                    </div>
+                    {% endif %}
+                    {% if subscription_required %}
+                    <div class="alert alert-warning py-3">
+                        <div class="d-flex align-items-center mb-2">
+                            <i class="bi bi-exclamation-triangle-fill me-2 text-warning"></i>
+                            <strong>Subscription Expired</strong>
+                        </div>
+                        <p class="mb-2">Your subscription has expired. Please renew to continue using RaidLink services.</p>
+                        <a href="{{ url_for('driver_subscription', username=driver_username) }}" class="btn btn-warning btn-sm">
+                            <i class="bi bi-credit-card me-1"></i>Renew Subscription (₹50)
+                        </a>
+                    </div>
+                    {% endif %}
                     {% if error %}
                     <div class="alert alert-danger py-2">{{ error }}</div>
                     {% endif %}

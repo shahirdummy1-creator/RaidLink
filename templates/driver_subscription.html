@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Payment - RaidLink Driver Registration</title>
+    <title>Subscription Renewal - RaidLink Driver</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <style>
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
             font-family: 'Segoe UI', sans-serif;
         }
-        .payment-card {
+        .subscription-card {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             border-radius: 20px;
@@ -25,48 +25,40 @@
         }
         .brand-logo {
             font-size: 2.5rem;
-            background: linear-gradient(135deg, #0d6efd, #6610f2);
+            background: linear-gradient(135deg, #dc3545, #fd7e14);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
             font-weight: 800;
         }
-        .step-indicator {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0;
-            margin-bottom: 20px;
+        .expiry-alert {
+            background: linear-gradient(135deg, #fef2f2, #fee2e2);
+            border: 2px solid #fca5a5;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 25px;
         }
-        .step-dot {
-            width: 36px; height: 36px;
+        .expiry-icon {
+            width: 60px;
+            height: 60px;
+            background: #dc3545;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.82rem;
-            font-weight: 700;
-        }
-        .step-dot.done { background: #198754; color: #fff; }
-        .step-dot.active { background: #0d6efd; color: #fff; }
-        .step-dot.pending { background: #e5e7eb; color: #9ca3af; }
-        .step-line {
-            width: 60px;
-            height: 3px;
-            background: #198754;
-        }
-        .step-line.pending {
-            background: #e5e7eb;
+            color: white;
+            font-size: 1.5rem;
+            margin: 0 auto 15px;
         }
         .payment-amount {
             font-size: 3rem;
             font-weight: 800;
-            color: #0d6efd;
+            color: #dc3545;
             text-align: center;
             margin: 20px 0;
         }
-        .btn-pay {
-            background: linear-gradient(135deg, #10b981, #059669);
+        .btn-renew {
+            background: linear-gradient(135deg, #dc3545, #fd7e14);
             border: none;
             border-radius: 12px;
             padding: 15px 30px;
@@ -75,11 +67,11 @@
             color: white;
             width: 100%;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
         }
-        .btn-pay:hover {
+        .btn-renew:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+            box-shadow: 0 8px 25px rgba(220, 53, 69, 0.4);
             color: white;
         }
         .user-info {
@@ -88,74 +80,110 @@
             padding: 15px;
             margin-bottom: 20px;
         }
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+        .feature-list li {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 0;
+            color: #374151;
+        }
+        .feature-list i {
+            color: #10b981;
+            font-size: 1.1rem;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="payment-card p-5">
+        <div class="subscription-card p-5">
             <div class="text-center mb-4">
                 <div class="brand-logo">🚕 RaidLink</div>
-                <h3 class="mt-3 mb-2">Complete Your Registration</h3>
-                <p class="text-muted">Payment Required - Welcome, {{ driver_name }}!</p>
+                <h3 class="mt-3 mb-2">Subscription Expired</h3>
+                <p class="text-muted">Renew your subscription to continue driving</p>
             </div>
 
-            <!-- Step Indicator -->
-            <div class="step-indicator">
-                <div class="step-dot done">1</div>
-                <div class="step-line"></div>
-                <div class="step-dot active">💳</div>
-                <div class="step-line pending"></div>
-                <div class="step-dot pending">2</div>
-                <div class="step-line pending"></div>
-                <div class="step-dot pending">3</div>
+            <!-- Expiry Alert -->
+            <div class="expiry-alert text-center">
+                <div class="expiry-icon">
+                    <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <h5 class="text-danger mb-2">Account Suspended</h5>
+                <p class="mb-2">Your subscription expired on: <strong>{{ expiry_date.strftime('%d %B %Y') if expiry_date else 'N/A' }}</strong></p>
+                <p class="text-muted mb-0">Please renew your subscription to reactivate your account</p>
             </div>
 
-            <!-- User Info Summary -->
+            <!-- User Info -->
             <div class="user-info">
-                <h6 class="mb-2"><i class="bi bi-person-check me-2"></i>Registration Details</h6>
+                <h6 class="mb-2"><i class="bi bi-person-check me-2"></i>Driver Details</h6>
                 <small class="text-muted">
-                    <strong>Username:</strong> {{ driver_name }}<br>
+                    <strong>Username:</strong> {{ driver_username }}<br>
                     <strong>Email:</strong> {{ driver_email }}<br>
                     <strong>Mobile:</strong> {{ driver_mobile }}
                 </small>
             </div>
 
-            <!-- Payment Amount -->
+            <!-- Renewal Amount -->
             <div class="payment-amount">₹50</div>
-            <p class="text-center text-muted mb-4">Monthly platform registration fee</p>
+            <p class="text-center text-muted mb-4">Monthly subscription renewal fee</p>
+
+            <!-- Benefits -->
+            <div class="mb-4">
+                <h6 class="mb-3">Monthly Subscription Benefits:</h6>
+                <ul class="feature-list">
+                    <li>
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>Continue receiving ride requests</span>
+                    </li>
+                    <li>
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>Access to earnings dashboard</span>
+                    </li>
+                    <li>
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>24/7 customer support</span>
+                    </li>
+                    <li>
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>Valid for 30 days</span>
+                    </li>
+                </ul>
+            </div>
 
             <!-- Payment Button -->
-            <a href="https://razorpay.com/payment-link/plink_SjPPvrYcE0QrhI" target="_blank" class="btn btn-pay text-decoration-none">
-                <i class="bi bi-credit-card me-2"></i>Pay ₹50 & Continue Registration
+            <a href="https://razorpay.com/payment-link/plink_SjPPvrYcE0QrhI" target="_blank" class="btn btn-renew text-decoration-none">
+                <i class="bi bi-credit-card me-2"></i>Renew Monthly Subscription - Pay ₹50
             </a>
             
             <div class="alert alert-info mt-3">
                 <i class="bi bi-info-circle me-2"></i>
-                <strong>Payment Instructions:</strong><br>
-                1. Click the payment button above to pay ₹50<br>
+                <strong>Monthly Renewal Instructions:</strong><br>
+                1. Click the renewal button above to pay ₹50<br>
                 2. Complete payment on Razorpay<br>
                 3. Copy the Payment ID from Razorpay<br>
                 4. Return here and enter the Payment ID below
             </div>
             
             <!-- Payment ID Input Form -->
-            <form method="POST" action="{{ url_for('driver_payment_step1') }}" class="mt-3">
+            <form method="POST" action="{{ url_for('driver_subscription', username=driver_username) }}" class="mt-3">
                 <input type="hidden" name="payment_completed" value="true">
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Payment ID (from Razorpay)</label>
                     <input type="text" class="form-control" name="payment_id" placeholder="Enter Payment ID from Razorpay" required>
                     <small class="text-muted">Copy this from your Razorpay payment confirmation</small>
                 </div>
-                <button type="submit" class="btn btn-outline-primary w-100">
-                    <i class="bi bi-check-circle me-2"></i>Verify Payment & Continue
+                <button type="submit" class="btn btn-success w-100">
+                    <i class="bi bi-check-circle me-2"></i>Verify Payment & Reactivate Account
                 </button>
             </form>
 
             <div class="text-center mt-4">
-                <small class="text-muted">
-                    <i class="bi bi-info-circle me-1"></i>
-                    Monthly subscription fee - Valid for 30 days from payment date
-                </small>
+                <a href="{{ url_for('driver_login') }}" class="text-muted text-decoration-none">
+                    <i class="bi bi-arrow-left me-1"></i>Back to Login
+                </a>
             </div>
         </div>
     </div>
@@ -172,7 +200,7 @@
                 
                 // Auto-submit after 2 seconds
                 setTimeout(() => {
-                    if (confirm('Payment ID detected. Auto-submit the form?')) {
+                    if (confirm('Payment ID detected. Auto-submit the renewal form?')) {
                         document.querySelector('form').submit();
                     }
                 }, 2000);
