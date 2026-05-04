@@ -44,7 +44,7 @@
         <div class="alert alert-danger py-2">{{ error }}</div>
         {% endif %}
 
-        <form method="POST" action="{{ url_for('driver_signup_step2') }}">
+        <form method="POST" action="{{ url_for('driver_signup_step2', username=username) }}">
             <div class="row g-3 mb-3">
                 <div class="col-6">
                     <label class="form-label fw-semibold">Car Make</label>

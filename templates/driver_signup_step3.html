@@ -45,7 +45,7 @@
         <div class="alert alert-danger py-2">{{ error }}</div>
         {% endif %}
 
-        <form method="POST" action="{{ url_for('driver_signup_step3') }}" enctype="multipart/form-data">
+        <form method="POST" action="{{ url_for('driver_signup_step3', username=username) }}" enctype="multipart/form-data">
 
             <div class="section-label"><i class="bi bi-upload me-1"></i>Document Uploads</div>
             <div class="row g-3 mb-2">
@@ -96,7 +96,7 @@
             </div>
 
             <div class="d-flex gap-3">
-                <a href="{{ url_for('driver_signup_step2') }}" class="btn btn-outline-secondary w-50 fw-bold py-2">
+                <a href="{{ url_for('driver_signup_step2', username=username) }}" class="btn btn-outline-secondary w-50 fw-bold py-2">
                     <i class="bi bi-arrow-left me-1"></i> Back
                 </a>
                 <button type="submit" class="btn btn-primary w-50 fw-bold py-2">

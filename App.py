@@ -600,8 +600,8 @@ def driver_signup_step1():
                     session.permanent = True
                     session.modified = True
                     
-                    # Redirect to payment confirmation page
-                    return redirect(url_for('driver_payment_confirmation'))
+                    # Redirect to step 2 with username
+                    return redirect(url_for('driver_signup_step2', username=username))
             else:
                 error = 'Database connection failed.'
     
@@ -609,21 +609,8 @@ def driver_signup_step1():
                          error=error, 
                          form=form)
 
-@app.route('/driver-payment-confirmation')
-def driver_payment_confirmation():
-    """Payment confirmation page after step 1"""
-    if 'signup_step1' not in session:
-        return redirect(url_for('driver_signup_step1'))
-    
-    s1 = session['signup_step1']
-    
-    return render_template('driver_payment_confirmation.html',
-                         driver_name=s1['username'],
-                         driver_email=s1['email'],
-                         driver_mobile=s1['mobile'])
-
-@app.route('/driver-signup/step2', methods=['GET', 'POST'])
-def driver_signup_step2():
+@app.route('/driver-signup/step2/<username>', methods=['GET', 'POST'])
+def driver_signup_step2(username):
     if 'signup_step1' not in session:
         return redirect(url_for('driver_signup_step1'))
     error = None
@@ -637,11 +624,11 @@ def driver_signup_step2():
             'aadhaar_number':request.form.get('aadhaar_number', '').strip()
         }
         session.modified = True
-        return redirect(url_for('driver_signup_step3'))
-    return render_template('driver_signup_step2.html', error=error, form=form)
+        return redirect(url_for('driver_signup_step3', username=username))
+    return render_template('driver_signup_step2.html', error=error, form=form, username=username)
 
-@app.route('/driver-signup/step3', methods=['GET', 'POST'])
-def driver_signup_step3():
+@app.route('/driver-signup/step3/<username>', methods=['GET', 'POST'])
+def driver_signup_step3(username):
     if 'signup_step1' not in session or 'signup_step2' not in session:
         return redirect(url_for('driver_signup_step1'))
     error = None
@@ -675,7 +662,7 @@ def driver_signup_step3():
                 if cur.fetchone():
                     error = 'Username already exists. Please choose another username.'
                     cur.close(); conn.close()
-                    return render_template('driver_signup_step3.html', error=error)
+                    return render_template('driver_signup_step3.html', error=error, username=username)
                 
                 # Insert driver details without payment info
                 cur.execute(
@@ -713,7 +700,7 @@ def driver_signup_step3():
         else:
             error = 'Database connection failed.'
     
-    return render_template('driver_signup_step3.html', error=error)
+    return render_template('driver_signup_step3.html', error=error, username=username)
 
 @app.route('/api/driver-status/<username>')
 def api_driver_status(username):
