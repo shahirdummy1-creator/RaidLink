@@ -65,21 +65,6 @@
             text-align: center;
             margin: 20px 0;
         }
-        .feature-list {
-            list-style: none;
-            padding: 0;
-        }
-        .feature-list li {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px 0;
-            color: #374151;
-        }
-        .feature-list i {
-            color: #10b981;
-            font-size: 1.1rem;
-        }
         .btn-pay {
             background: linear-gradient(135deg, #10b981, #059669);
             border: none;
@@ -96,37 +81,6 @@
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
             color: white;
-        }
-        .btn-pay:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-        .security-badges {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            margin-top: 20px;
-        }
-        .security-badge {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 0.8rem;
-            color: #6b7280;
-        }
-        .loading-spinner {
-            display: none;
-            width: 20px;
-            height: 20px;
-            border: 2px solid #ffffff;
-            border-top: 2px solid transparent;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
         }
         .user-info {
             background: #f8f9fa;
@@ -170,104 +124,32 @@
             <div class="payment-amount">₹50</div>
             <p class="text-center text-muted mb-4">One-time platform registration fee</p>
 
-            <!-- Features -->
-            <div class="mb-4">
-                <h5 class="mb-3">What you get:</h5>
-                <ul class="feature-list">
-                    <li>
-                        <i class="bi bi-check-circle-fill"></i>
-                        <span>Verified driver profile on RaidLink platform</span>
-                    </li>
-                    <li>
-                        <i class="bi bi-check-circle-fill"></i>
-                        <span>Access to ride requests in your area</span>
-                    </li>
-                    <li>
-                        <i class="bi bi-check-circle-fill"></i>
-                        <span>Real-time earnings tracking dashboard</span>
-                    </li>
-                    <li>
-                        <i class="bi bi-check-circle-fill"></i>
-                        <span>24/7 customer support</span>
-                    </li>
-                    <li>
-                        <i class="bi bi-check-circle-fill"></i>
-                        <span>Weekly payment settlements</span>
-                    </li>
-                </ul>
-            </div>
-
             <!-- Payment Button -->
             <a href="https://razorpay.com/payment-link/plink_SjPPvrYcE0QrhI" target="_blank" class="btn btn-pay text-decoration-none">
                 <i class="bi bi-credit-card me-2"></i>Pay ₹50 & Continue Registration
             </a>
-            
-            <!-- Auto-redirect script -->
-            <script>
-                // Check for URL parameters indicating payment success (when user returns from payment link)
-                const urlParams = new URLSearchParams(window.location.search);
-                if (urlParams.get('payment_status') === 'success' || urlParams.get('status') === 'success') {
-                    // Auto-redirect after payment success
-                    setTimeout(() => {
-                        fetch('/api/payment-success', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            }
-                        }).then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                window.location.href = data.redirect;
-                            }
-                        }).catch(error => {
-                            console.error('Error:', error);
-                            // Show manual continue button as fallback
-                            document.getElementById('manualContinue').style.display = 'block';
-                        });
-                    }, 1000);
-                }
-                
-                // Show manual continue button after 10 seconds for user convenience
-                setTimeout(() => {
-                    document.getElementById('manualContinue').style.display = 'block';
-                    const infoMsg = document.createElement('div');
-                    infoMsg.className = 'alert alert-info mt-3';
-                    infoMsg.innerHTML = '<i class="bi bi-info-circle me-2"></i>After completing payment, click "Continue" below to proceed.';
-                    document.querySelector('.payment-card').appendChild(infoMsg);
-                }, 10000);
-            </script>
             
             <div class="alert alert-info mt-3">
                 <i class="bi bi-info-circle me-2"></i>
                 <strong>Payment Instructions:</strong><br>
                 1. Click the payment button above to pay ₹50<br>
                 2. Complete payment on Razorpay<br>
-                3. Return here and click "I've Completed Payment" below
+                3. Copy the Payment ID from Razorpay<br>
+                4. Return here and enter the Payment ID below
             </div>
             
-            <!-- Manual continue button (hidden by default, shown if auto-redirect fails) -->
-            <form method="POST" action="{{ url_for('driver_payment_step1') }}" class="mt-3" id="manualContinue" style="display: none;">
+            <!-- Payment ID Input Form -->
+            <form method="POST" action="{{ url_for('driver_payment_step1') }}" class="mt-3">
                 <input type="hidden" name="payment_completed" value="true">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Payment ID (from Razorpay)</label>
+                    <input type="text" class="form-control" name="payment_id" placeholder="Enter Payment ID from Razorpay" required>
+                    <small class="text-muted">Copy this from your Razorpay payment confirmation</small>
+                </div>
                 <button type="submit" class="btn btn-outline-primary w-100">
-                    <i class="bi bi-check-circle me-2"></i>I've Completed Payment - Continue
+                    <i class="bi bi-check-circle me-2"></i>Verify Payment & Continue
                 </button>
             </form>
-
-            <!-- Security Badges -->
-            <div class="security-badges">
-                <div class="security-badge">
-                    <i class="bi bi-shield-check"></i>
-                    <span>Secure Payment</span>
-                </div>
-                <div class="security-badge">
-                    <i class="bi bi-lock-fill"></i>
-                    <span>256-bit SSL</span>
-                </div>
-                <div class="security-badge">
-                    <i class="bi bi-credit-card"></i>
-                    <span>Razorpay</span>
-                </div>
-            </div>
 
             <div class="text-center mt-4">
                 <small class="text-muted">
@@ -278,44 +160,24 @@
         </div>
     </div>
 
-    <!-- Success Modal -->
-    <div class="modal fade" id="successModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-body text-center p-5">
-                    <div class="mb-4">
-                        <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
-                    </div>
-                    <h4 class="mb-3">Payment Successful!</h4>
-                    <p class="text-muted mb-4">
-                        Your payment has been processed successfully. You can now continue with your registration.
-                    </p>
-                    <button class="btn btn-primary" onclick="redirectToNextStep()">
-                        <i class="bi bi-arrow-right me-2"></i>Continue Registration
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Error Modal -->
-    <div class="modal fade" id="errorModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-body text-center p-4">
-                    <div class="mb-3">
-                        <i class="bi bi-exclamation-triangle-fill text-danger" style="font-size: 3rem;"></i>
-                    </div>
-                    <h5 class="mb-3">Payment Failed</h5>
-                    <p class="text-muted mb-4" id="errorMessage">
-                        There was an issue processing your payment. Please try again.
-                    </p>
-                    <button class="btn btn-primary" data-bs-dismiss="modal">Try Again</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Auto-redirect functionality when returning from payment
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('payment_status') === 'success' || urlParams.get('status') === 'success') {
+            const paymentId = urlParams.get('payment_id') || urlParams.get('razorpay_payment_id');
+            if (paymentId) {
+                // Auto-fill payment ID if available in URL
+                document.querySelector('input[name="payment_id"]').value = paymentId;
+                
+                // Auto-submit after 2 seconds
+                setTimeout(() => {
+                    if (confirm('Payment ID detected. Auto-submit the form?')) {
+                        document.querySelector('form').submit();
+                    }
+                }, 2000);
+            }
+        }
+    </script>
 </body>
 </html>

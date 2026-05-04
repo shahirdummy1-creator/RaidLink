@@ -602,8 +602,7 @@ def driver_signup_step1():
     
     return render_template('driver_signup_step1.html', 
                          error=error, 
-                         form=form,
-                         razorpay_key_id=RAZORPAY_KEY_ID)
+                         form=form)
 
 @app.route('/driver-signup/step2', methods=['GET', 'POST'])
 def driver_signup_step2():
@@ -622,6 +621,51 @@ def driver_signup_step2():
         session.modified = True
         return redirect(url_for('driver_signup_step3'))
     return render_template('driver_signup_step2.html', error=error, form=form)
+
+@app.route('/driver-payment-step1', methods=['GET', 'POST'])
+def driver_payment_step1():
+    """Payment page after personal information entry"""
+    if 'signup_step1' not in session:
+        return redirect(url_for('driver_signup_step1'))
+    
+    s1 = session['signup_step1']
+    
+    if request.method == 'POST':
+        payment_completed = request.form.get('payment_completed')
+        payment_id = request.form.get('payment_id', '').strip()
+        
+        if payment_completed == 'true':
+            # Store payment info in session
+            s1['payment_verified'] = True
+            if payment_id:
+                s1['payment_id'] = payment_id
+                s1['payment_date'] = datetime.now().isoformat()
+            session.modified = True
+            return redirect(url_for('driver_signup_step2'))
+    
+    return render_template('driver_payment_step1.html',
+                         driver_name=s1['username'],
+                         driver_email=s1['email'],
+                         driver_mobile=s1['mobile'])
+
+@app.route('/api/payment-success', methods=['POST'])
+def api_payment_success():
+    """API endpoint for payment success callback"""
+    if 'signup_step1' not in session:
+        return jsonify({'error': 'Session expired'}), 400
+    
+    data = request.get_json() or {}
+    payment_id = data.get('payment_id', '')
+    
+    # Mark payment as verified
+    s1 = session['signup_step1']
+    s1['payment_verified'] = True
+    if payment_id:
+        s1['payment_id'] = payment_id
+        s1['payment_date'] = datetime.now().isoformat()
+    session.modified = True
+    
+    return jsonify({'success': True, 'redirect': '/driver-signup/step2'})
 
 @app.route('/driver-signup/step3', methods=['GET', 'POST'])
 def driver_signup_step3():
@@ -660,20 +704,29 @@ def driver_signup_step3():
                     cur.close(); conn.close()
                     return render_template('driver_signup_step3.html', error=error)
                 
-                # Insert driver details
+                # Insert driver details with payment info
+                payment_id = s1.get('payment_id')
+                payment_date = s1.get('payment_date')
+                if payment_date:
+                    try:
+                        payment_date = datetime.fromisoformat(payment_date.replace('Z', '+00:00'))
+                    except:
+                        payment_date = datetime.now()
+                
                 cur.execute(
                     """INSERT INTO Driver_Details
                        (username, mobile, email, password_hash, car_make, car_model, car_color,
                         reg_number, aadhaar_number, licence_validity, fitness_validity,
                         pollution_validity, permit_validity,
-                        licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo, admin_name)
-                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                        licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo, admin_name,
+                        payment_id, payment_date)
+                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                     (s1['username'], s1['mobile'], s1['email'], s1['password'],
                      s2['car_make'], s2['car_model'], s2['car_color'],
                      s2['reg_number'], s2['aadhaar_number'],
                      licence_validity, fitness_validity, pollution_validity, permit_validity,
                      licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo,
-                     s1.get('admin_name'))
+                     s1.get('admin_name'), payment_id, payment_date)
                 )
                 conn.commit()
                 print(f"Driver account created successfully for: {s1['username']}")
@@ -697,142 +750,6 @@ def driver_signup_step3():
             error = 'Database connection failed.'
     
     return render_template('driver_signup_step3.html', error=error)
-
-@app.route('/driver-payment-step1', methods=['GET', 'POST'])
-def driver_payment_step1():
-    """Payment page after personal information entry"""
-    if 'signup_step1' not in session:
-        return redirect(url_for('driver_signup_step1'))
-    
-    s1 = session['signup_step1']
-    
-    if request.method == 'POST':
-        payment_completed = request.form.get('payment_completed')
-        if payment_completed == 'true':
-            # Mark payment as completed and proceed to step 2
-            s1['payment_verified'] = True
-            session.modified = True
-            
-            # If this is an AJAX request, return JSON response
-            if request.headers.get('Content-Type') == 'application/x-www-form-urlencoded' and 'XMLHttpRequest' in str(request.headers.get('User-Agent', '')):
-                return jsonify({'success': True, 'redirect': '/driver-signup/step2'})
-            
-            return redirect(url_for('driver_signup_step2'))
-    
-    return render_template('driver_payment_step1.html',
-                         driver_name=s1['username'],
-                         driver_email=s1['email'],
-                         driver_mobile=s1['mobile'])
-
-@app.route('/api/payment-success', methods=['POST'])
-def api_payment_success():
-    """API endpoint for payment success callback"""
-    if 'signup_step1' not in session:
-        return jsonify({'error': 'Session expired'}), 400
-    
-    # Mark payment as verified
-    s1 = session['signup_step1']
-    s1['payment_verified'] = True
-    session.modified = True
-    
-    return jsonify({'success': True, 'redirect': '/driver-signup/step2'})
-
-@app.route('/api/verify-payment-step1', methods=['POST'])
-def verify_payment_step1():
-    """Verify payment for step 1 and proceed to step 2"""
-    if not razorpay_client or not RAZORPAY_KEY_SECRET:
-        return jsonify({'error': 'Payment service unavailable'}), 503
-        
-    if 'signup_step1' not in session:
-        return jsonify({'error': 'Session expired. Please restart registration.'}), 400
-        
-    try:
-        # Get payment details from request
-        data = request.get_json()
-        if not data:
-            return jsonify({'error': 'No payment data received'}), 400
-            
-        razorpay_order_id = data.get('razorpay_order_id')
-        razorpay_payment_id = data.get('razorpay_payment_id')
-        razorpay_signature = data.get('razorpay_signature')
-        
-        if not all([razorpay_order_id, razorpay_payment_id, razorpay_signature]):
-            return jsonify({'error': 'Missing payment details'}), 400
-        
-        # Verify signature
-        generated_signature = hmac.new(
-            RAZORPAY_KEY_SECRET.encode(),
-            f"{razorpay_order_id}|{razorpay_payment_id}".encode(),
-            hashlib.sha256
-        ).hexdigest()
-        
-        if generated_signature != razorpay_signature:
-            return jsonify({'error': 'Invalid payment signature'}), 400
-        
-        # Payment verified - store payment info in session
-        s1 = session['signup_step1']
-        s1['payment_verified'] = True
-        s1['razorpay_order_id'] = razorpay_order_id
-        s1['razorpay_payment_id'] = razorpay_payment_id
-        session.modified = True
-        
-        # Store payment record
-        try:
-            conn = get_db()
-            if conn:
-                cur = conn.cursor()
-                cur.execute(
-                    """INSERT INTO Driver_Payments (username, razorpay_order_id, razorpay_payment_id, amount, status, created_at)
-                       VALUES (%s, %s, %s, %s, %s, NOW())""",
-                    (s1['username'], razorpay_order_id, razorpay_payment_id, 5000, 'completed')
-                )
-                conn.commit()
-                cur.close(); conn.close()
-                print(f"Payment record stored for user: {s1['username']}")
-        except Exception as e:
-            print(f"Payment record error (non-critical): {e}")
-        
-        return jsonify({
-            'success': True,
-            'message': 'Payment verified successfully'
-        })
-            
-    except Exception as e:
-        print(f"Payment verification error: {e}")
-        return jsonify({'error': f'Payment verification failed: {str(e)}'}), 500
-
-@app.route('/api/create-order', methods=['POST'])
-def create_order():
-    """Create Razorpay order for driver signup payment"""
-    if not razorpay_client:
-        return jsonify({'error': 'Payment service unavailable'}), 503
-        
-    try:
-        # Amount in paise (₹50 = 5000 paise)
-        amount = 5000
-        currency = 'INR'
-        receipt = f"driver_signup_{random.randint(1000, 9999)}_{int(datetime.now().timestamp())}"
-        
-        # Create Razorpay order
-        order_data = {
-            'amount': amount,
-            'currency': currency,
-            'receipt': receipt,
-            'payment_capture': 1
-        }
-        
-        order = razorpay_client.order.create(data=order_data)
-        
-        return jsonify({
-            'order_id': order['id'],
-            'amount': order['amount'],
-            'currency': order['currency'],
-            'key_id': RAZORPAY_KEY_ID
-        })
-    
-    except Exception as e:
-        print(f"Error creating Razorpay order: {e}")
-        return jsonify({'error': 'Failed to create order'}), 500
 
 @app.route('/api/driver-status/<username>')
 def api_driver_status(username):

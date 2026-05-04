@@ -260,6 +260,8 @@
                             <th>Fitness Validity</th>
                             <th>Pollution Validity</th>
                             <th>Permit Validity</th>
+                            <th>Payment ID</th>
+                            <th>Payment Date</th>
                             <th>Status</th>
                             <th>Action</th>
                         </tr>
@@ -290,6 +292,20 @@
                             <td>{{ d.pollution_validity or '—' }}</td>
                             <td>{{ d.permit_validity or '—' }}</td>
                             <td>
+                                {% if d.payment_id %}
+                                    <span class="badge-reg">{{ d.payment_id }}</span>
+                                {% else %}
+                                    <span style="color:#dc3545;font-weight:600;">Not Paid</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if d.payment_date %}
+                                    <span style="color:#6b7280;font-size:0.8rem;">{{ d.payment_date.strftime('%d %b %Y') if d.payment_date else '—' }}</span>
+                                {% else %}
+                                    <span style="color:#9ca3af;">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
                                 {% if d.get('account_status', 'Active') == 'Active' %}
                                     <span class="badge-active">Active</span>
                                 {% else %}
@@ -315,7 +331,7 @@
                             </td>
                         </tr>
                         {% else %}
-                        <tr><td colspan="13" class="text-center text-muted py-5">No drivers registered yet.</td></tr>
+                        <tr><td colspan="15" class="text-center text-muted py-5">No drivers registered yet.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
