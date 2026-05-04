@@ -8,7 +8,7 @@ backlog = 2048
 workers = 1
 worker_class = "sync"
 worker_connections = 1000
-timeout = 30
+timeout = 120
 keepalive = 2
 
 # Restart workers after this many requests, to help prevent memory leaks
@@ -24,7 +24,7 @@ loglevel = "info"
 proc_name = "raidlink"
 
 # Server mechanics
-preload_app = True
+preload_app = False
 daemon = False
 pidfile = None
 user = None
