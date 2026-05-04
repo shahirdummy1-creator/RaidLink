@@ -185,15 +185,12 @@ def get_rider_id(username):
     return None
 
 def get_driver(username):
-    """Always verify from DB — never serve suspended driver from cache."""
-    # First, check and auto-suspend expired drivers
-    auto_suspend_expired_drivers()
-    
+    """Get driver from database."""
     conn = get_db()
     if conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT id, username, car_make, car_model, reg_number, profile_photo, account_status, payment_expiry_date FROM Driver_Details WHERE username=%s",
+            "SELECT id, username, car_make, car_model, reg_number, profile_photo, account_status FROM Driver_Details WHERE username=%s",
             (username,)
         )
         row = cur.fetchone()
@@ -205,29 +202,13 @@ def get_driver(username):
                 session.modified = True
                 return None
             
-            d = {'id': row[0], 'username': row[1], 'car': f"{row[2]} {row[3]}", 'reg': row[4], 'photo': row[5] or '', 'expiry_date': row[7]}
+            d = {'id': row[0], 'username': row[1], 'car': f"{row[2]} {row[3]}", 'reg': row[4], 'photo': row[5] or ''}
             session.setdefault('drivers', {})[username] = d
             session.modified = True
             return d
     session.get('drivers', {}).pop(username, None)
     session.modified = True
     return None
-
-def auto_suspend_expired_drivers():
-    """Auto-suspend drivers whose payment has expired"""
-    conn = get_db()
-    if conn:
-        cur = conn.cursor()
-        try:
-            # Suspend drivers whose payment_expiry_date is today or past
-            cur.execute(
-                "UPDATE Driver_Details SET account_status='Suspended' WHERE payment_expiry_date <= CURDATE() AND account_status='Active'"
-            )
-            conn.commit()
-            cur.close(); conn.close()
-        except Exception as e:
-            print(f"Error auto-suspending expired drivers: {e}")
-            cur.close(); conn.close()
 
 
 # ════════════════════════════════════════════════════════════
@@ -553,21 +534,16 @@ def reset_password():
 @app.route('/driver-login', methods=['GET', 'POST'])
 def driver_login():
     error = None
-    subscription_required = False
-    driver_username = None
     
     if request.method == 'POST':
         username = request.form.get('user_id').strip()
         password = request.form.get('password')
         
-        # Check for expired drivers first
-        auto_suspend_expired_drivers()
-        
         conn = get_db()
         if conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT id, username, car_make, car_model, reg_number, profile_photo, account_status, payment_expiry_date FROM Driver_Details WHERE username=%s AND password_hash=%s",
+                "SELECT id, username, car_make, car_model, reg_number, profile_photo, account_status FROM Driver_Details WHERE username=%s AND password_hash=%s",
                 (username, hash_password(password))
             )
             driver = cur.fetchone()
@@ -575,13 +551,7 @@ def driver_login():
             
             if driver:
                 if driver[6] == 'Suspended':
-                    # Check if suspension is due to expired payment
-                    if driver[7] and driver[7] <= datetime.now().date():
-                        subscription_required = True
-                        driver_username = username
-                        error = None
-                    else:
-                        error = 'Your account has been suspended. Please contact support.'
+                    error = 'Your account has been suspended. Please contact support.'
                 else:
                     # Active driver - proceed with login
                     session.permanent = True
@@ -591,8 +561,7 @@ def driver_login():
                         'username': driver[1],
                         'car':   f"{driver[2]} {driver[3]}",
                         'reg':   driver[4],
-                        'photo': driver[5] or '',
-                        'expiry_date': driver[7]
+                        'photo': driver[5] or ''
                     }
                     session.modified = True
                     return redirect(url_for('driver_home', username=driver[1]))
@@ -601,10 +570,7 @@ def driver_login():
         else:
             error = 'Database connection failed.'
     
-    return render_template('driver_login.html', 
-                         error=error, 
-                         subscription_required=subscription_required,
-                         driver_username=driver_username)
+    return render_template('driver_login.html', error=error)
 
 @app.route('/driver-signup', methods=['GET', 'POST'])
 def driver_signup():
@@ -648,8 +614,8 @@ def driver_signup_step1():
                     session.permanent = True
                     session.modified = True
                     
-                    # Redirect to payment page
-                    return redirect(url_for('driver_payment_step1'))
+                    # Redirect to step 2 directly
+                    return redirect(url_for('driver_signup_step2'))
             else:
                 error = 'Database connection failed.'
     
@@ -674,140 +640,6 @@ def driver_signup_step2():
         session.modified = True
         return redirect(url_for('driver_signup_step3'))
     return render_template('driver_signup_step2.html', error=error, form=form)
-
-@app.route('/driver-payment-step1', methods=['GET', 'POST'])
-def driver_payment_step1():
-    """Payment page after personal information entry"""
-    if 'signup_step1' not in session:
-        return redirect(url_for('driver_signup_step1'))
-    
-    s1 = session['signup_step1']
-    
-    if request.method == 'POST':
-        payment_completed = request.form.get('payment_completed')
-        payment_id = request.form.get('payment_id', '').strip()
-        
-        if payment_completed == 'true':
-            # Store payment info in session
-            s1['payment_verified'] = True
-            if payment_id:
-                s1['payment_id'] = payment_id
-                s1['payment_date'] = datetime.now().isoformat()
-            session.modified = True
-            return redirect(url_for('driver_signup_step2'))
-    
-    return render_template('driver_payment_step1.html',
-                         driver_name=s1['username'],
-                         driver_email=s1['email'],
-                         driver_mobile=s1['mobile'])
-
-@app.route('/driver-subscription/<username>', methods=['GET', 'POST'])
-def driver_subscription(username):
-    """Subscription renewal page for suspended drivers"""
-    conn = get_db()
-    driver_info = None
-    
-    if conn:
-        cur = conn.cursor()
-        cur.execute(
-            "SELECT username, email, mobile, payment_expiry_date FROM Driver_Details WHERE username=%s AND account_status='Suspended'",
-            (username,)
-        )
-        driver_info = cur.fetchone()
-        cur.close(); conn.close()
-    
-    if not driver_info:
-        return redirect(url_for('driver_login'))
-    
-    if request.method == 'POST':
-        payment_completed = request.form.get('payment_completed')
-        payment_id = request.form.get('payment_id', '').strip()
-        
-        if payment_completed == 'true' and payment_id:
-            # Renew subscription
-            conn = get_db()
-            if conn:
-                cur = conn.cursor()
-                try:
-                    # Calculate new expiry date (30 days from today)
-                    new_expiry_date = datetime.now().date() + timedelta(days=30)
-                    
-                    # Update driver with new payment info and reactivate account
-                    cur.execute(
-                        "UPDATE Driver_Details SET payment_id=%s, payment_date=%s, payment_expiry_date=%s, account_status='Active' WHERE username=%s",
-                        (payment_id, datetime.now(), new_expiry_date, username)
-                    )
-                    conn.commit()
-                    cur.close(); conn.close()
-                    
-                    # Redirect to login with success message
-                    return redirect(url_for('driver_login', renewed=1))
-                except Exception as e:
-                    print(f"Subscription renewal error: {e}")
-                    cur.close(); conn.close()
-    
-    return render_template('driver_subscription.html',
-                         driver_username=driver_info[0],
-                         driver_email=driver_info[1],
-                         driver_mobile=driver_info[2],
-                         expiry_date=driver_info[3])
-
-@app.route('/api/subscription-success', methods=['POST'])
-def api_subscription_success():
-    """API endpoint for subscription renewal success"""
-    data = request.get_json() or {}
-    username = data.get('username', '')
-    payment_id = data.get('payment_id', '')
-    
-    if not username or not payment_id:
-        return jsonify({'error': 'Missing username or payment ID'}), 400
-    
-    conn = get_db()
-    if conn:
-        cur = conn.cursor()
-        try:
-            # Calculate new expiry date (30 days from today)
-            new_expiry_date = datetime.now().date() + timedelta(days=30)
-            
-            # Update driver with new payment info and reactivate account
-            cur.execute(
-                "UPDATE Driver_Details SET payment_id=%s, payment_date=%s, payment_expiry_date=%s, account_status='Active' WHERE username=%s AND account_status='Suspended'",
-                (payment_id, datetime.now(), new_expiry_date, username)
-            )
-            
-            if cur.rowcount > 0:
-                conn.commit()
-                cur.close(); conn.close()
-                return jsonify({'success': True, 'redirect': '/driver-login?renewed=1'})
-            else:
-                cur.close(); conn.close()
-                return jsonify({'error': 'Driver not found or not suspended'}), 404
-                
-        except Exception as e:
-            print(f"Subscription renewal API error: {e}")
-            cur.close(); conn.close()
-            return jsonify({'error': 'Database error'}), 500
-    
-    return jsonify({'error': 'Database connection failed'}), 500
-
-@app.route('/api/payment-success', methods=['POST'])
-def api_payment_success():
-    """API endpoint for payment success callback"""
-    if 'signup_step1' not in session:
-        return jsonify({'error': 'Session expired'}), 400
-    
-    data = request.get_json() or {}
-    payment_id = data.get('payment_id', '')
-    
-    # Mark payment as verified
-    s1 = session['signup_step1']
-    s1['payment_verified'] = True
-    if payment_id:
-        s1['payment_id'] = payment_id
-        s1['payment_date'] = datetime.now().isoformat()
-    session.modified = True
-    
-    return jsonify({'success': True, 'redirect': '/driver-signup/step2'})
 
 @app.route('/driver-signup/step3', methods=['GET', 'POST'])
 def driver_signup_step3():
@@ -834,47 +666,33 @@ def driver_signup_step3():
         permit_img    = save_file(request.files.get('permit_img'),     f"{prefix}_permit")
         pollution_img = save_file(request.files.get('pollution_img'),  f"{prefix}_pollution")
         
-        # Complete driver registration immediately since payment was already processed in step 1
-        conn = get_db()
-        if conn:
-            cur = conn.cursor()
-            try:
-                # Check if username already exists
-                cur.execute("SELECT id FROM Driver_Details WHERE username=%s", (s1['username'],))
-                if cur.fetchone():
-                    error = 'Username already exists. Please choose another username.'
-                    cur.close(); conn.close()
-                    return render_template('driver_signup_step3.html', error=error)
-                
-                # Insert driver details with payment info
-                payment_id = s1.get('payment_id')
-                payment_date = s1.get('payment_date')
-                payment_expiry_date = None
-                
-                if payment_date:
+                # Complete driver registration immediately
+                conn = get_db()
+                if conn:
+                    cur = conn.cursor()
                     try:
-                        payment_date = datetime.fromisoformat(payment_date.replace('Z', '+00:00'))
-                        # Calculate expiry date (30 days from payment date)
-                        payment_expiry_date = payment_date.date() + timedelta(days=30)
-                    except:
-                        payment_date = datetime.now()
-                        payment_expiry_date = datetime.now().date() + timedelta(days=30)
-                
-                cur.execute(
-                    """INSERT INTO Driver_Details
-                       (username, mobile, email, password_hash, car_make, car_model, car_color,
-                        reg_number, aadhaar_number, licence_validity, fitness_validity,
-                        pollution_validity, permit_validity,
-                        licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo, admin_name,
-                        payment_id, payment_date, payment_expiry_date)
-                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-                    (s1['username'], s1['mobile'], s1['email'], s1['password'],
-                     s2['car_make'], s2['car_model'], s2['car_color'],
-                     s2['reg_number'], s2['aadhaar_number'],
-                     licence_validity, fitness_validity, pollution_validity, permit_validity,
-                     licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo,
-                     s1.get('admin_name'), payment_id, payment_date, payment_expiry_date)
-                )
+                        # Check if username already exists
+                        cur.execute("SELECT id FROM Driver_Details WHERE username=%s", (s1['username'],))
+                        if cur.fetchone():
+                            error = 'Username already exists. Please choose another username.'
+                            cur.close(); conn.close()
+                            return render_template('driver_signup_step3.html', error=error)
+                        
+                        # Insert driver details without payment info
+                        cur.execute(
+                            """INSERT INTO Driver_Details
+                               (username, mobile, email, password_hash, car_make, car_model, car_color,
+                                reg_number, aadhaar_number, licence_validity, fitness_validity,
+                                pollution_validity, permit_validity,
+                                licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo, admin_name)
+                               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                            (s1['username'], s1['mobile'], s1['email'], s1['password'],
+                             s2['car_make'], s2['car_model'], s2['car_color'],
+                             s2['reg_number'], s2['aadhaar_number'],
+                             licence_validity, fitness_validity, pollution_validity, permit_validity,
+                             licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo,
+                             s1.get('admin_name'))
+                        )
                 conn.commit()
                 print(f"Driver account created successfully for: {s1['username']}")
                 
@@ -975,33 +793,13 @@ def driver_home(username):
     if not driver:
         return redirect(url_for('driver_login'))
     
-    # Get payment and expiry information
+    # Get latest booking
     conn = get_db()
-    payment_info = None
+    booking = None
     if conn:
         cur = conn.cursor()
-        cur.execute(
-            "SELECT payment_date, payment_expiry_date, payment_id FROM Driver_Details WHERE username=%s",
-            (username,)
-        )
-        payment_row = cur.fetchone()
-        if payment_row:
-            payment_date, expiry_date, payment_id = payment_row
-            days_left = 0
-            if expiry_date:
-                days_left = (expiry_date - datetime.now().date()).days
-            
-            payment_info = {
-                'payment_date': payment_date,
-                'expiry_date': expiry_date,
-                'payment_id': payment_id,
-                'days_left': days_left
-            }
-        
-        # Get latest booking
         cur.execute("SELECT * FROM Trip_Details WHERE status='Confirmed' ORDER BY id DESC LIMIT 1")
         row = cur.fetchone()
-        booking = None
         if row:
             booking = row_to_dict(cur, row)
             booking['fare']      = format_fare(booking['fare'])
@@ -1014,8 +812,7 @@ def driver_home(username):
         driver_name  = driver['username'],
         driver_photo = driver['photo'],
         driver_car   = driver['car'],
-        driver_reg   = driver['reg'],
-        payment_info = payment_info
+        driver_reg   = driver['reg']
     )
 
 @app.route('/api/verify-otp', methods=['POST'])
