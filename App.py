@@ -548,6 +548,198 @@ def reset_password():
     return render_template('reset_password.html', error=error, success=success, user_type=user_type)
 
 
+# ── Razorpay Payment Integration ────────────────────────────
+
+def verify_razorpay_signature(payload, signature, secret):
+    """Verify Razorpay webhook signature"""
+    try:
+        import hmac
+        import hashlib
+        expected_signature = hmac.new(
+            secret.encode('utf-8'),
+            payload,
+            hashlib.sha256
+        ).hexdigest()
+        return hmac.compare_digest(expected_signature, signature)
+    except Exception as e:
+        print(f"Signature verification failed: {e}")
+        return False
+
+def find_driver_by_contact(mobile, email):
+    """Find driver by mobile or email from session data or recent registrations"""
+    conn = get_db()
+    if conn:
+        cur = conn.cursor()
+        # Try to find by mobile first, then email
+        cur.execute(
+            "SELECT username FROM Driver_Details WHERE mobile=%s OR email=%s ORDER BY registered_at DESC LIMIT 1",
+            (mobile, email)
+        )
+        row = cur.fetchone()
+        cur.close(); conn.close()
+        if row:
+            return row[0]
+    return None
+
+def update_driver_payment(username, payment_id, amount):
+    """Update driver payment information"""
+    conn = get_db()
+    if conn:
+        cur = conn.cursor()
+        try:
+            from datetime import datetime, timedelta
+            payment_date = datetime.now()
+            expiry_date = payment_date + timedelta(days=30)
+            
+            cur.execute(
+                "UPDATE Driver_Details SET payment_id=%s, payment_date=%s, payment_expiry_date=%s WHERE username=%s",
+                (payment_id, payment_date, expiry_date.date(), username)
+            )
+            conn.commit()
+            print(f"Payment updated for driver {username}: {payment_id}")
+            cur.close(); conn.close()
+            return True
+        except Exception as e:
+            print(f"Error updating payment for {username}: {e}")
+            cur.close(); conn.close()
+    return False
+
+@app.route('/razorpay-webhook', methods=['POST'])
+def razorpay_webhook():
+    """Handle Razorpay webhook notifications"""
+    try:
+        # Get webhook secret from environment
+        webhook_secret = os.environ.get('RAZORPAY_WEBHOOK_SECRET', '')
+        
+        if not webhook_secret:
+            print("Warning: RAZORPAY_WEBHOOK_SECRET not set")
+            return jsonify({'status': 'error', 'message': 'Webhook secret not configured'}), 400
+        
+        # Get signature from headers
+        signature = request.headers.get('X-Razorpay-Signature', '')
+        
+        if not signature:
+            print("Missing Razorpay signature")
+            return jsonify({'status': 'error', 'message': 'Missing signature'}), 400
+        
+        # Verify signature
+        payload = request.get_data()
+        if not verify_razorpay_signature(payload, signature, webhook_secret):
+            print("Invalid Razorpay signature")
+            return jsonify({'status': 'error', 'message': 'Invalid signature'}), 400
+        
+        # Parse webhook data
+        data = request.get_json()
+        event = data.get('event', '')
+        
+        print(f"Received Razorpay webhook: {event}")
+        
+        # Handle payment.captured event
+        if event == 'payment.captured':
+            payment = data.get('payload', {}).get('payment', {}).get('entity', {})
+            
+            payment_id = payment.get('id', '')
+            amount = payment.get('amount', 0) / 100  # Convert from paise to rupees
+            contact = payment.get('contact', '')
+            email = payment.get('email', '')
+            
+            print(f"Payment captured: {payment_id}, Amount: ₹{amount}, Contact: {contact}, Email: {email}")
+            
+            # Find driver by contact information
+            username = find_driver_by_contact(contact, email)
+            
+            if username:
+                # Update driver payment information
+                if update_driver_payment(username, payment_id, amount):
+                    print(f"Successfully updated payment for driver: {username}")
+                    return jsonify({'status': 'success', 'message': 'Payment updated'}), 200
+                else:
+                    print(f"Failed to update payment for driver: {username}")
+                    return jsonify({'status': 'error', 'message': 'Database update failed'}), 500
+            else:
+                print(f"Driver not found for contact: {contact}, email: {email}")
+                # Log the payment for manual processing
+                log_unmatched_payment(payment_id, amount, contact, email)
+                return jsonify({'status': 'warning', 'message': 'Driver not found'}), 200
+        
+        # Handle other events if needed
+        elif event in ['payment.failed', 'payment.authorized']:
+            print(f"Received {event} event - no action needed")
+            return jsonify({'status': 'success', 'message': 'Event received'}), 200
+        
+        else:
+            print(f"Unhandled webhook event: {event}")
+            return jsonify({'status': 'success', 'message': 'Event not handled'}), 200
+            
+    except Exception as e:
+        print(f"Webhook processing error: {e}")
+        return jsonify({'status': 'error', 'message': 'Processing failed'}), 500
+
+def log_unmatched_payment(payment_id, amount, contact, email):
+    """Log unmatched payments for manual processing"""
+    conn = get_db()
+    if conn:
+        cur = conn.cursor()
+        try:
+            cur.execute(
+                "INSERT INTO Unmatched_Payments (payment_id, amount, contact, email, created_at) VALUES (%s, %s, %s, %s, NOW())",
+                (payment_id, amount, contact, email)
+            )
+            conn.commit()
+            cur.close(); conn.close()
+            print(f"Logged unmatched payment: {payment_id}")
+        except Exception as e:
+            print(f"Failed to log unmatched payment: {e}")
+            cur.close(); conn.close()
+
+@app.route('/verify-payment', methods=['POST'])
+def verify_payment():
+    """Manual payment verification endpoint"""
+    try:
+        payment_id = request.form.get('payment_id', '').strip()
+        username = request.form.get('username', '').strip()
+        
+        if not payment_id or not username:
+            return jsonify({'status': 'error', 'message': 'Missing payment ID or username'}), 400
+        
+        # Update driver payment information
+        if update_driver_payment(username, payment_id, 50):  # Assuming ₹50 fee
+            # Mark unmatched payment as processed if it exists
+            conn = get_db()
+            if conn:
+                cur = conn.cursor()
+                cur.execute(
+                    "UPDATE Unmatched_Payments SET processed=1 WHERE payment_id=%s",
+                    (payment_id,)
+                )
+                conn.commit()
+                cur.close(); conn.close()
+            
+            return redirect(url_for('admin_unmatched_payments'))
+        else:
+            return jsonify({'status': 'error', 'message': 'Failed to update payment'}), 500
+            
+    except Exception as e:
+        print(f"Payment verification error: {e}")
+        return jsonify({'status': 'error', 'message': 'Verification failed'}), 500
+
+@app.route('/admin-unmatched-payments')
+@admin_required
+def admin_unmatched_payments():
+    """View unmatched payments for manual processing"""
+    conn = get_db()
+    unmatched_payments = []
+    
+    if conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT * FROM Unmatched_Payments WHERE processed=0 ORDER BY created_at DESC"
+        )
+        unmatched_payments = fetchall_dict(cur)
+        cur.close(); conn.close()
+    
+    return render_template('admin_unmatched_payments.html', payments=unmatched_payments)
+
 # ── Driver ───────────────────────────────────────────────────
 
 @app.route('/driver-login', methods=['GET', 'POST'])
@@ -590,6 +782,11 @@ def driver_login():
             error = 'Database connection failed.'
     
     return render_template('driver_login.html', error=error)
+
+@app.route('/payment-success')
+def payment_success():
+    """Payment success page for drivers"""
+    return render_template('payment_success.html')
 
 @app.route('/driver-signup', methods=['GET', 'POST'])
 def driver_signup():
@@ -1504,6 +1701,35 @@ def admin_update_payment():
                 cur.close(); conn.close()
     
     return redirect(url_for('admin_drivers'))
+
+@app.route('/admin-process-unmatched-payment', methods=['POST'])
+@admin_required
+def admin_process_unmatched_payment():
+    """Mark unmatched payment as processed"""
+    payment_id = request.form.get('payment_id')
+    username = request.form.get('username')
+    
+    if payment_id and username:
+        conn = get_db()
+        if conn:
+            cur = conn.cursor()
+            try:
+                # Update the driver's payment info
+                if update_driver_payment(username, payment_id, 50):  # Assuming ₹50 fee
+                    # Mark the unmatched payment as processed
+                    cur.execute(
+                        "UPDATE Unmatched_Payments SET processed=1 WHERE payment_id=%s",
+                        (payment_id,)
+                    )
+                    conn.commit()
+                    print(f"Processed unmatched payment {payment_id} for driver {username}")
+                
+                cur.close(); conn.close()
+            except Exception as e:
+                print(f"Error processing unmatched payment: {e}")
+                cur.close(); conn.close()
+    
+    return redirect(url_for('admin_unmatched_payments'))
 
 @app.route('/admin-toggle-driver', methods=['POST'])
 @admin_required
