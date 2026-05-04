@@ -1465,6 +1465,40 @@ def admin_riders():
     )
 
 
+# ── Razorpay Webhook ─────────────────────────────────────────
+
+@app.route('/webhook/razorpay', methods=['POST'])
+def razorpay_webhook():
+    webhook_secret = os.environ.get('RAZORPAY_WEBHOOK_SECRET', '')
+    signature      = request.headers.get('X-Razorpay-Signature', '')
+    payload        = request.get_data()
+
+    expected = hmac.new(webhook_secret.encode(), payload, hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected, signature):
+        return jsonify({'error': 'Invalid signature'}), 400
+
+    data = request.get_json()
+    if data.get('event') != 'payment.captured':
+        return jsonify({'status': 'ignored'}), 200
+
+    payment    = data['payload']['payment']['entity']
+    payment_id = payment['id']
+    paid_at    = datetime.fromtimestamp(payment['created_at'])
+    contact    = payment.get('contact', '').lstrip('+91').strip()
+
+    conn = get_db()
+    if conn:
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE Driver_Details SET payment_id=%s, payment_date=%s WHERE mobile=%s AND payment_id IS NULL",
+            (payment_id, paid_at, contact)
+        )
+        conn.commit()
+        cur.close(); conn.close()
+
+    return jsonify({'status': 'ok'}), 200
+
+
 @app.route('/admin-toggle-driver', methods=['POST'])
 @admin_required
 def admin_toggle_driver():
