@@ -609,6 +609,19 @@ def driver_signup_step1():
                          error=error, 
                          form=form)
 
+@app.route('/driver-signup/step2', methods=['GET', 'POST'])
+def driver_signup_step2_redirect():
+    # Handle case where user accesses step2 without username
+    if 'signup_step1' not in session:
+        return redirect(url_for('driver_signup_step1'))
+    
+    # Get username from session and redirect to proper URL
+    username = session['signup_step1'].get('username')
+    if username:
+        return redirect(url_for('driver_signup_step2', username=username))
+    else:
+        return redirect(url_for('driver_signup_step1'))
+
 @app.route('/driver-signup/step2/<username>', methods=['GET', 'POST'])
 def driver_signup_step2(username):
     if 'signup_step1' not in session:
@@ -626,6 +639,19 @@ def driver_signup_step2(username):
         session.modified = True
         return redirect(url_for('driver_signup_step3', username=username))
     return render_template('driver_signup_step2.html', error=error, form=form, username=username)
+
+@app.route('/driver-signup/step3', methods=['GET', 'POST'])
+def driver_signup_step3_redirect():
+    # Handle case where user accesses step3 without username
+    if 'signup_step1' not in session or 'signup_step2' not in session:
+        return redirect(url_for('driver_signup_step1'))
+    
+    # Get username from session and redirect to proper URL
+    username = session['signup_step1'].get('username')
+    if username:
+        return redirect(url_for('driver_signup_step3', username=username))
+    else:
+        return redirect(url_for('driver_signup_step1'))
 
 @app.route('/driver-signup/step3/<username>', methods=['GET', 'POST'])
 def driver_signup_step3(username):
