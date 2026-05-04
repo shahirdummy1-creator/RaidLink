@@ -625,6 +625,8 @@ def driver_signup_step1():
         # Validate basic info
         if not all([username, mobile, email, password]):
             error = 'Please fill all required fields.'
+        elif not request.files.get('profile_photo') or not request.files.get('profile_photo').filename:
+            error = 'Profile photo is required. Please upload a profile picture.'
         else:
             conn = get_db()
             if conn:

@@ -60,9 +60,9 @@
                        style="position:absolute;bottom:2px;right:2px;width:28px;height:28px;background:#0d6efd;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid #fff;">
                     <i class="bi bi-camera-fill text-white" style="font-size:.75rem;"></i>
                 </label>
-                <input type="file" class="d-none" id="profile_photo" name="profile_photo_preview" accept="image/*" onchange="previewPhoto(this)">
+                <input type="file" class="d-none" id="profile_photo" name="profile_photo_preview" accept="image/*" onchange="previewPhoto(this)" required>
             </div>
-            <div class="mt-2 text-muted" style="font-size:.78rem;">Click to upload profile photo</div>
+            <div class="mt-2 text-muted" style="font-size:.78rem;">Click to upload profile photo <span class="text-danger">*</span></div>
         </div>
 
         <form method="POST" action="{{ url_for('driver_signup_step1') }}" enctype="multipart/form-data">
@@ -95,7 +95,7 @@
                        value="{{ form.admin_name or '' }}">
             </div>
             <!-- Hidden profile photo carried forward -->
-            <input type="file" class="d-none" id="profile_photo_real" name="profile_photo" accept="image/*">
+            <input type="file" class="d-none" id="profile_photo_real" name="profile_photo" accept="image/*" required>
             
             <div class="alert alert-info mb-3">
                 <i class="bi bi-info-circle me-2"></i>
@@ -132,6 +132,17 @@ function previewPhoto(input) {
         document.getElementById('profile_photo_real').files = dt.files;
     }
 }
+
+// Form validation
+document.querySelector('form').addEventListener('submit', function(e) {
+    const profilePhotoInput = document.getElementById('profile_photo_real');
+    if (!profilePhotoInput.files || profilePhotoInput.files.length === 0) {
+        e.preventDefault();
+        alert('Profile photo is required. Please upload a profile picture.');
+        document.getElementById('profile_photo').click();
+        return false;
+    }
+});
 </script>
 </body>
 </html>
