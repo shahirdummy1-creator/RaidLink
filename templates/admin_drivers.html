@@ -260,8 +260,7 @@
                             <th>Fitness Validity</th>
                             <th>Pollution Validity</th>
                             <th>Permit Validity</th>
-                            <th>Payment ID</th>
-                            <th>Payment Date</th>
+                            <th>Date of Join</th>
                             <th>Expiry Date</th>
                             <th>Status</th>
                             <th>Action</th>
@@ -292,34 +291,16 @@
                             <td>{{ d.fitness_validity or '—' }}</td>
                             <td>{{ d.pollution_validity or '—' }}</td>
                             <td>{{ d.permit_validity or '—' }}</td>
+                            <td style="color:#6b7280;font-size:0.85rem;">{{ d.registered_at[:10] if d.registered_at else '—' }}</td>
                             <td>
-                                {% if d.payment_id %}
-                                    <span class="badge-reg">{{ d.payment_id }}</span>
-                                    <button class="btn btn-sm btn-outline-primary ms-1" onclick="editPayment({{ d.id }}, '{{ d.payment_id }}', '{{ d.payment_date.strftime('%Y-%m-%d') if d.payment_date else '' }}')">
-                                        <i class="bi bi-pencil"></i>
-                                    </button>
-                                {% else %}
-                                    <button class="btn btn-sm btn-success" onclick="editPayment({{ d.id }}, '', '')">
-                                        <i class="bi bi-plus"></i> Add Payment
-                                    </button>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if d.payment_date %}
-                                    <span style="color:#6b7280;font-size:0.8rem;">{{ d.payment_date.strftime('%d %b %Y') if d.payment_date else '—' }}</span>
-                                {% else %}
-                                    <span style="color:#9ca3af;">—</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% if d.payment_expiry_date %}
-                                    {% set days_left = (d.payment_expiry_date - today).days if d.payment_expiry_date and today else 0 %}
-                                    {% if days_left < 0 %}
-                                        <span style="color:#dc3545;font-weight:600;font-size:0.8rem;">Expired {{ (-days_left) }} days ago</span>
-                                    {% elif days_left <= 7 %}
-                                        <span style="color:#f59e0b;font-weight:600;font-size:0.8rem;">{{ d.payment_expiry_date.strftime('%d %b %Y') }} ({{ days_left }} days left)</span>
+                                {% if d.expiry_date %}
+                                    {% set exp = d.expiry_date %}
+                                    {% if exp < today %}
+                                        <span style="color:#dc3545;font-weight:600;font-size:0.82rem;">{{ exp }} <small>(Expired)</small></span>
+                                    {% elif (exp - today).days <= 7 %}
+                                        <span style="color:#f59e0b;font-weight:600;font-size:0.82rem;">{{ exp }} <small>({{ (exp - today).days }}d left)</small></span>
                                     {% else %}
-                                        <span style="color:#059669;font-size:0.8rem;">{{ d.payment_expiry_date.strftime('%d %b %Y') }}</span>
+                                        <span style="color:#059669;font-size:0.82rem;">{{ exp }}</span>
                                     {% endif %}
                                 {% else %}
                                     <span style="color:#9ca3af;">—</span>
@@ -351,7 +332,7 @@
                             </td>
                         </tr>
                         {% else %}
-                        <tr><td colspan="16" class="text-center text-muted py-5">No drivers registered yet.</td></tr>
+                        <tr><td colspan="15" class="text-center text-muted py-5">No drivers registered yet.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
@@ -475,39 +456,6 @@
 
 </main>
 
-<!-- Payment Edit Modal -->
-<div class="modal fade" id="paymentModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Update Payment Information</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form method="POST" action="{{ url_for('admin_update_payment') }}">
-                <div class="modal-body">
-                    <input type="hidden" id="driverId" name="driver_id">
-                    <div class="mb-3">
-                        <label class="form-label">Payment ID</label>
-                        <input type="text" class="form-control" id="paymentId" name="payment_id" placeholder="Enter Razorpay payment ID" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Payment Date</label>
-                        <input type="date" class="form-control" id="paymentDate" name="payment_date" required>
-                    </div>
-                    <div class="alert alert-info">
-                        <i class="bi bi-info-circle me-2"></i>
-                        <strong>Note:</strong> Expiry date will be automatically calculated as 30 days from payment date.
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Update Payment</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
 <!-- Lightbox -->
 <div id="lightbox" onclick="closeLightbox()">
     <button id="lightboxClose" onclick="closeLightbox()">&times;</button>
@@ -536,12 +484,6 @@ function openLightbox(src, caption) {
 function closeLightbox() {
     document.getElementById('lightbox').classList.remove('show');
     document.getElementById('lightboxImg').src = '';
-}
-function editPayment(driverId, paymentId, paymentDate) {
-    document.getElementById('driverId').value = driverId;
-    document.getElementById('paymentId').value = paymentId;
-    document.getElementById('paymentDate').value = paymentDate;
-    new bootstrap.Modal(document.getElementById('paymentModal')).show();
 }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

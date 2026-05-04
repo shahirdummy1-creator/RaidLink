@@ -838,11 +838,8 @@ def driver_home(username):
     if not driver:
         return redirect(url_for('driver_login'))
     
-    # Get latest booking
     conn = get_db()
     booking = None
-    payment_info = None
-    
     if conn:
         cur = conn.cursor()
         cur.execute("SELECT * FROM Trip_Details WHERE status='Confirmed' ORDER BY id DESC LIMIT 1")
@@ -852,28 +849,6 @@ def driver_home(username):
             booking['fare']      = format_fare(booking['fare'])
             booking['ride_date'] = str(booking['ride_date'])
             booking['ride_time'] = str(booking['ride_time'])
-        
-        # Get payment information
-        cur.execute(
-            "SELECT payment_id, payment_date, payment_expiry_date FROM Driver_Details WHERE username=%s",
-            (username,)
-        )
-        payment_row = cur.fetchone()
-        if payment_row:
-            payment_info = {
-                'payment_id': payment_row[0],
-                'payment_date': payment_row[1],
-                'expiry_date': payment_row[2],
-                'days_left': 0
-            }
-            
-            # Calculate days left if expiry date exists
-            if payment_row[2]:  # payment_expiry_date
-                from datetime import date
-                today = date.today()
-                days_left = (payment_row[2] - today).days
-                payment_info['days_left'] = days_left
-        
         cur.close(); conn.close()
     
     return render_template('driver_home.html',
@@ -881,8 +856,7 @@ def driver_home(username):
         driver_name  = driver['username'],
         driver_photo = driver['photo'],
         driver_car   = driver['car'],
-        driver_reg   = driver['reg'],
-        payment_info = payment_info
+        driver_reg   = driver['reg']
     )
 
 @app.route('/driver-subscription/<username>')
@@ -1392,6 +1366,14 @@ def _load_admin_data():
     for d in drivers:
         d.setdefault('account_status', 'Active')
         d['registered_at'] = str(d.get('registered_at', ''))
+        # Auto-calculate expiry_date as 30 days from registered_at
+        try:
+            from datetime import date
+            reg = d.get('registered_at', '')
+            reg_date = datetime.strptime(str(reg)[:10], '%Y-%m-%d').date()
+            d['expiry_date'] = reg_date + timedelta(days=30)
+        except Exception:
+            d['expiry_date'] = None
     for r in riders:
         r.setdefault('account_status', 'Active')
         r['booking_count'] = 0
@@ -1448,16 +1430,13 @@ def admin_drivers():
     confirmed = [t for t in trips if t.get('status') == 'Confirmed']
     total_fare = sum(parse_fare(t['fare']) for t in completed)
     
-    # Add today's date for expiry calculations
-    today = datetime.now().date()
-    
     return render_template('admin_drivers.html',
         drivers         = drivers,
         all_bookings    = trips,
         completed_trips = len(completed),
         active_trips    = len(confirmed),
         total_revenue   = f'₹{total_fare:,.0f}',
-        today          = today
+        today           = datetime.now().date()
     )
 
 
@@ -1475,35 +1454,6 @@ def admin_riders():
         completed_bookings = len(completed)
     )
 
-
-@app.route('/admin-update-payment', methods=['POST'])
-@admin_required
-def admin_update_payment():
-    driver_id = request.form.get('driver_id')
-    payment_id = request.form.get('payment_id', '').strip()
-    payment_date = request.form.get('payment_date', '').strip()
-    
-    if driver_id and payment_id and payment_date:
-        conn = get_db()
-        if conn:
-            cur = conn.cursor()
-            try:
-                # Calculate expiry date (30 days from payment date)
-                from datetime import datetime, timedelta
-                payment_datetime = datetime.strptime(payment_date, '%Y-%m-%d')
-                expiry_date = payment_datetime + timedelta(days=30)
-                
-                cur.execute(
-                    "UPDATE Driver_Details SET payment_id=%s, payment_date=%s, payment_expiry_date=%s WHERE id=%s",
-                    (payment_id, payment_datetime, expiry_date.date(), driver_id)
-                )
-                conn.commit()
-                cur.close(); conn.close()
-            except Exception as e:
-                print(f"Error updating payment: {e}")
-                cur.close(); conn.close()
-    
-    return redirect(url_for('admin_drivers'))
 
 @app.route('/admin-toggle-driver', methods=['POST'])
 @admin_required

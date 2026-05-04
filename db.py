@@ -59,7 +59,7 @@ def init_db():
         ALLOWED_COLS = {
             'licence_validity', 'fitness_validity', 'pollution_validity', 'permit_validity',
             'licence_img', 'rc_img', 'aadhaar_img', 'permit_img', 'pollution_img',
-            'profile_photo', 'car_color', 'admin_name', 'payment_id', 'payment_date', 'payment_expiry_date'
+            'profile_photo', 'car_color', 'admin_name'
         }
         for col, definition in [
             ('licence_validity',   'DATE DEFAULT NULL'),
@@ -74,9 +74,6 @@ def init_db():
             ('profile_photo',      'VARCHAR(255) DEFAULT NULL'),
             ('car_color',          'VARCHAR(50) DEFAULT NULL'),
             ('admin_name',         'VARCHAR(100) DEFAULT NULL'),
-            ('payment_id',         'VARCHAR(100) DEFAULT NULL'),
-            ('payment_date',       'DATETIME DEFAULT NULL'),
-            ('payment_expiry_date', 'DATE DEFAULT NULL'),
         ]:
             if col not in ALLOWED_COLS:
                 continue
@@ -138,23 +135,6 @@ def init_db():
                 UNIQUE KEY uq_user_type (user_id, user_type)
             )
         """)
-
-        # Create Driver_Payments table (optional - for Razorpay integration)
-        try:
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS Driver_Payments (
-                    id                  INT AUTO_INCREMENT PRIMARY KEY,
-                    username            VARCHAR(100) NOT NULL,
-                    razorpay_order_id   VARCHAR(100) NOT NULL,
-                    razorpay_payment_id VARCHAR(100) NOT NULL,
-                    amount              INT NOT NULL,
-                    status              ENUM('pending','completed','failed') NOT NULL DEFAULT 'pending',
-                    created_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    UNIQUE KEY uq_payment (razorpay_payment_id)
-                )
-            """)
-        except Exception as e:
-            print(f"[DB] Warning: Could not create Driver_Payments table: {e}")
 
         conn.commit()
         cursor.close()
