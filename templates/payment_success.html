@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Successful – RaidLink</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        body { background: #f0f4f8; font-family: 'Segoe UI', sans-serif; }
+        .payment-card { 
+            max-width: 500px; margin: 60px auto; 
+            background: #fff; border-radius: 20px; 
+            box-shadow: 0 4px 24px rgba(0,0,0,.08); 
+            padding: 40px; 
+        }
+        .success-icon {
+            width: 80px; height: 80px; border-radius: 50%;
+            background: linear-gradient(135deg, #10b981, #059669);
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 24px;
+            animation: checkmark 0.6s ease-in-out;
+        }
+        @keyframes checkmark {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        .payment-title { font-size: 1.5rem; font-weight: 700; color: #111827; margin-bottom: 12px; text-align: center; }
+        .payment-text { color: #6b7280; margin-bottom: 32px; line-height: 1.6; text-align: center; }
+        .form-label { font-weight: 600; color: #374151; }
+        .continue-btn {
+            background: linear-gradient(135deg, #0d6efd, #0a58ca);
+            border: none; color: #fff; padding: 12px 32px;
+            border-radius: 10px; font-weight: 600;
+            width: 100%;
+            transition: transform 0.2s;
+        }
+        .continue-btn:hover { transform: translateY(-2px); color: #fff; }
+        .info-box {
+            background: #f0f9ff; border: 1px solid #bae6fd;
+            border-radius: 10px; padding: 16px; margin-bottom: 24px;
+        }
+        .success-box {
+            background: #f0fdf4; border: 1px solid #bbf7d0;
+            border-radius: 10px; padding: 16px; margin-bottom: 24px;
+        }
+        .error-box {
+            background: #fef2f2; border: 1px solid #fecaca;
+            border-radius: 10px; padding: 16px; margin-bottom: 24px;
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-dark bg-primary">
+    <div class="container justify-content-center">
+        <a class="navbar-brand fw-bold" href="{{ url_for('welcome') }}">RaidLink Technologies</a>
+    </div>
+</nav>
+
+<div class="payment-card">
+    <div class="success-icon">
+        <i class="bi bi-check-lg text-white" style="font-size: 2rem;"></i>
+    </div>
+    
+    <h1 class="payment-title">Payment Successful!</h1>
+    
+    {% if success %}
+    <div class="success-box">
+        <i class="bi bi-check-circle text-success me-2"></i>
+        <strong>{{ success }}</strong>
+    </div>
+    <div class="text-center">
+        <a href="{{ url_for('driver_signup_step2_redirect') }}" class="continue-btn">
+            <i class="bi bi-arrow-right me-2"></i>Continue Registration
+        </a>
+    </div>
+    {% else %}
+    <p class="payment-text">
+        Your payment has been processed successfully. Please enter your payment details below to continue with registration.
+    </p>
+    
+    {% if error %}
+    <div class="error-box">
+        <i class="bi bi-exclamation-triangle text-danger me-2"></i>
+        <strong>{{ error }}</strong>
+    </div>
+    {% endif %}
+    
+    <div class="info-box">
+        <i class="bi bi-info-circle text-primary me-2"></i>
+        <strong>How to find your Payment ID:</strong>
+        <ul class="mt-2 mb-0">
+            <li>Check your Razorpay payment confirmation SMS/Email</li>
+            <li>Look for "Payment ID" or "Transaction ID"</li>
+            <li>It usually starts with "pay_" followed by letters and numbers</li>
+        </ul>
+    </div>
+    
+    <form method="POST" action="{{ url_for('record_payment') }}">
+        <div class="mb-3">
+            <label class="form-label">Your Username</label>
+            <input type="text" class="form-control" name="username" 
+                   placeholder="Enter your driver username" 
+                   value="{{ username or '' }}" required>
+            <small class="text-muted">The username you used during registration</small>
+        </div>
+        
+        <div class="mb-4">
+            <label class="form-label">Razorpay Payment ID</label>
+            <input type="text" class="form-control" name="payment_id" 
+                   placeholder="e.g., pay_ABC123XYZ456" required>
+            <small class="text-muted">Found in your payment confirmation SMS/Email</small>
+        </div>
+        
+        <button type="submit" class="continue-btn">
+            <i class="bi bi-credit-card me-2"></i>Record Payment & Continue
+        </button>
+    </form>
+    {% endif %}
+    
+    <div class="text-center mt-4">
+        <small class="text-muted">
+            Need help? <a href="mailto:support@raidlink.com">Contact Support</a>
+        </small>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

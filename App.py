@@ -548,6 +548,86 @@ def reset_password():
     return render_template('reset_password.html', error=error, success=success, user_type=user_type)
 
 
+# ── Payment Recording ──────────────────────────────────────────
+
+@app.route('/payment-success')
+def payment_success():
+    """Payment success page where users can record their payment details"""
+    return render_template('payment_success.html')
+
+@app.route('/payment-return')
+def payment_return():
+    """Handle return from Razorpay payment - redirect to payment success page"""
+    # Check if user has signup session data
+    if 'signup_step1' in session:
+        username = session['signup_step1'].get('username', '')
+        return render_template('payment_success.html', username=username)
+    else:
+        return redirect(url_for('payment_success'))
+
+@app.route('/record-payment', methods=['POST'])
+def record_payment():
+    """Record payment details after successful Razorpay payment"""
+    payment_id = request.form.get('payment_id', '').strip()
+    username = request.form.get('username', '').strip()
+    
+    if not payment_id or not username:
+        return render_template('payment_success.html', 
+                             error='Please provide both Payment ID and Username',
+                             username=username)
+    
+    # Update driver payment information
+    conn = get_db()
+    if conn:
+        cur = conn.cursor()
+        try:
+            # Check if payment ID is already used
+            cur.execute("SELECT username FROM Driver_Details WHERE payment_id=%s", (payment_id,))
+            existing_payment = cur.fetchone()
+            
+            if existing_payment:
+                return render_template('payment_success.html', 
+                                     error=f'Payment ID already used by driver: {existing_payment[0]}',
+                                     username=username)
+            
+            # Check if driver exists
+            cur.execute("SELECT id FROM Driver_Details WHERE username=%s", (username,))
+            driver = cur.fetchone()
+            
+            if not driver:
+                return render_template('payment_success.html', 
+                                     error='Driver username not found. Please check your username.',
+                                     username=username)
+            
+            # Calculate expiry date (30 days from now)
+            from datetime import datetime, timedelta
+            payment_datetime = datetime.now()
+            expiry_date = payment_datetime + timedelta(days=30)
+            
+            # Update payment information
+            cur.execute(
+                "UPDATE Driver_Details SET payment_id=%s, payment_date=%s, payment_expiry_date=%s WHERE username=%s",
+                (payment_id, payment_datetime, expiry_date.date(), username)
+            )
+            conn.commit()
+            cur.close(); conn.close()
+            
+            # Redirect to continue registration
+            return render_template('payment_success.html', 
+                                 success=f'Payment recorded successfully! Payment ID: {payment_id}',
+                                 username=username)
+            
+        except Exception as e:
+            print(f"Error recording payment: {e}")
+            cur.close(); conn.close()
+            return render_template('payment_success.html', 
+                                 error='Failed to record payment. Please try again.',
+                                 username=username)
+    else:
+        return render_template('payment_success.html', 
+                             error='Database connection failed. Please try again.',
+                             username=username)
+
 # ── Driver ───────────────────────────────────────────────────
 
 @app.route('/driver-login', methods=['GET', 'POST'])
@@ -633,8 +713,9 @@ def driver_signup_step1():
                     session.permanent = True
                     session.modified = True
                     
-                    # Redirect to Razorpay payment link
-                    return redirect('https://rzp.io/rzp/YK27HRh')
+                    # Redirect to Razorpay payment link with return URL
+                    razorpay_url = f"https://rzp.io/rzp/YK27HRh?prefill[contact]={mobile}&prefill[email]={email}"
+                    return redirect(razorpay_url)
             else:
                 error = 'Database connection failed.'
     
@@ -760,6 +841,21 @@ def driver_signup_step3(username):
             error = 'Database connection failed.'
     
     return render_template('driver_signup_step3.html', error=error, username=username)
+
+@app.route('/api/check-payment-id/<payment_id>')
+def check_payment_id(payment_id):
+    """Check if a payment ID has already been used"""
+    conn = get_db()
+    if conn:
+        cur = conn.cursor()
+        cur.execute("SELECT username FROM Driver_Details WHERE payment_id=%s", (payment_id,))
+        row = cur.fetchone()
+        cur.close(); conn.close()
+        if row:
+            return jsonify({'used': True, 'username': row[0]})
+        else:
+            return jsonify({'used': False})
+    return jsonify({'error': 'Database connection failed'})
 
 @app.route('/api/driver-status/<username>')
 def api_driver_status(username):
