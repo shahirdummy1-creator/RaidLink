@@ -324,6 +324,39 @@ def test_payment_flow():
         'redirect_to': '/driver-signup/step1'
     })
 
+@app.route('/debug-driver/<username>')
+def debug_driver(username):
+    """Debug endpoint to check driver data in database"""
+    conn = get_db()
+    if conn:
+        cur = conn.cursor()
+        cur.execute("SELECT username, email, mobile, account_status, password_hash FROM Driver_Details WHERE username=%s", (username,))
+        row = cur.fetchone()
+        cur.close(); conn.close()
+        if row:
+            return jsonify({
+                'found': True,
+                'username': row[0],
+                'email': row[1], 
+                'mobile': row[2],
+                'account_status': row[3],
+                'password_hash_length': len(row[4]) if row[4] else 0,
+                'password_hash_starts_with': row[4][:10] if row[4] else None
+            })
+        else:
+            return jsonify({'found': False, 'message': 'Driver not found in database'})
+    return jsonify({'error': 'Database connection failed'})
+
+@app.route('/test-password-hash/<password>')
+def test_password_hash(password):
+    """Debug endpoint to test password hashing"""
+    hashed = hash_password(password)
+    return jsonify({
+        'original_password': password,
+        'hashed_password': hashed,
+        'hash_length': len(hashed)
+    })
+
 @app.route('/home')
 def home():
     return render_template('welcome.html')
