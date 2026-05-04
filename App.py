@@ -850,20 +850,23 @@ def driver_home(username):
             booking['fare']      = format_fare(booking['fare'])
             booking['ride_date'] = str(booking['ride_date'])
             booking['ride_time'] = str(booking['ride_time'])
-        cur.execute("SELECT registered_at FROM Driver_Details WHERE username=%s", (username,))
+        cur.execute("SELECT registered_at, profile_photo FROM Driver_Details WHERE username=%s", (username,))
         reg_row = cur.fetchone()
-        if reg_row and reg_row[0]:
-            from datetime import date
-            join_date   = reg_row[0].date() if hasattr(reg_row[0], 'date') else reg_row[0]
-            expiry_date = join_date + timedelta(days=30)
-            days_left   = (expiry_date - date.today()).days
-            subscription = {'join_date': join_date, 'expiry_date': expiry_date, 'days_left': days_left}
+        if reg_row:
+            if reg_row[1]:
+                driver['photo'] = reg_row[1]
+            if reg_row[0]:
+                from datetime import date
+                join_date   = reg_row[0].date() if hasattr(reg_row[0], 'date') else reg_row[0]
+                expiry_date = join_date + timedelta(days=30)
+                days_left   = (expiry_date - date.today()).days
+                subscription = {'join_date': join_date, 'expiry_date': expiry_date, 'days_left': days_left}
         cur.close(); conn.close()
     
     return render_template('driver_home.html',
         booking      = booking,
         driver_name  = driver['username'],
-        driver_photo = driver['photo'],
+        driver_photo = driver.get('photo', ''),
         driver_car   = driver['car'],
         driver_reg   = driver['reg'],
         subscription = subscription
