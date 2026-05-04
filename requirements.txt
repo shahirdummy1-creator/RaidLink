@@ -2,5 +2,4 @@ flask
 mysql-connector-python
 werkzeug
 gunicorn
-razorpay
 python-dotenv
