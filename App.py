@@ -1273,7 +1273,7 @@ def clear_bookings():
         conn = get_db()
         if conn:
             cur = conn.cursor()
-            cur.execute("DELETE FROM Trip_Details WHERE rider_id=%s AND status='Cancelled'", (rider_id,))
+            cur.execute("DELETE FROM Trip_Details WHERE rider_id=%s AND status IN ('Cancelled','Completed','Confirmed')", (rider_id,))
             conn.commit()
             cur.close(); conn.close()
     return redirect(url_for('rider_bookings', username=username))
