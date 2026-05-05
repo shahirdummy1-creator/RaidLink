@@ -898,20 +898,6 @@ def driver_subscription(username):
     # Redirect to Razorpay payment link for subscription renewal
     return redirect('https://rzp.io/rzp/YK27HRh')
 
-@app.route('/api/booking-status/<int:trip_id>')
-def api_booking_status(trip_id):
-    conn = get_db()
-    if conn:
-        cur = conn.cursor()
-        cur.execute("SELECT status FROM Trip_Details WHERE id=%s", (trip_id,))
-        row = cur.fetchone()
-        cur.close(); conn.close()
-        if not row:
-            return jsonify({'status': 'not_found'})
-        return jsonify({'status': row[0].lower()})
-    return jsonify({'status': 'error'})
-
-
 @app.route('/api/verify-otp', methods=['POST'])
 def api_verify_otp():
     trip_id = request.json.get('trip_id')
