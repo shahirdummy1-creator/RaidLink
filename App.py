@@ -1531,6 +1531,21 @@ def razorpay_webhook():
     return jsonify({'status': 'ok'}), 200
 
 
+@app.route('/admin-update-join-date', methods=['POST'])
+@admin_required
+def admin_update_join_date():
+    driver_id = request.form.get('driver_id')
+    join_date = request.form.get('join_date')
+    if driver_id and join_date:
+        conn = get_db()
+        if conn:
+            cur = conn.cursor()
+            cur.execute("UPDATE Driver_Details SET registered_at=%s WHERE id=%s", (join_date, driver_id))
+            conn.commit()
+            cur.close(); conn.close()
+    return redirect(url_for('admin_drivers'))
+
+
 @app.route('/admin-toggle-driver', methods=['POST'])
 @admin_required
 def admin_toggle_driver():
