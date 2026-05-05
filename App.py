@@ -862,11 +862,16 @@ def driver_home(username):
                 days_left   = (expiry_date - date.today()).days
                 subscription = {'join_date': join_date, 'expiry_date': expiry_date, 'days_left': days_left}
         cur.close(); conn.close()
-    
+
+    # Verify photo file actually exists on disk
+    photo = driver.get('photo', '')
+    if photo and not os.path.exists(os.path.join('static', photo)):
+        photo = ''
+
     return render_template('driver_home.html',
         booking      = booking,
         driver_name  = driver['username'],
-        driver_photo = driver.get('photo', ''),
+        driver_photo = photo,
         driver_car   = driver['car'],
         driver_reg   = driver['reg'],
         subscription = subscription

@@ -16,25 +16,32 @@
             padding: 14px 28px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: center;
             box-shadow: 0 2px 12px rgba(13,110,253,.3);
         }
         .topnav-brand { color: #fff; font-size: 1.2rem; font-weight: 700; text-decoration: none; letter-spacing: .02em; }
-        .topnav-user {
-            display: flex; align-items: center; gap: 12px;
+
+        /* ── Sub-navbar ── */
+        .subnav {
+            background: #0a58ca;
+            padding: 8px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 12px;
         }
-        .topnav-avatar {
-            width: 36px; height: 36px; border-radius: 50%;
+        .subnav-avatar {
+            width: 32px; height: 32px; border-radius: 50%;
             background: rgba(255,255,255,.25);
             display: flex; align-items: center; justify-content: center;
-            font-weight: 700; color: #fff; font-size: .95rem;
+            font-weight: 700; color: #fff; font-size: .85rem;
         }
-        .topnav-name { color: #fff; font-weight: 600; font-size: .9rem; }
+        .subnav-name { color: #fff; font-weight: 600; font-size: .85rem; }
         .btn-logout {
             background: rgba(255,255,255,.15);
             border: 1px solid rgba(255,255,255,.35);
             color: #fff; font-size: .8rem; font-weight: 600;
-            padding: 5px 14px; border-radius: 20px;
+            padding: 4px 12px; border-radius: 20px;
             text-decoration: none; transition: background .18s;
         }
         .btn-logout:hover { background: rgba(255,255,255,.28); color: #fff; }
@@ -226,19 +233,17 @@
 
 <!-- Navbar -->
 <nav class="topnav">
-    <a class="topnav-brand" href="{{ url_for('welcome') }}">
-        <i class="bi bi-taxi-front me-2"></i>RaidLink
-    </a>
-    <div class="topnav-user">
-        {% if rider_name %}
-        <div class="topnav-avatar">{{ rider_name[0] | upper }}</div>
-        <span class="topnav-name">{{ rider_name }}</span>
-        {% endif %}
-        <a href="{{ url_for('rider_logout', username=rider_name) }}" class="btn-logout">
-            <i class="bi bi-box-arrow-right me-1"></i>Logout
-        </a>
-    </div>
+    <a class="topnav-brand" href="{{ url_for('welcome') }}">RaidLink Technologies</a>
 </nav>
+<div class="subnav">
+    {% if rider_name %}
+    <div class="subnav-avatar">{{ rider_name[0] | upper }}</div>
+    <span class="subnav-name">{{ rider_name }}</span>
+    {% endif %}
+    <a href="{{ url_for('rider_logout', username=rider_name) }}" class="btn-logout">
+        <i class="bi bi-box-arrow-right me-1"></i>Logout
+    </a>
+</div>
 
 <div class="page-wrap">
 
