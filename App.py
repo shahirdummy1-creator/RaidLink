@@ -1486,57 +1486,62 @@ def admin_riders():
 
 @app.route('/webhook/razorpay', methods=['POST'])
 def razorpay_webhook():
+    import traceback
     try:
-        webhook_secret = os.environ.get('RAZORPAY_WEBHOOK_SECRET', '')
-        signature      = request.headers.get('X-Razorpay-Signature', '')
-        payload        = request.get_data()
+        payload   = request.get_data()
+        signature = request.headers.get('X-Razorpay-Signature', '')
+        secret    = os.environ.get('RAZORPAY_WEBHOOK_SECRET', '')
 
-        print(f"[WEBHOOK] Received. Secret set: {bool(webhook_secret)}, Signature: {signature[:20] if signature else 'NONE'}")
+        print(f"[WEBHOOK] hit — secret_set={bool(secret)} sig={signature[:15] if signature else 'NONE'}")
 
-        if webhook_secret:
-            import hmac as hmac_module
-            expected = hmac_module.new(webhook_secret.encode(), payload, hashlib.sha256).hexdigest()
-            if not hmac_module.compare_digest(expected, signature):
-                print(f"[WEBHOOK] Signature mismatch")
-                return jsonify({'error': 'Invalid signature'}), 400
+        # Verify signature only if secret is configured
+        if secret:
+            mac = hmac.new(secret.encode('utf-8'), payload, hashlib.sha256).hexdigest()
+            if not hmac.compare_digest(mac, signature):
+                print("[WEBHOOK] bad signature")
+                return jsonify({'error': 'bad signature'}), 400
 
-        data  = request.get_json(force=True)
-        event = data.get('event', '')
-        print(f"[WEBHOOK] Event: {event}")
+        body  = request.get_json(force=True, silent=True) or {}
+        event = body.get('event', '')
+        print(f"[WEBHOOK] event={event}")
 
         if event != 'payment.captured':
             return jsonify({'status': 'ignored'}), 200
 
-        payment    = data['payload']['payment']['entity']
-        payment_id = payment['id']
-        paid_at    = datetime.fromtimestamp(payment['created_at'])
-        contact    = payment.get('contact', '')
-        print(f"[WEBHOOK] payment_id={payment_id}, contact={contact}")
+        entity     = body['payload']['payment']['entity']
+        payment_id = entity.get('id', '')
+        contact    = entity.get('contact', '')
+        created_at = entity.get('created_at', 0)
+        paid_at    = datetime.fromtimestamp(int(created_at))
 
-        contact_clean = contact.lstrip('+').strip()
-        if contact_clean.startswith('91') and len(contact_clean) == 12:
-            contact_clean = contact_clean[2:]
+        print(f"[WEBHOOK] payment_id={payment_id} contact={contact} paid_at={paid_at}")
+
+        # Normalise mobile: strip +91 prefix
+        mobile = contact.strip()
+        if mobile.startswith('+91'):
+            mobile = mobile[3:]
+        elif mobile.startswith('91') and len(mobile) == 12:
+            mobile = mobile[2:]
+
+        print(f"[WEBHOOK] mobile_clean={mobile}")
 
         conn = get_db()
         if conn:
             cur = conn.cursor()
-            cur.execute("SELECT id, username FROM Driver_Details WHERE mobile=%s", (contact_clean,))
+            cur.execute("SELECT id, username FROM Driver_Details WHERE mobile=%s", (mobile,))
             row = cur.fetchone()
-            print(f"[WEBHOOK] Driver lookup: {row}")
+            print(f"[WEBHOOK] driver_row={row}")
             if row:
-                cur.execute(
-                    "UPDATE Driver_Details SET registered_at=%s WHERE id=%s",
-                    (paid_at, row[0])
-                )
+                cur.execute("UPDATE Driver_Details SET registered_at=%s WHERE id=%s", (paid_at, row[0]))
                 conn.commit()
-                print(f"[WEBHOOK] Updated registered_at for driver {row[1]}")
-            cur.close(); conn.close()
+                print(f"[WEBHOOK] updated registered_at for {row[1]}")
+            cur.close()
+            conn.close()
 
         return jsonify({'status': 'ok'}), 200
 
     except Exception as e:
         print(f"[WEBHOOK ERROR] {e}")
-        import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
