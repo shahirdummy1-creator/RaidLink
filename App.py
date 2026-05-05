@@ -1482,6 +1482,25 @@ def admin_riders():
     )
 
 
+@app.route('/debug-payment/<username>')
+def debug_payment(username):
+    conn = get_db()
+    if conn:
+        cur = conn.cursor(buffered=True)
+        cur.execute("SELECT username, mobile, payment_id, payment_date, registered_at FROM Driver_Details WHERE username=%s", (username,))
+        row = cur.fetchone()
+        cur.close(); conn.close()
+        if row:
+            return jsonify({
+                'username':     row[0],
+                'mobile':       str(row[1]),
+                'payment_id':   row[2],
+                'payment_date': str(row[3]),
+                'registered_at': str(row[4])
+            })
+    return jsonify({'error': 'not found'})
+
+
 @app.route('/run-migration')
 def run_migration():
     conn = get_db()
