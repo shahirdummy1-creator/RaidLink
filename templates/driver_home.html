@@ -199,6 +199,35 @@
         </div>
         {% endif %}
 
+        {% if subscription and subscription.days_left <= 0 %}
+        <div class="alert alert-danger d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <strong>Subscription Expired!</strong> You are offline. Renew to start receiving rides.
+            </div>
+            <div class="d-flex gap-2">
+                <a href="https://rzp.io/rzp/YK27HRh" target="_blank" class="btn btn-danger btn-sm">
+                    <i class="bi bi-credit-card me-1"></i> Pay Now
+                </a>
+                <form method="POST" action="{{ url_for('driver_renew', username=driver_name) }}">
+                    <button type="submit" class="btn btn-success btn-sm">
+                        <i class="bi bi-arrow-clockwise me-1"></i> I've Paid — Renew
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% elif subscription and subscription.days_left <= 7 %}
+        <div class="alert alert-warning d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <i class="bi bi-clock-fill me-2"></i>
+                <strong>Expiring Soon!</strong> {{ subscription.days_left }} days left. Renew to avoid interruption.
+            </div>
+            <a href="https://rzp.io/rzp/YK27HRh" target="_blank" class="btn btn-warning btn-sm ms-3">
+                <i class="bi bi-credit-card me-1"></i> Renew
+            </a>
+        </div>
+        {% endif %}
+
         <!-- Driver status toggle -->
         <div class="d-flex align-items-center justify-content-between py-3 px-3 rounded-3 border mb-4">
             <div>
@@ -249,6 +278,7 @@
     const DRIVER_ONLINE_KEY = 'driverOnline';
     const AUTO_REFRESH_SEC  = 5;
     const DRIVER_USERNAME   = '{{ driver_name }}';
+    const SUBSCRIPTION_EXPIRED = {{ 'true' if subscription and subscription.days_left <= 0 else 'false' }};
 
     const statusSwitch        = document.getElementById('driverStatusSwitch');
     const statusText          = document.getElementById('statusText');
@@ -335,10 +365,16 @@
 
     // Restore toggle state — default to Online if never set
     const savedOnline = localStorage.getItem(DRIVER_ONLINE_KEY);
-    if (savedOnline === 'false') {
+    if (savedOnline === 'false' || SUBSCRIPTION_EXPIRED) {
         statusSwitch.checked = false;
     } else {
         statusSwitch.checked = true;
+    }
+    if (SUBSCRIPTION_EXPIRED) {
+        statusSwitch.disabled = true;
+        statusText.textContent = 'Offline — Subscription Expired';
+        statusText.className   = 'mb-0 text-danger fw-bold';
+        searchingOrdersCard.style.display = 'none';
     }
     // Check account status first, then initialise
     checkAccountStatus(updateStatus);

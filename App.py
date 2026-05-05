@@ -872,6 +872,18 @@ def driver_home(username):
         subscription = subscription
     )
 
+@app.route('/driver-renew/<username>', methods=['POST'])
+def driver_renew(username):
+    conn = get_db()
+    if conn:
+        cur = conn.cursor()
+        cur.execute("UPDATE Driver_Details SET registered_at=%s WHERE username=%s",
+                    (datetime.now(), username))
+        conn.commit()
+        cur.close(); conn.close()
+    return redirect(url_for('driver_home', username=username))
+
+
 @app.route('/driver-subscription/<username>')
 def driver_subscription(username):
     driver = get_driver(username)
