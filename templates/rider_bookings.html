@@ -20,31 +20,13 @@
             box-shadow: 0 2px 12px rgba(13,110,253,.3);
         }
         .topnav-brand { color: #fff; font-size: 1.2rem; font-weight: 700; text-decoration: none; letter-spacing: .02em; }
-
-        /* ── Sub-navbar ── */
-        .subnav {
-            background: #0a58ca;
-            padding: 8px 28px;
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 12px;
-        }
-        .subnav-avatar {
-            width: 32px; height: 32px; border-radius: 50%;
-            background: rgba(255,255,255,.25);
-            display: flex; align-items: center; justify-content: center;
-            font-weight: 700; color: #fff; font-size: .85rem;
-        }
-        .subnav-name { color: #fff; font-weight: 600; font-size: .85rem; }
         .btn-logout {
-            background: rgba(255,255,255,.15);
-            border: 1px solid rgba(255,255,255,.35);
-            color: #fff; font-size: .8rem; font-weight: 600;
-            padding: 4px 12px; border-radius: 20px;
+            display: inline-flex; align-items: center; gap: 6px;
+            background: #dc3545; color: #fff; font-size: .8rem; font-weight: 600;
+            padding: 5px 14px; border-radius: 20px;
             text-decoration: none; transition: background .18s;
         }
-        .btn-logout:hover { background: rgba(255,255,255,.28); color: #fff; }
+        .btn-logout:hover { background: #b02a37; color: #fff; }
 
         /* ── Page wrapper ── */
         .page-wrap { max-width: 1100px; margin: 36px auto; padding: 0 20px; }
@@ -235,17 +217,19 @@
 <nav class="topnav">
     <a class="topnav-brand" href="{{ url_for('welcome') }}">RaidLink Technologies</a>
 </nav>
-<div class="subnav">
-    {% if rider_name %}
-    <div class="subnav-avatar">{{ rider_name[0] | upper }}</div>
-    <span class="subnav-name">{{ rider_name }}</span>
-    {% endif %}
-    <a href="{{ url_for('rider_logout', username=rider_name) }}" class="btn-logout">
-        <i class="bi bi-box-arrow-right me-1"></i>Logout
-    </a>
-</div>
 
 <div class="page-wrap">
+
+    <!-- Rider info row -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="d-flex align-items-center gap-2">
+            <div style="width:36px;height:36px;border-radius:50%;background:#0d6efd;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.95rem;">{{ rider_name[0] | upper }}</div>
+            <span style="font-weight:600;color:#374151;">{{ rider_name }}</span>
+        </div>
+        <a href="{{ url_for('rider_logout', username=rider_name) }}" class="btn-logout">
+            <i class="bi bi-box-arrow-right"></i> Logout
+        </a>
+    </div>
 
     <!-- Page header -->
     <div class="page-header">
