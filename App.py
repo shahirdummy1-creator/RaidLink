@@ -1532,9 +1532,12 @@ def razorpay_webhook():
             row = cur.fetchone()
             print(f"[WEBHOOK] driver_row={row}")
             if row:
-                cur.execute("UPDATE Driver_Details SET registered_at=%s WHERE id=%s", (paid_at, row[0]))
+                cur.execute(
+                    "UPDATE Driver_Details SET registered_at=%s, payment_id=%s, payment_date=%s WHERE id=%s",
+                    (paid_at, payment_id, paid_at, row[0])
+                )
                 conn.commit()
-                print(f"[WEBHOOK] updated registered_at for {row[1]}")
+                print(f"[WEBHOOK] updated driver {row[1]} registered_at={paid_at} payment_id={payment_id}")
             cur.close()
             conn.close()
 

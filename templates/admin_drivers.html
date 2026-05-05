@@ -262,6 +262,8 @@
                             <th>Permit Validity</th>
                             <th>Date of Join</th>
                             <th>Expiry Date</th>
+                            <th>Payment ID</th>
+                            <th>Payment Date</th>
                             <th>Status</th>
                             <th>Action</th>
                         </tr>
@@ -312,6 +314,16 @@
                                 {% endif %}
                             </td>
                             <td>
+                                {% if d.payment_id %}
+                                    <span class="badge-reg">{{ d.payment_id }}</span>
+                                {% else %}
+                                    <span style="color:#9ca3af;">—</span>
+                                {% endif %}
+                            </td>
+                            <td style="color:#6b7280;font-size:0.82rem;">
+                                {{ d.payment_date.strftime('%d %b %Y %H:%M') if d.payment_date else '—' }}
+                            </td>
+                            <td>
                                 {% if d.get('account_status', 'Active') == 'Active' %}
                                     <span class="badge-active">Active</span>
                                 {% else %}
@@ -337,7 +349,7 @@
                             </td>
                         </tr>
                         {% else %}
-                        <tr><td colspan="15" class="text-center text-muted py-5">No drivers registered yet.</td></tr>
+                        <tr><td colspan="17" class="text-center text-muted py-5">No drivers registered yet.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
