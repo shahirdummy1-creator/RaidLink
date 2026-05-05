@@ -874,11 +874,16 @@ def driver_home(username):
 
 @app.route('/driver-renew/<username>', methods=['POST'])
 def driver_renew(username):
+    payment_id = request.form.get('payment_id', '').strip()
+    if not payment_id.startswith('pay_'):
+        return redirect(url_for('driver_home', username=username))
     conn = get_db()
     if conn:
         cur = conn.cursor()
-        cur.execute("UPDATE Driver_Details SET registered_at=%s WHERE username=%s",
-                    (datetime.now(), username))
+        cur.execute(
+            "UPDATE Driver_Details SET registered_at=%s WHERE username=%s",
+            (datetime.now(), username)
+        )
         conn.commit()
         cur.close(); conn.close()
     return redirect(url_for('driver_home', username=username))

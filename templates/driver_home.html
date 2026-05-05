@@ -210,9 +210,16 @@
                     <i class="bi bi-credit-card me-1"></i> Pay Now
                 </a>
                 <form method="POST" action="{{ url_for('driver_renew', username=driver_name) }}">
-                    <button type="submit" class="btn btn-success btn-sm">
-                        <i class="bi bi-arrow-clockwise me-1"></i> I've Paid — Renew
-                    </button>
+                    <input type="hidden" name="username" value="{{ driver_name }}">
+                    <div class="input-group input-group-sm">
+                        <input type="text" class="form-control" name="payment_id"
+                               placeholder="Enter Payment ID (e.g. pay_ABC123)"
+                               pattern="pay_[A-Za-z0-9]+" title="Must start with pay_"
+                               required style="min-width:200px;">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-arrow-clockwise me-1"></i> Renew
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
