@@ -1528,6 +1528,13 @@ def razorpay_webhook():
         conn = get_db()
         if conn:
             cur = conn.cursor(buffered=True)
+            # Ensure columns exist
+            for col, defn in [('payment_id', 'VARCHAR(100) DEFAULT NULL'), ('payment_date', 'DATETIME DEFAULT NULL')]:
+                try:
+                    cur.execute(f"ALTER TABLE Driver_Details ADD COLUMN `{col}` {defn}")
+                    conn.commit()
+                except Exception:
+                    pass
             cur.execute("SELECT id, username FROM Driver_Details WHERE mobile=%s", (mobile,))
             row = cur.fetchone()
             print(f"[WEBHOOK] driver_row={row}")
