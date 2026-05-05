@@ -1527,7 +1527,7 @@ def razorpay_webhook():
 
         conn = get_db()
         if conn:
-            cur = conn.cursor()
+            cur = conn.cursor(buffered=True)
             cur.execute("SELECT id, username FROM Driver_Details WHERE mobile=%s", (mobile,))
             row = cur.fetchone()
             print(f"[WEBHOOK] driver_row={row}")
