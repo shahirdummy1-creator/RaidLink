@@ -1465,19 +1465,6 @@ def admin_riders():
     )
 
 
-@app.route('/debug-payment/<username>')
-def debug_payment(username):
-    conn = get_db()
-    if conn:
-        cur = conn.cursor()
-        cur.execute("SELECT username, mobile, payment_id, payment_date FROM Driver_Details WHERE username=%s", (username,))
-        row = cur.fetchone()
-        cur.close(); conn.close()
-        if row:
-            return jsonify({'username': row[0], 'mobile': str(row[1]), 'payment_id': row[2], 'payment_date': str(row[3])})
-    return jsonify({'error': 'not found'})
-
-
 # ── Razorpay Webhook ─────────────────────────────────────────
 
 @app.route('/webhook/razorpay', methods=['POST'])
