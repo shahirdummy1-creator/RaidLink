@@ -1486,54 +1486,59 @@ def admin_riders():
 
 @app.route('/webhook/razorpay', methods=['POST'])
 def razorpay_webhook():
-    webhook_secret = os.environ.get('RAZORPAY_WEBHOOK_SECRET', '')
-    signature      = request.headers.get('X-Razorpay-Signature', '')
-    payload        = request.get_data()
+    try:
+        webhook_secret = os.environ.get('RAZORPAY_WEBHOOK_SECRET', '')
+        signature      = request.headers.get('X-Razorpay-Signature', '')
+        payload        = request.get_data()
 
-    print(f"[WEBHOOK] Received. Signature present: {bool(signature)}, Secret set: {bool(webhook_secret)}")
+        print(f"[WEBHOOK] Received. Secret set: {bool(webhook_secret)}, Signature: {signature[:20] if signature else 'NONE'}")
 
-    expected = hmac.new(webhook_secret.encode(), payload, hashlib.sha256).hexdigest()
-    if not hmac.compare_digest(expected, signature):
-        print(f"[WEBHOOK] Signature mismatch. Expected: {expected[:20]}... Got: {signature[:20]}...")
-        return jsonify({'error': 'Invalid signature'}), 400
+        if webhook_secret:
+            import hmac as hmac_module
+            expected = hmac_module.new(webhook_secret.encode(), payload, hashlib.sha256).hexdigest()
+            if not hmac_module.compare_digest(expected, signature):
+                print(f"[WEBHOOK] Signature mismatch")
+                return jsonify({'error': 'Invalid signature'}), 400
 
-    data = request.get_json()
-    event = data.get('event')
-    print(f"[WEBHOOK] Event: {event}")
+        data  = request.get_json(force=True)
+        event = data.get('event', '')
+        print(f"[WEBHOOK] Event: {event}")
 
-    if event != 'payment.captured':
-        return jsonify({'status': 'ignored'}), 200
+        if event != 'payment.captured':
+            return jsonify({'status': 'ignored'}), 200
 
-    payment    = data['payload']['payment']['entity']
-    payment_id = payment['id']
-    paid_at    = datetime.fromtimestamp(payment['created_at'])
-    contact    = payment.get('contact', '')
-    print(f"[WEBHOOK] payment_id={payment_id}, paid_at={paid_at}, contact_raw={contact}")
+        payment    = data['payload']['payment']['entity']
+        payment_id = payment['id']
+        paid_at    = datetime.fromtimestamp(payment['created_at'])
+        contact    = payment.get('contact', '')
+        print(f"[WEBHOOK] payment_id={payment_id}, contact={contact}")
 
-    # Strip +91 or 0 prefix to get 10-digit number
-    contact_clean = contact.lstrip('+').strip()
-    if contact_clean.startswith('91') and len(contact_clean) == 12:
-        contact_clean = contact_clean[2:]
-    print(f"[WEBHOOK] contact_clean={contact_clean}")
+        contact_clean = contact.lstrip('+').strip()
+        if contact_clean.startswith('91') and len(contact_clean) == 12:
+            contact_clean = contact_clean[2:]
 
-    conn = get_db()
-    if conn:
-        cur = conn.cursor()
-        cur.execute("SELECT id, username, mobile FROM Driver_Details WHERE mobile=%s", (contact_clean,))
-        row = cur.fetchone()
-        print(f"[WEBHOOK] Driver lookup result: {row}")
-        if row:
-            cur.execute(
-                "UPDATE Driver_Details SET payment_id=%s, payment_date=%s WHERE mobile=%s",
-                (payment_id, paid_at, contact_clean)
-            )
-            conn.commit()
-            print(f"[WEBHOOK] Updated driver {row[1]} with payment_id={payment_id}")
-        else:
-            print(f"[WEBHOOK] No driver found with mobile={contact_clean}")
-        cur.close(); conn.close()
+        conn = get_db()
+        if conn:
+            cur = conn.cursor()
+            cur.execute("SELECT id, username FROM Driver_Details WHERE mobile=%s", (contact_clean,))
+            row = cur.fetchone()
+            print(f"[WEBHOOK] Driver lookup: {row}")
+            if row:
+                cur.execute(
+                    "UPDATE Driver_Details SET registered_at=%s WHERE id=%s",
+                    (paid_at, row[0])
+                )
+                conn.commit()
+                print(f"[WEBHOOK] Updated registered_at for driver {row[1]}")
+            cur.close(); conn.close()
 
-    return jsonify({'status': 'ok'}), 200
+        return jsonify({'status': 'ok'}), 200
+
+    except Exception as e:
+        print(f"[WEBHOOK ERROR] {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/admin-update-join-date', methods=['POST'])
