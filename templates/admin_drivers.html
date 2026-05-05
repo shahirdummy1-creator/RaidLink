@@ -260,6 +260,8 @@
                             <th>Fitness Validity</th>
                             <th>Pollution Validity</th>
                             <th>Permit Validity</th>
+                            <th>Payment ID</th>
+                            <th>Payment Date</th>
                             <th>Date of Join</th>
                             <th>Expiry Date</th>
                             <th>Status</th>
@@ -291,6 +293,16 @@
                             <td>{{ d.fitness_validity or '—' }}</td>
                             <td>{{ d.pollution_validity or '—' }}</td>
                             <td>{{ d.permit_validity or '—' }}</td>
+                            <td>
+                                {% if d.payment_id %}
+                                    <span class="badge-reg">{{ d.payment_id }}</span>
+                                {% else %}
+                                    <span style="color:#9ca3af;">—</span>
+                                {% endif %}
+                            </td>
+                            <td style="color:#6b7280;font-size:0.82rem;">
+                                {{ d.payment_date.strftime('%d %b %Y %H:%M') if d.payment_date else '—' }}
+                            </td>
                             <td style="color:#6b7280;font-size:0.85rem;">{{ d.registered_at[:10] if d.registered_at else '—' }}</td>
                             <td>
                                 {% if d.expiry_date %}
@@ -332,7 +344,7 @@
                             </td>
                         </tr>
                         {% else %}
-                        <tr><td colspan="15" class="text-center text-muted py-5">No drivers registered yet.</td></tr>
+                        <tr><td colspan="17" class="text-center text-muted py-5">No drivers registered yet.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
