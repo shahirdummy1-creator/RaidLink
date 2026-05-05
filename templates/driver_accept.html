@@ -340,6 +340,20 @@ function verifyOTP() {
     .catch(() => alert('Verification failed. Please try again.'));
 }
 
+// ── Poll booking status ──────────────────────────────────
+function pollBookingStatus() {
+    if (!TRIP_ID) return;
+    fetch(`/api/booking-status/${TRIP_ID}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'cancelled' || data.status === 'not_found') {
+                window.location.href = '/driver-home/{{ driver_name }}';
+            }
+        })
+        .catch(() => {});
+}
+setInterval(pollBookingStatus, 5000);
+
 // ── Init ──────────────────────────────────────────────────
 geocodePickup().then(() => startTracking());
 </script>
