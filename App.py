@@ -1482,6 +1482,26 @@ def admin_riders():
     )
 
 
+@app.route('/run-migration')
+def run_migration():
+    conn = get_db()
+    results = []
+    if conn:
+        cur = conn.cursor()
+        for col, defn in [
+            ('payment_id',   'VARCHAR(100) DEFAULT NULL'),
+            ('payment_date', 'DATETIME DEFAULT NULL'),
+        ]:
+            try:
+                cur.execute(f"ALTER TABLE Driver_Details ADD COLUMN `{col}` {defn}")
+                conn.commit()
+                results.append(f"{col}: added")
+            except Exception as e:
+                results.append(f"{col}: {str(e)}")
+        cur.close(); conn.close()
+    return jsonify({'results': results})
+
+
 # ── Razorpay Webhook ─────────────────────────────────────────
 
 @app.route('/webhook/razorpay', methods=['POST'])
@@ -1528,13 +1548,6 @@ def razorpay_webhook():
         conn = get_db()
         if conn:
             cur = conn.cursor(buffered=True)
-            # Ensure columns exist
-            for col, defn in [('payment_id', 'VARCHAR(100) DEFAULT NULL'), ('payment_date', 'DATETIME DEFAULT NULL')]:
-                try:
-                    cur.execute(f"ALTER TABLE Driver_Details ADD COLUMN `{col}` {defn}")
-                    conn.commit()
-                except Exception:
-                    pass
             cur.execute("SELECT id, username FROM Driver_Details WHERE mobile=%s", (mobile,))
             row = cur.fetchone()
             print(f"[WEBHOOK] driver_row={row}")
@@ -1544,7 +1557,7 @@ def razorpay_webhook():
                     (paid_at, payment_id, paid_at, row[0])
                 )
                 conn.commit()
-                print(f"[WEBHOOK] updated driver {row[1]} registered_at={paid_at} payment_id={payment_id}")
+                print(f"[WEBHOOK] updated driver {row[1]} payment_id={payment_id}")
             cur.close()
             conn.close()
 
