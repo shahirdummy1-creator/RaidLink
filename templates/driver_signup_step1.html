@@ -54,15 +54,43 @@
             <div style="position:relative;display:inline-block;">
                 <img id="photoPreview"
                      src="https://ui-avatars.com/api/?name=Driver&background=0d6efd&color=fff&size=120&rounded=true"
-                     style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:4px solid #0d6efd;cursor:pointer;"
-                     onclick="document.getElementById('profile_photo').click()">
-                <label for="profile_photo"
-                       style="position:absolute;bottom:2px;right:2px;width:28px;height:28px;background:#0d6efd;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid #fff;">
-                    <i class="bi bi-camera-fill text-white" style="font-size:.75rem;"></i>
-                </label>
-                <input type="file" class="d-none" id="profile_photo" name="profile_photo_preview" accept="image/*" onchange="previewPhoto(this)" required>
+                     style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:4px solid #0d6efd;">
             </div>
-            <div class="mt-2 text-muted" style="font-size:.78rem;">Click to upload profile photo <span class="text-danger">*</span></div>
+            <div class="mt-3 d-flex justify-content-center gap-2">
+                <!-- Upload from gallery -->
+                <label for="profile_photo" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-image me-1"></i> Gallery
+                </label>
+                <input type="file" class="d-none" id="profile_photo" name="profile_photo_preview" accept="image/*" onchange="previewPhoto(this)">
+                <!-- Take selfie -->
+                <button type="button" class="btn btn-sm btn-outline-success" onclick="openCamera()">
+                    <i class="bi bi-camera-fill me-1"></i> Selfie
+                </button>
+            </div>
+            <div class="mt-1 text-muted" style="font-size:.78rem;">Upload or take a selfie <span class="text-danger">*</span></div>
+        </div>
+
+        <!-- Camera modal -->
+        <div class="modal fade" id="cameraModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h6 class="modal-title fw-bold">Take Selfie</h6>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" onclick="stopCamera()"></button>
+                    </div>
+                    <div class="modal-body text-center p-2">
+                        <video id="cameraStream" autoplay playsinline
+                               style="width:100%;border-radius:12px;max-height:300px;object-fit:cover;"></video>
+                        <canvas id="cameraCanvas" class="d-none"></canvas>
+                    </div>
+                    <div class="modal-footer justify-content-center">
+                        <button type="button" class="btn btn-success px-4" onclick="capturePhoto()">
+                            <i class="bi bi-camera-fill me-1"></i> Capture
+                        </button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="stopCamera()">Cancel</button>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <form method="POST" action="{{ url_for('driver_signup_step1') }}" enctype="multipart/form-data">
@@ -115,22 +143,63 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+let cameraStream = null;
+
 function togglePw() {
     const inp = document.getElementById('password');
     const ico = document.getElementById('pwIcon');
     inp.type = inp.type === 'password' ? 'text' : 'password';
     ico.className = inp.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
 }
+
 function previewPhoto(input) {
     if (input.files && input.files[0]) {
         const reader = new FileReader();
         reader.onload = e => document.getElementById('photoPreview').src = e.target.result;
         reader.readAsDataURL(input.files[0]);
-        // copy file to real input
         const dt = new DataTransfer();
         dt.items.add(input.files[0]);
         document.getElementById('profile_photo_real').files = dt.files;
     }
+}
+
+function openCamera() {
+    const modal = new bootstrap.Modal(document.getElementById('cameraModal'));
+    modal.show();
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false })
+        .then(stream => {
+            cameraStream = stream;
+            document.getElementById('cameraStream').srcObject = stream;
+        })
+        .catch(() => alert('Camera access denied. Please allow camera permission.'));
+}
+
+function stopCamera() {
+    if (cameraStream) {
+        cameraStream.getTracks().forEach(t => t.stop());
+        cameraStream = null;
+    }
+}
+
+function capturePhoto() {
+    const video  = document.getElementById('cameraStream');
+    const canvas = document.getElementById('cameraCanvas');
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+    document.getElementById('photoPreview').src = dataUrl;
+    // Convert dataURL to File and assign to real input
+    fetch(dataUrl)
+        .then(r => r.blob())
+        .then(blob => {
+            const file = new File([blob], 'selfie.jpg', { type: 'image/jpeg' });
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            document.getElementById('profile_photo_real').files = dt.files;
+        });
+    stopCamera();
+    bootstrap.Modal.getInstance(document.getElementById('cameraModal')).hide();
 }
 
 // Form validation
@@ -138,8 +207,7 @@ document.querySelector('form').addEventListener('submit', function(e) {
     const profilePhotoInput = document.getElementById('profile_photo_real');
     if (!profilePhotoInput.files || profilePhotoInput.files.length === 0) {
         e.preventDefault();
-        alert('Profile photo is required. Please upload a profile picture.');
-        document.getElementById('profile_photo').click();
+        alert('Profile photo is required. Please upload or take a selfie.');
         return false;
     }
 });
