@@ -37,6 +37,26 @@ def save_file(file, prefix):
         return f"uploads/drivers/{filename}"
     return None
 
+def save_profile_photo(file, username):
+    """Save profile photo to disk AND return base64 for DB storage."""
+    import base64
+    if file and file.filename and allowed_file(file.filename):
+        ext      = file.filename.rsplit('.', 1)[1].lower()
+        filename = secure_filename(f"{username}_profile.{ext}")
+        path     = os.path.join(UPLOAD_FOLDER, filename)
+        file.seek(0)
+        data = file.read()
+        # Save to disk (best effort)
+        try:
+            with open(path, 'wb') as f:
+                f.write(data)
+        except Exception:
+            pass
+        mime = 'image/jpeg' if ext in ('jpg', 'jpeg') else f'image/{ext}'
+        b64  = base64.b64encode(data).decode('utf-8')
+        return f"uploads/drivers/{filename}", f"data:{mime};base64,{b64}"
+    return None, None
+
 # ── Initialise DB on startup ──────────────────────────────────
 try:
     init_db()
@@ -622,13 +642,15 @@ def driver_signup_step1():
                     cur.close(); conn.close()
                 else:
                     cur.close(); conn.close()
-                    profile_photo = save_file(request.files.get('profile_photo'), f"{secure_filename(username)}_profile")
-                    
+                    profile_photo, profile_photo_b64 = save_profile_photo(request.files.get('profile_photo'), secure_filename(username))
+
                     # Store step 1 data in session
                     session['signup_step1'] = {
                         'username': username, 'mobile': mobile,
                         'email': email, 'password': hash_password(password),
-                        'profile_photo': profile_photo, 'admin_name': admin_name
+                        'profile_photo': profile_photo,
+                        'profile_photo_b64': profile_photo_b64,
+                        'admin_name': admin_name
                     }
                     session.permanent = True
                     session.modified = True
@@ -729,14 +751,14 @@ def driver_signup_step3(username):
                        (username, mobile, email, password_hash, car_make, car_model, car_color,
                         reg_number, aadhaar_number, licence_validity, fitness_validity,
                         pollution_validity, permit_validity,
-                        licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo, admin_name)
-                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                        licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo, profile_photo_b64, admin_name)
+                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                     (s1['username'], s1['mobile'], s1['email'], s1['password'],
                      s2['car_make'], s2['car_model'], s2['car_color'],
                      s2['reg_number'], s2['aadhaar_number'],
                      licence_validity, fitness_validity, pollution_validity, permit_validity,
                      licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo,
-                     s1.get('admin_name'))
+                     s1.get('profile_photo_b64'), s1.get('admin_name'))
                 )
                 conn.commit()
                 print(f"Driver account created successfully for: {s1['username']}")
@@ -863,10 +885,18 @@ def driver_home(username):
                 subscription = {'join_date': join_date, 'expiry_date': expiry_date, 'days_left': days_left}
         cur.close(); conn.close()
 
-    # Verify photo file actually exists on disk
+    # Fetch photo from DB (base64) — survives Railway redeploys
     photo = driver.get('photo', '')
-    if photo and not os.path.exists(os.path.join('static', photo)):
-        photo = ''
+    conn2 = get_db()
+    if conn2:
+        cur2 = conn2.cursor()
+        cur2.execute("SELECT profile_photo_b64 FROM Driver_Details WHERE username=%s", (username,))
+        row2 = cur2.fetchone()
+        cur2.close(); conn2.close()
+        if row2 and row2[0]:
+            photo = row2[0]  # use base64 data URI directly
+        elif photo and not os.path.exists(os.path.join('static', photo)):
+            photo = ''
 
     return render_template('driver_home.html',
         booking      = booking,
@@ -1029,16 +1059,17 @@ def update_driver_profile():
         
         # Handle profile photo upload
         profile_photo = None
+        profile_photo_b64 = None
         if 'profile_photo' in request.files:
             file = request.files['profile_photo']
             if file and file.filename:
-                profile_photo = save_file(file, f"{secure_filename(username)}_profile")
-        
-        # Update only profile photo
+                profile_photo, profile_photo_b64 = save_profile_photo(file, secure_filename(username))
+
+        # Update profile photo on disk path and base64 in DB
         if profile_photo:
             cur.execute(
-                "UPDATE Driver_Details SET profile_photo=%s WHERE username=%s",
-                (profile_photo, username)
+                "UPDATE Driver_Details SET profile_photo=%s, profile_photo_b64=%s WHERE username=%s",
+                (profile_photo, profile_photo_b64, username)
             )
             conn.commit()
             
@@ -1058,11 +1089,16 @@ def driver_earnings():
     driver = get_driver(username)
     if not driver:
         return redirect(url_for('driver_login'))
+    # Fetch base64 photo from DB
     conn = get_db()
     trips = []
     daily = weekly = monthly = total = 0.0
     if conn:
         cur = conn.cursor()
+        cur.execute("SELECT profile_photo_b64 FROM Driver_Details WHERE username=%s", (username,))
+        photo_row = cur.fetchone()
+        if photo_row and photo_row[0]:
+            driver['photo'] = photo_row[0]
         cur.execute("""
             SELECT t.*, r.username AS rider_name,
                    CURDATE() AS today,
@@ -1088,7 +1124,7 @@ def driver_earnings():
         cur.close(); conn.close()
     return render_template('driver_earnings.html',
         driver_name     = username,
-        driver_photo    = driver['photo'],
+        driver_photo    = driver.get('photo_b64') or driver['photo'],
         trips           = trips,
         total_earnings  = f"\u20b9{total:,.2f}",
         daily_earnings  = f"\u20b9{daily:,.2f}",
@@ -1513,8 +1549,9 @@ def run_migration():
     if conn:
         cur = conn.cursor()
         for col, defn in [
-            ('payment_id',   'VARCHAR(100) DEFAULT NULL'),
-            ('payment_date', 'DATETIME DEFAULT NULL'),
+            ('payment_id',        'VARCHAR(100) DEFAULT NULL'),
+            ('payment_date',      'DATETIME DEFAULT NULL'),
+            ('profile_photo_b64', 'MEDIUMTEXT DEFAULT NULL'),
         ]:
             try:
                 cur.execute(f"ALTER TABLE Driver_Details ADD COLUMN `{col}` {defn}")

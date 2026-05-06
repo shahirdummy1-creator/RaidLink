@@ -35,7 +35,8 @@ CREATE TABLE IF NOT EXISTS Driver_Details (
     reg_number     VARCHAR(50)  NOT NULL UNIQUE,
     aadhaar_number CHAR(12)     NOT NULL,
     account_status ENUM('Active','Suspended') NOT NULL DEFAULT 'Active',
-    registered_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
+    registered_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    profile_photo_b64 MEDIUMTEXT DEFAULT NULL
 );
 
 -- ------------------------------------------------------------
