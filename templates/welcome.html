@@ -22,17 +22,17 @@
 
             <!-- Car image left -->
             <div class="col-lg-7 text-center mb-4 mb-lg-0">
-                <h1 class="fw-bold mb-4">Welcome to RaidLink</h1>
+                <h1 class="fw-bold mb-4" style="font-size:2rem;"></h1>
                 <img src="{{ url_for('static', filename='images/car.png') }}"
                      alt="RaidLink Taxi"
                      class="img-fluid"
-                     style="max-height:380px;object-fit:contain;">
+                     style="max-height:304px;object-fit:contain;">
             </div>
 
             <!-- Access card right -->
-            <div class="col-lg-5 d-flex justify-content-center">
-                <div class="card shadow-lg p-4 rounded-4 role-card">
-                    <h3 class="text-center mb-4 fw-bold">Choose Your Access</h3>
+            <div class="col-lg-5 d-flex justify-content-center" style="transform:translateX(-70px);">
+                <div class="card shadow-lg p-4 rounded-4 role-card" style="transform:scale(1.2);height:125%;min-height:380px;">
+                    <h3 class="text-center mb-5 fw-bold" style="color:#0d6efd;">Welcome to RaidLink</h3>
                     <div class="d-grid gap-3 welcome-buttons">
                         <a href="{{ url_for('rider_login') }}" class="btn btn-primary btn-lg fw-bold">Rider Login</a>
                         <a href="{{ url_for('driver_login') }}" class="btn btn-outline-primary btn-lg fw-bold">Driver Login</a>
