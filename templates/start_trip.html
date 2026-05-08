@@ -168,7 +168,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-// ── Trip data from server ─────────────────────────────────
 const TOTAL_KM = parseFloat('{{ booking.distance_km if booking else 0 }}') || 0;
 
 // ── Map init ──────────────────────────────────────────────
@@ -177,13 +176,16 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap', maxZoom: 19
 }).addTo(map);
 
-// Icons
 const greenIcon = L.icon({ iconUrl:'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png', shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png', iconSize:[25,41], iconAnchor:[12,41] });
 const redIcon   = L.icon({ iconUrl:'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',   shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png', iconSize:[25,41], iconAnchor:[12,41] });
 const blueIcon  = L.icon({ iconUrl:'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',  shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png', iconSize:[25,41], iconAnchor:[12,41] });
 
-let driverMarker = null, pickupMarker = null, dropMarker = null, routeLine = null;
-let startCoords  = null;
+// All state declared upfront
+let driverMarker = null, routeLine = null;
+let pickupCoords = null, dropCoords = null;
+let tripStartCoords = null;  // first GPS position when trip started
+let watchId = null;
+let mapLocked = true;  // auto-pan only initially
 
 // ── Haversine ─────────────────────────────────────────────
 function haversineKm(lat1, lon1, lat2, lon2) {
@@ -192,7 +194,7 @@ function haversineKm(lat1, lon1, lat2, lon2) {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-// ── Geocode pickup/drop and place markers ─────────────────
+// ── Geocode pickup/drop ───────────────────────────────────
 async function geocodeAndMark(query, iconType, label) {
     try {
         const res  = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query+', India')}&format=json&limit=1`, { headers:{'Accept-Language':'en'} });
@@ -200,7 +202,7 @@ async function geocodeAndMark(query, iconType, label) {
         if (data.length) {
             const lat = parseFloat(data[0].lat), lng = parseFloat(data[0].lon);
             const icon = iconType === 'green' ? greenIcon : redIcon;
-            const m = L.marker([lat, lng], { icon }).addTo(map).bindPopup(`<b>${label}</b>`);
+            L.marker([lat, lng], { icon }).addTo(map).bindPopup(`<b>${label}</b>`);
             return [lat, lng];
         }
     } catch {}
@@ -208,75 +210,84 @@ async function geocodeAndMark(query, iconType, label) {
 }
 
 // ── GPS tracking ──────────────────────────────────────────
-let watchId = null;
-
 function startTracking() {
     if (!navigator.geolocation) {
         document.getElementById('gps-status').textContent = 'GPS not supported';
+        simulateMovement();
         return;
     }
     document.getElementById('gps-status').textContent = '⏳ Getting GPS...';
     watchId = navigator.geolocation.watchPosition(
         pos => onPosition(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy),
-        err => {
-            document.getElementById('gps-status').textContent = '⚠️ GPS unavailable';
-            // Simulate movement if GPS denied
+        () => {
+            document.getElementById('gps-status').textContent = '⚠️ GPS unavailable — simulating';
             simulateMovement();
         },
-        { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+        { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
     );
 }
 
 function onPosition(lat, lng, accuracy) {
     document.getElementById('gps-status').textContent = `📡 GPS ±${Math.round(accuracy)}m`;
 
-    if (!startCoords) startCoords = [lat, lng];
+    // Record trip start position once
+    if (!tripStartCoords) tripStartCoords = [lat, lng];
 
     // Update driver marker
     if (driverMarker) map.removeLayer(driverMarker);
     driverMarker = L.marker([lat, lng], { icon: blueIcon })
         .addTo(map)
-        .bindPopup('<b>🚗 Your Location</b>')
-        .openPopup();
+        .bindPopup('<b>🚗 Your Location</b>');
 
-    // Update route line
+    // Draw route: driver → drop
     if (routeLine) map.removeLayer(routeLine);
     if (dropCoords) {
-        routeLine = L.polyline([[lat, lng], dropCoords], { color:'#0d6efd', weight:3, dashArray:'8,6' }).addTo(map);
+        routeLine = L.polyline([[lat, lng], dropCoords], {
+            color: '#0d6efd', weight: 4, dashArray: '8,6'
+        }).addTo(map);
     }
 
-    // Pan map to driver
-    map.setView([lat, lng], Math.max(map.getZoom(), 13));
+    // Auto-pan only on first fix, then let driver pan freely
+    if (mapLocked) {
+        if (pickupCoords && dropCoords) {
+            map.fitBounds([pickupCoords, dropCoords, [lat, lng]], { padding: [40, 40] });
+        } else {
+            map.setView([lat, lng], 14);
+        }
+        mapLocked = false;
+    }
 
-    // Update progress
     updateProgress(lat, lng);
 }
 
-// ── Progress calculation ──────────────────────────────────
-let dropCoords = null;
-
+// ── Progress ──────────────────────────────────────────────
 function updateProgress(dLat, dLng) {
-    if (!startCoords || !dropCoords || TOTAL_KM <= 0) return;
-    const distFromStart = haversineKm(startCoords[0], startCoords[1], dLat, dLng);
-    const pct = Math.min(Math.round((distFromStart / TOTAL_KM) * 100), 100);
+    if (!tripStartCoords || !dropCoords || TOTAL_KM <= 0) return;
+    const covered = haversineKm(tripStartCoords[0], tripStartCoords[1], dLat, dLng);
+    const pct = Math.min(Math.round((covered / TOTAL_KM) * 100), 100);
     document.getElementById('progressBar').style.width = pct + '%';
     document.getElementById('progress-pct').textContent = pct + '%';
-    document.getElementById('covered-km').innerHTML = distFromStart.toFixed(1) + ' <small style="font-size:.7rem;">km</small>';
+    document.getElementById('covered-km').innerHTML = covered.toFixed(1) + ' <small style="font-size:.7rem;">km</small>';
 }
 
-// ── Simulate movement (fallback when GPS denied) ──────────
-let simStep = 0;
+// ── Simulate movement (GPS fallback) ─────────────────────
 function simulateMovement() {
-    if (!startCoords || !dropCoords) return;
-    const steps = 20;
-    const interval = setInterval(() => {
-        if (simStep >= steps) { clearInterval(interval); return; }
-        simStep++;
-        const t   = simStep / steps;
-        const lat = startCoords[0] + (dropCoords[0] - startCoords[0]) * t;
-        const lng = startCoords[1] + (dropCoords[1] - startCoords[1]) * t;
-        onPosition(lat, lng, 50);
-    }, 3000);
+    // Wait until geocoding is done
+    const waitAndSim = setInterval(() => {
+        if (!pickupCoords || !dropCoords) return;
+        clearInterval(waitAndSim);
+        tripStartCoords = pickupCoords;
+        const steps = 30;
+        let step = 0;
+        const interval = setInterval(() => {
+            if (step >= steps) { clearInterval(interval); return; }
+            step++;
+            const t   = step / steps;
+            const lat = pickupCoords[0] + (dropCoords[0] - pickupCoords[0]) * t;
+            const lng = pickupCoords[1] + (dropCoords[1] - pickupCoords[1]) * t;
+            onPosition(lat, lng, 50);
+        }, 3000);
+    }, 500);
 }
 
 // ── Timer ─────────────────────────────────────────────────
@@ -311,14 +322,17 @@ function onCompleteTrip() {
         geocodeAndMark(drop,   'red',   'Drop: '   + drop)
     ]);
 
-    if (pCoords) startCoords = pCoords;
-    if (dCoords) dropCoords  = dCoords;
+    pickupCoords = pCoords;
+    dropCoords   = dCoords;
 
     if (pCoords && dCoords) {
         map.fitBounds([pCoords, dCoords], { padding: [40, 40] });
     } else if (pCoords) {
         map.setView(pCoords, 13);
     }
+
+    // Allow manual panning after user touches map
+    map.on('dragstart', () => { mapLocked = false; });
 
     startTracking();
 })();
