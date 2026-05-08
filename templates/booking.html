@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
         body { background: #f0f4f8; font-family: 'Segoe UI', sans-serif; }
-        #map { width: 100%; height: 420px; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.12); z-index: 0; position: relative; cursor: pointer; }
+        #map { width: 100%; height: 280px; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.12); z-index: 0; position: relative; cursor: pointer; }
 
         /* Fullscreen map overlay */
         #fullscreenMapOverlay {
@@ -203,13 +203,8 @@
 <body>
 
 <nav class="navbar navbar-dark bg-primary">
-    <div class="container">
-        <a class="navbar-brand fw-bold" href="{{ url_for('welcome') }}">
-            <i class="bi bi-taxi-front me-2"></i>RaidLink
-        </a>
-        <a href="{{ url_for('rider_bookings', username=username) }}" class="btn btn-sm btn-outline-light">
-            <i class="bi bi-list-ul me-1"></i> My Bookings
-        </a>
+    <div class="container justify-content-center">
+        <a class="navbar-brand fw-bold" href="{{ url_for('welcome') }}">RaidLink Technologies</a>
     </div>
 </nav>
 
@@ -313,9 +308,14 @@
                     <button type="submit" class="btn btn-primary w-100 fw-bold py-2 mb-2">
                         <i class="bi bi-check-circle me-1"></i> Confirm Booking
                     </button>
-                    <a href="{{ url_for('outstation', username=username) }}" class="btn btn-outline-warning w-100 fw-bold py-2">
-                        <i class="bi bi-signpost-2 me-1"></i> Outstation Booking
-                    </a>
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('outstation', username=username) }}" class="btn btn-outline-warning w-50 fw-bold py-2">
+                            <i class="bi bi-signpost-2 me-1"></i> Outstation Booking
+                        </a>
+                        <a href="{{ url_for('rider_bookings', username=username) }}" class="btn btn-outline-primary w-50 fw-bold py-2">
+                            <i class="bi bi-list-ul me-1"></i> My Bookings
+                        </a>
+                    </div>
                 </form>
             </div>
         </div>
