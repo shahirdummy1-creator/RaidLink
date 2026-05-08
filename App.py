@@ -385,6 +385,10 @@ def rider_login():
                 riders = session.setdefault('riders', {})
                 riders[rider[1]] = rider[0]
                 session.modified = True
+                next_url = session.pop('rider_next', None)
+                session.modified = True
+                if next_url and next_url != request.url:
+                    return redirect(next_url)
                 return redirect(url_for('rider_bookings', username=rider[1]))
             error = 'Invalid username or password, or account suspended.'
         else:
@@ -572,7 +576,6 @@ def driver_login():
                 if driver[6] == 'Suspended':
                     error = 'Your account has been suspended. Please contact support.'
                 else:
-                    # Active driver - proceed with login
                     session.permanent = True
                     drivers = session.setdefault('drivers', {})
                     drivers[driver[1]] = {
@@ -583,6 +586,10 @@ def driver_login():
                         'photo': driver[5] or ''
                     }
                     session.modified = True
+                    next_url = session.pop('driver_next', None)
+                    session.modified = True
+                    if next_url and next_url != request.url:
+                        return redirect(next_url)
                     return redirect(url_for('driver_home', username=driver[1]))
             else:
                 error = 'Invalid username or password.'
@@ -827,6 +834,8 @@ def api_latest_booking():
 
 @app.route('/driver-logout/<username>')
 def driver_logout(username):
+    # Save last page before logout
+    session['driver_next'] = request.referrer or url_for('driver_home', username=username)
     drivers = session.get('drivers', {})
     drivers.pop(username, None)
     session.modified = True
@@ -1215,6 +1224,7 @@ def driver_info(username, booking_id):
 
 @app.route('/rider-logout/<username>')
 def rider_logout(username):
+    session['rider_next'] = request.referrer or url_for('rider_bookings', username=username)
     riders = session.get('riders', {})
     riders.pop(username, None)
     session.modified = True
