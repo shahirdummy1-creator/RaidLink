@@ -466,9 +466,9 @@ function updateDistanceFare() {
     routeLine    = L.polyline([[plat, plng],[dlat, dlng]], { color:'#0d6efd', weight:3, dashArray:'8,6' }).addTo(map);
     map.fitBounds([[plat, plng],[dlat, dlng]], { padding: [50, 50] });
 
-    // OSRM road distance — fallback to haversine
+    // OSRM free road distance API
     fetch(`https://router.project-osrm.org/route/v1/driving/${plng},${plat};${dlng},${dlat}?overview=false`)
-        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+        .then(r => r.json())
         .then(data => {
             const metres = data?.routes?.[0]?.distance;
             if (metres && metres > 0) {
@@ -790,7 +790,6 @@ async function setLocationFromFullscreen(type) {
             `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
             { headers: { 'Accept-Language': 'en' } }
         );
-        if (!res.ok) throw new Error('Network error');
         const data = await res.json();
         const name = data.address?.suburb || data.address?.neighbourhood ||
                      data.address?.village || data.address?.town ||
@@ -803,14 +802,9 @@ async function setLocationFromFullscreen(type) {
         document.getElementById(type + '-badge').innerHTML =
             `<span class="loc-badge"><i class="bi bi-check-circle-fill"></i>${addr || name}</span>`;
         updateDistanceFare();
-    } catch(e) {
-        // Fallback: use coordinates as location name
-        const fallbackName = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-        document.getElementById(type).value = fallbackName;
-        coords[type] = [lat, lng];
+    } catch {
         document.getElementById(type + '-badge').innerHTML =
-            `<span class="loc-badge"><i class="bi bi-check-circle-fill"></i>${fallbackName}</span>`;
-        updateDistanceFare();
+            '<span class="text-danger small">Could not fetch address</span>';
     }
 }
 
