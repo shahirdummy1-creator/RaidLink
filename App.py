@@ -195,11 +195,26 @@ def get_driver(username):
 @app.route('/welcome')
 @app.route('/index')
 def welcome():
-    # If rider is logged in, go to their bookings
-    for username in session.get('riders', {}):
-        return redirect(url_for('rider_bookings', username=username))
-    # Show rider login as landing
-    return render_template('rider_login.html', error=None, success=None)
+    try:
+        return render_template('welcome.html')
+    except Exception as e:
+        # Fallback if template loading fails
+        return f"""
+        <!DOCTYPE html>
+        <html>
+        <head><title>RaidLink Technologies</title></head>
+        <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+            <h1 style="color: #0d6efd;">🚕 RaidLink Technologies</h1>
+            <p>Taxi Booking Platform</p>
+            <div style="margin: 20px;">
+                <a href="/rider-login" style="margin: 10px; padding: 10px 20px; background: #0d6efd; color: white; text-decoration: none; border-radius: 5px;">Rider Login</a>
+                <a href="/driver-login" style="margin: 10px; padding: 10px 20px; background: #198754; color: white; text-decoration: none; border-radius: 5px;">Driver Login</a>
+                <a href="/admin-login" style="margin: 10px; padding: 10px 20px; background: #dc3545; color: white; text-decoration: none; border-radius: 5px;">Admin Login</a>
+            </div>
+            <p><small>Status: Running (Template Error: {str(e)})</small></p>
+        </body>
+        </html>
+        """, 200
 
 @app.route('/ping')
 def ping():
