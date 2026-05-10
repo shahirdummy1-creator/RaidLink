@@ -45,6 +45,7 @@
 
                     <!-- Step 2: OTP verify (hidden initially) -->
                     <div id="step-otp" style="display:none;">
+                        <div class="alert alert-info py-2 text-center fw-bold" id="otp-display" style="display:none; font-size:1.1rem; letter-spacing:.1rem;"></div>
                         <div class="mb-3 text-start">
                             <label class="form-label">Enter OTP</label>
                             <input type="text" class="form-control text-center fw-bold" id="inp-otp"
@@ -97,6 +98,10 @@ function sendOtp() {
             msg.textContent = 'OTP sent to ' + mobile;
             document.getElementById('step-otp').style.display = 'block';
             document.getElementById('inp-otp').focus();
+            // Show OTP on screen
+            const otpDisplay = document.getElementById('otp-display');
+            otpDisplay.textContent = 'Your OTP: ' + data.otp;
+            otpDisplay.style.display = 'block';
         } else {
             msg.className = 'text-danger small mt-1';
             msg.textContent = data.error || 'Failed to send OTP.';

@@ -412,7 +412,7 @@ def api_send_signup_otp():
     session['signup_otp'] = {'mobile': mobile, 'otp': otp}
     session.modified = True
     print(f"[SIGNUP OTP] {mobile} → {otp}")  # visible in server logs
-    return jsonify({'ok': True})
+    return jsonify({'ok': True, 'otp': otp})
 
 @app.route('/api/verify-signup-otp', methods=['POST'])
 def api_verify_signup_otp():
