@@ -26,34 +26,40 @@
                     <div class="alert alert-danger py-2">{{ error }}</div>
                     {% endif %}
 
-                    <form method="POST" action="{{ url_for('rider_signup') }}">
+                    <!-- Step 1: Name + Phone -->
+                    <div id="step-details">
                         <div class="mb-3 text-start">
-                            <label for="username" class="form-label">Username</label>
-                            <input type="text" class="form-control" id="username" name="username"
-                                   placeholder="Choose a username" required autofocus>
-                            <div class="form-text">This will be used to log in.</div>
+                            <label class="form-label">Full Name</label>
+                            <input type="text" class="form-control" id="inp-name" placeholder="Enter your name" required autofocus>
                         </div>
                         <div class="mb-3 text-start">
-                            <label for="mobile" class="form-label">Mobile Number</label>
-                            <input type="tel" class="form-control" id="mobile" name="mobile"
-                                   placeholder="Enter mobile number" required>
-                        </div>
-                        <div class="mb-3 text-start">
-                            <label for="email" class="form-label">Email ID</label>
-                            <input type="email" class="form-control" id="email" name="email"
-                                   placeholder="Enter email address" required>
-                        </div>
-                        <div class="mb-3 text-start">
-                            <label for="password" class="form-label">Password</label>
+                            <label class="form-label">Phone Number</label>
                             <div class="input-group">
-                                <input type="password" class="form-control" id="password" name="password"
-                                       placeholder="Minimum 8 characters" minlength="8" required>
-                                <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('password', this)">
-                                    <i class="bi bi-eye"></i>
-                                </button>
+                                <input type="tel" class="form-control" id="inp-mobile" placeholder="10-digit mobile number"
+                                       inputmode="numeric" maxlength="10">
+                                <button class="btn btn-outline-primary fw-bold" type="button" onclick="sendOtp()">Send OTP</button>
                             </div>
+                            <div id="otp-msg" class="form-text"></div>
                         </div>
-                        <button type="submit" class="btn btn-primary w-100 fw-bold py-2">Create Account</button>
+                    </div>
+
+                    <!-- Step 2: OTP verify (hidden initially) -->
+                    <div id="step-otp" style="display:none;">
+                        <div class="mb-3 text-start">
+                            <label class="form-label">Enter OTP</label>
+                            <input type="text" class="form-control text-center fw-bold" id="inp-otp"
+                                   placeholder="0 0 0 0" maxlength="4" inputmode="numeric"
+                                   style="font-size:1.6rem;letter-spacing:.5rem;">
+                            <div id="otp-error" class="text-danger small mt-1" style="display:none;">Incorrect OTP. Try again.</div>
+                        </div>
+                        <button class="btn btn-success w-100 fw-bold py-2" onclick="verifyOtp()">Verify & Create Account</button>
+                        <button class="btn btn-link w-100 mt-1" onclick="resendOtp()">Resend OTP</button>
+                    </div>
+
+                    <!-- Hidden form submitted after OTP verified -->
+                    <form id="signup-form" method="POST" action="{{ url_for('rider_signup') }}" style="display:none;">
+                        <input type="hidden" name="username" id="h-username">
+                        <input type="hidden" name="mobile"   id="h-mobile">
                     </form>
 
                     <div class="text-center mt-4">
@@ -68,16 +74,63 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-function togglePassword(id, btn) {
-    const input = document.getElementById(id);
-    const icon  = btn.querySelector('i');
-    if (input.type === 'password') {
-        input.type = 'text';
-        icon.className = 'bi bi-eye-slash';
-    } else {
-        input.type = 'password';
-        icon.className = 'bi bi-eye';
-    }
+function sendOtp() {
+    const name   = document.getElementById('inp-name').value.trim();
+    const mobile = document.getElementById('inp-mobile').value.trim();
+    const msg    = document.getElementById('otp-msg');
+
+    if (!name) { msg.className = 'text-danger small mt-1'; msg.textContent = 'Please enter your name.'; return; }
+    if (!/^\d{10}$/.test(mobile)) { msg.className = 'text-danger small mt-1'; msg.textContent = 'Enter a valid 10-digit number.'; return; }
+
+    msg.className = 'text-muted small mt-1';
+    msg.textContent = 'Sending OTP...';
+
+    fetch('/api/send-signup-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mobile })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok) {
+            msg.className = 'text-success small mt-1';
+            msg.textContent = 'OTP sent to ' + mobile;
+            document.getElementById('step-otp').style.display = 'block';
+            document.getElementById('inp-otp').focus();
+        } else {
+            msg.className = 'text-danger small mt-1';
+            msg.textContent = data.error || 'Failed to send OTP.';
+        }
+    })
+    .catch(() => { msg.className = 'text-danger small mt-1'; msg.textContent = 'Network error. Try again.'; });
+}
+
+function resendOtp() { sendOtp(); }
+
+function verifyOtp() {
+    const otp    = document.getElementById('inp-otp').value.trim();
+    const mobile = document.getElementById('inp-mobile').value.trim();
+    const errEl  = document.getElementById('otp-error');
+
+    fetch('/api/verify-signup-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mobile, otp })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.valid) {
+            const name = document.getElementById('inp-name').value.trim();
+            document.getElementById('h-username').value = name;
+            document.getElementById('h-mobile').value   = mobile;
+            document.getElementById('signup-form').submit();
+        } else {
+            errEl.style.display = 'block';
+            document.getElementById('inp-otp').value = '';
+            setTimeout(() => errEl.style.display = 'none', 3000);
+        }
+    })
+    .catch(() => { errEl.style.display = 'block'; });
 }
 </script>
 </body>

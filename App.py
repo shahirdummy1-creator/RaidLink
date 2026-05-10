@@ -375,33 +375,55 @@ def rider_login():
 def rider_signup():
     error = None
     if request.method == 'POST':
-        username = request.form.get('username').strip()
-        mobile   = request.form.get('mobile').strip()
-        email    = request.form.get('email').strip()
-        password = request.form.get('password')
-        conn = get_db()
-        if conn:
-            cur = conn.cursor()
-            # check username already taken
-            cur.execute("SELECT id FROM Rider_Details WHERE username=%s", (username,))
-            if cur.fetchone():
-                error = 'ID already taken. Please choose another username.'
-                cur.close(); conn.close()
-            else:
-                try:
-                    cur.execute(
-                        "INSERT INTO Rider_Details (username, mobile, email, password_hash) VALUES (%s,%s,%s,%s)",
-                        (username, mobile, email, hash_password(password))
-                    )
-                    conn.commit()
-                    cur.close(); conn.close()
-                    return redirect(url_for('rider_login', registered=1))
-                except Exception:
-                    error = 'Email already registered. Please login.'
-                    cur.close(); conn.close()
+        username = request.form.get('username', '').strip()
+        mobile   = request.form.get('mobile', '').strip()
+        if not username or not mobile:
+            error = 'Name and phone number are required.'
         else:
-            error = 'Database connection failed.'
+            conn = get_db()
+            if conn:
+                cur = conn.cursor()
+                cur.execute("SELECT id FROM Rider_Details WHERE mobile=%s", (mobile,))
+                if cur.fetchone():
+                    error = 'This phone number is already registered. Please login.'
+                    cur.close(); conn.close()
+                else:
+                    try:
+                        cur.execute(
+                            "INSERT INTO Rider_Details (username, mobile, email, password_hash) VALUES (%s,%s,%s,%s)",
+                            (username, mobile, f"{mobile}@raidlink.local", hashlib.sha256(mobile.encode()).hexdigest())
+                        )
+                        conn.commit()
+                        cur.close(); conn.close()
+                        return redirect(url_for('rider_login', registered=1))
+                    except Exception:
+                        error = 'Registration failed. Please try again.'
+                        cur.close(); conn.close()
+            else:
+                error = 'Database connection failed.'
     return render_template('rider_signup.html', error=error)
+
+@app.route('/api/send-signup-otp', methods=['POST'])
+def api_send_signup_otp():
+    mobile = request.json.get('mobile', '').strip()
+    if not mobile or not mobile.isdigit() or len(mobile) != 10:
+        return jsonify({'ok': False, 'error': 'Invalid mobile number.'})
+    otp = str(random.randint(1000, 9999))
+    session['signup_otp'] = {'mobile': mobile, 'otp': otp}
+    session.modified = True
+    print(f"[SIGNUP OTP] {mobile} → {otp}")  # visible in server logs
+    return jsonify({'ok': True})
+
+@app.route('/api/verify-signup-otp', methods=['POST'])
+def api_verify_signup_otp():
+    mobile = request.json.get('mobile', '').strip()
+    otp    = request.json.get('otp', '').strip()
+    stored = session.get('signup_otp', {})
+    if stored.get('mobile') == mobile and stored.get('otp') == otp:
+        session.pop('signup_otp', None)
+        session.modified = True
+        return jsonify({'valid': True})
+    return jsonify({'valid': False})
 
 # ── Forget Password Routes ───────────────────────────────────
 
