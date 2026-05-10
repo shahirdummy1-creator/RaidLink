@@ -423,12 +423,13 @@ function showDirectionMap() {
                 .addTo(dirMap)
                 .bindPopup(`<b>\ud83d\udccd Pickup</b><br>${PICKUP_ADDR}`)
                 .openPopup();
-            // Set Google Maps link to navigate to pickup
-            document.getElementById('googleMapsBtn').href =
-                `https://www.google.com/maps/dir/?api=1&destination=${pickupCoords[0]},${pickupCoords[1]}&travelmode=driving`;
         }
     } else {
         dirMap.invalidateSize();
+    }
+    if (pickupCoords) {
+        document.getElementById('googleMapsBtn').href =
+            `https://maps.google.com/maps?daddr=${pickupCoords[0]},${pickupCoords[1]}&dirflg=d`;
     }
     if (!navigator.geolocation) {
         document.getElementById('dir-status').textContent = 'GPS not supported';
