@@ -535,12 +535,14 @@ async function reverseGeocode(lat, lng, type) {
         const addr = data.display_name.split(',').slice(1, 3).join(',').trim();
         const pin  = data.address?.postcode || '';
 
-        document.getElementById(type).value = name;
+        document.getElementById(type).value = data.display_name;
         document.getElementById(type + '_pincode').value = pin;
         coords[type] = [lat, lng];
+        document.getElementById(type === 'pickup' ? 'pickup_lat' : 'drop_lat').value = lat;
+        document.getElementById(type === 'pickup' ? 'pickup_lng' : 'drop_lng').value = lng;
 
         document.getElementById(type + '-badge').innerHTML =
-            `<span class="loc-badge"><i class="bi bi-check-circle-fill"></i>${addr || name}</span>`;
+            `<span class="loc-badge"><i class="bi bi-check-circle-fill"></i>${lat.toFixed(6)}, ${lng.toFixed(6)}</span>`;
 
         updateDistanceFare();
     } catch {
@@ -613,18 +615,18 @@ function selectPlace(idx, type) {
     const place = list._data[idx];
     const lat   = parseFloat(place.lat);
     const lng   = parseFloat(place.lon);
-    const name  = place.display_name.split(',')[0];
-    const addr  = place.display_name.split(',').slice(1, 3).join(',').trim();
     const pin   = place.address?.postcode || '';
 
     if (isNaN(lat) || isNaN(lng)) return;
 
-    document.getElementById(type).value = name;
+    document.getElementById(type).value = place.display_name;
     document.getElementById(type + '_pincode').value = pin;
     coords[type] = [lat, lng];
+    document.getElementById(type === 'pickup' ? 'pickup_lat' : 'drop_lat').value = lat;
+    document.getElementById(type === 'pickup' ? 'pickup_lng' : 'drop_lng').value = lng;
 
     document.getElementById(type + '-badge').innerHTML =
-        `<span class="loc-badge"><i class="bi bi-check-circle-fill"></i>${addr || name}</span>`;
+        `<span class="loc-badge"><i class="bi bi-check-circle-fill"></i>${lat.toFixed(6)}, ${lng.toFixed(6)}</span>`;
 
     closeList(type);
     updateDistanceFare();
@@ -823,17 +825,20 @@ async function setLocationFromFullscreen(type) {
                      data.address?.city    || data.display_name.split(',')[0];
         const addr = data.display_name.split(',').slice(1, 3).join(',').trim();
         const pin  = data.address?.postcode || '';
-        document.getElementById(type).value = name;
+        document.getElementById(type).value = data.display_name;
         document.getElementById(type + '_pincode').value = pin;
         coords[type] = [lat, lng];
+        document.getElementById(type === 'pickup' ? 'pickup_lat' : 'drop_lat').value = lat;
+        document.getElementById(type === 'pickup' ? 'pickup_lng' : 'drop_lng').value = lng;
         document.getElementById(type + '-badge').innerHTML =
-            `<span class="loc-badge"><i class="bi bi-check-circle-fill"></i>${addr || name}</span>`;
+            `<span class="loc-badge"><i class="bi bi-check-circle-fill"></i>${lat.toFixed(6)}, ${lng.toFixed(6)}</span>`;
         updateDistanceFare();
     } catch {
-        // Fallback: use coordinates as location name
-        const fallbackName = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        const fallbackName = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
         document.getElementById(type).value = fallbackName;
         coords[type] = [lat, lng];
+        document.getElementById(type === 'pickup' ? 'pickup_lat' : 'drop_lat').value = lat;
+        document.getElementById(type === 'pickup' ? 'pickup_lng' : 'drop_lng').value = lng;
         document.getElementById(type + '-badge').innerHTML =
             `<span class="loc-badge"><i class="bi bi-check-circle-fill"></i>${fallbackName}</span>`;
         updateDistanceFare();
