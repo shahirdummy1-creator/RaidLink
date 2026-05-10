@@ -7,7 +7,6 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate-src.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
         body { background: #f0f4f8; font-family: 'Segoe UI', sans-serif; }
@@ -375,7 +374,6 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/leaflet-rotate-src.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 const coords = { pickup: null, drop: null };
@@ -751,11 +749,7 @@ function openFullscreenMap() {
     overlay.classList.add('show');
 
     if (!fsMap) {
-        fsMap = L.map('fullscreenMap', {
-            rotate: true,
-            touchRotate: true,
-            rotateControl: { closeOnZeroBearing: false }
-        }).setView(
+        fsMap = L.map('fullscreenMap').setView(
             coords.pickup || coords.drop || [20.5937, 78.9629],
             coords.pickup || coords.drop ? 14 : 5
         );
