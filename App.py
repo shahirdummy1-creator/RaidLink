@@ -1247,25 +1247,6 @@ def submit():
     ride_date = request.form.get('ride_date', '')
     ride_time = request.form.get('ride_time', '')
 
-    # Recalculate distance from coordinates if available
-    pickup_lat = request.form.get('pickup_lat')
-    pickup_lng = request.form.get('pickup_lng')
-    drop_lat   = request.form.get('drop_lat')
-    drop_lng   = request.form.get('drop_lng')
-    if pickup_lat and pickup_lng and drop_lat and drop_lng:
-        try:
-            import math
-            plat, plng = float(pickup_lat), float(pickup_lng)
-            dlat, dlng = float(drop_lat),   float(drop_lng)
-            R = 6371
-            dlat_r = math.radians(dlat - plat)
-            dlng_r = math.radians(dlng - plng)
-            a = math.sin(dlat_r/2)**2 + math.cos(math.radians(plat)) * math.cos(math.radians(dlat)) * math.sin(dlng_r/2)**2
-            straight_km = R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-            distance = str(round(straight_km * 1.3, 1))  # road estimate
-        except (ValueError, TypeError):
-            pass
-
     fare_val  = parse_fare(fare_str)
     otp       = str(random.randint(1000, 9999))
     try:
