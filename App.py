@@ -350,14 +350,13 @@ def rider_login():
     error   = None
     success = request.args.get('registered')
     if request.method == 'POST':
-        username = request.form.get('username').strip()
-        password = request.form.get('password')
+        mobile = request.form.get('mobile', '').strip()
         conn = get_db()
         if conn:
             cur = conn.cursor()
             cur.execute(
-                "SELECT id, username FROM Rider_Details WHERE username=%s AND password_hash=%s AND account_status='Active'",
-                (username, hash_password(password))
+                "SELECT id, username FROM Rider_Details WHERE mobile=%s AND account_status='Active'",
+                (mobile,)
             )
             rider = cur.fetchone()
             cur.close(); conn.close()
@@ -367,7 +366,7 @@ def rider_login():
                 riders[rider[1]] = rider[0]
                 session.modified = True
                 return redirect(url_for('rider_bookings', username=rider[1]))
-            error = 'Invalid username or password, or account suspended.'
+            error = 'No active account found with this phone number.'
         else:
             error = 'Database connection failed.'
     return render_template('rider_login.html', error=error, success=success)

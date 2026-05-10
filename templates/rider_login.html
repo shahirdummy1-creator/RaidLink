@@ -40,28 +40,13 @@
 
                     <form method="POST" action="{{ url_for('rider_login') }}">
                         <div class="mb-3 text-start">
-                            <label for="username" class="form-label">Username</label>
-                            <input type="text" class="form-control" id="username" name="username"
-                                   placeholder="Enter your username" required autofocus>
-                        </div>
-                        <div class="mb-3 text-start">
-                            <label for="password" class="form-label">Password</label>
-                            <div class="input-group">
-                                <input type="password" class="form-control" id="password" name="password"
-                                       placeholder="Enter your password" required>
-                                <button type="button" class="btn btn-outline-secondary" onclick="togglePassword('password', this)">
-                                    <i class="bi bi-eye"></i>
-                                </button>
-                            </div>
+                            <label for="mobile" class="form-label">Phone Number</label>
+                            <input type="tel" class="form-control" id="mobile" name="mobile"
+                                   placeholder="Enter your phone number" required autofocus
+                                   inputmode="numeric" maxlength="10">
                         </div>
                         <button type="submit" class="btn btn-primary w-100 fw-bold py-2">Login</button>
                     </form>
-
-                    <div class="text-center mt-3">
-                        <a href="{{ url_for('forgot_password', type='rider') }}" class="text-decoration-none">
-                            <i class="bi bi-key me-1"></i>Forgot Password?
-                        </a>
-                    </div>
 
                     <div class="text-center mt-4">
                         <p class="mb-1 text-muted">Don't have an account?</p>
