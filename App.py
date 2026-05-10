@@ -195,26 +195,7 @@ def get_driver(username):
 @app.route('/welcome')
 @app.route('/index')
 def welcome():
-    try:
-        return render_template('welcome.html')
-    except Exception as e:
-        # Fallback if template loading fails
-        return f"""
-        <!DOCTYPE html>
-        <html>
-        <head><title>RaidLink Technologies</title></head>
-        <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
-            <h1 style="color: #0d6efd;">🚕 RaidLink Technologies</h1>
-            <p>Taxi Booking Platform</p>
-            <div style="margin: 20px;">
-                <a href="/rider-login" style="margin: 10px; padding: 10px 20px; background: #0d6efd; color: white; text-decoration: none; border-radius: 5px;">Rider Login</a>
-                <a href="/driver-login" style="margin: 10px; padding: 10px 20px; background: #198754; color: white; text-decoration: none; border-radius: 5px;">Driver Login</a>
-                <a href="/admin-login" style="margin: 10px; padding: 10px 20px; background: #dc3545; color: white; text-decoration: none; border-radius: 5px;">Admin Login</a>
-            </div>
-            <p><small>Status: Running (Template Error: {str(e)})</small></p>
-        </body>
-        </html>
-        """, 200
+    return redirect(url_for('book', username='guest'))
 
 @app.route('/ping')
 def ping():
@@ -1222,7 +1203,7 @@ def rider_logout(username):
 
 @app.route('/book/<username>')
 def book(username):
-    if not get_rider_id(username):
+    if username != 'guest' and not get_rider_id(username):
         return redirect(url_for('rider_login'))
     mappls_key = os.environ.get('MAPPLS_KEY', 'zwcakbtliihnvvouvbsieoonjytfjadmunsv')
     return render_template('booking.html', username=username, mappls_key=mappls_key)

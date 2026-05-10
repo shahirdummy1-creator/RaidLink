@@ -224,8 +224,15 @@
 <body>
 
 <nav class="navbar navbar-dark bg-primary">
-    <div class="container justify-content-center">
+    <div class="container d-flex justify-content-between align-items-center">
         <a class="navbar-brand fw-bold" href="{{ url_for('welcome') }}">RaidLink Technologies</a>
+        {% if username == 'guest' %}
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('rider_login') }}" class="btn btn-light btn-sm fw-bold text-primary">Rider Login</a>
+            <a href="{{ url_for('driver_login') }}" class="btn btn-outline-light btn-sm fw-bold">Driver Login</a>
+            <a href="{{ url_for('admin_login') }}" class="btn btn-outline-light btn-sm fw-bold">Admin</a>
+        </div>
+        {% endif %}
     </div>
 </nav>
 
@@ -330,9 +337,15 @@
                         </div>
                     </div>
 
+                    {% if username == 'guest' %}
+                    <a href="{{ url_for('rider_login') }}" class="btn btn-primary w-100 fw-bold py-2 mb-2">
+                        <i class="bi bi-check-circle me-1"></i> Login to Confirm Booking
+                    </a>
+                    {% else %}
                     <button type="submit" class="btn btn-primary w-100 fw-bold py-2 mb-2">
                         <i class="bi bi-check-circle me-1"></i> Confirm Booking
                     </button>
+                    {% endif %}
                     <div class="d-flex gap-2">
                         <a href="{{ url_for('outstation', username=username) }}" class="btn btn-outline-warning w-50 fw-bold py-2">
                             <i class="bi bi-signpost-2 me-1"></i> Outstation Booking
