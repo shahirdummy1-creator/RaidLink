@@ -448,7 +448,7 @@ function setDistanceFare(km) {
 }
 
 // ── Update map markers + calculate distance ───────────────
-async function updateDistanceFare() {
+function updateDistanceFare() {
     if (!coords.pickup || !coords.drop) return;
 
     const [plat, plng] = coords.pickup;
@@ -463,42 +463,32 @@ async function updateDistanceFare() {
     routeLine    = L.polyline([[plat, plng],[dlat, dlng]], { color:'#0d6efd', weight:3, dashArray:'8,6' }).addTo(map);
     map.fitBounds([[plat, plng],[dlat, dlng]], { padding: [50, 50] });
 
-    // Show haversine estimate immediately
-    const straightKm = haversineKm(plat, plng, dlat, dlng);
-    const estKm = (straightKm * 1.3).toFixed(1);
-    setDistanceFare(estKm);
+    // Calculate and show haversine distance immediately
+    const straightKm  = haversineKm(plat, plng, dlat, dlng);
+    const estKm       = (straightKm * 1.3).toFixed(1);
+    const fareVal     = Math.max(25 * parseFloat(estKm), 200);
+    document.getElementById('distance').value          = estKm;
+    document.getElementById('fare').value              = fareVal.toFixed(2);
+    document.getElementById('fare-display').textContent = '\u20b9' + fareVal.toFixed(2);
     document.getElementById('map-distance-label').textContent = estKm + ' km (est.)';
 
-    // Try multiple routing APIs in parallel, use first success
-    const apis = [
-        // OSRM with full geometry
-        fetch(`https://router.project-osrm.org/route/v1/driving/${plng},${plat};${dlng},${dlat}?overview=full&geometries=geojson`)
-            .then(r => r.json())
-            .then(d => {
-                const route = d?.routes?.[0];
-                if (!route) throw new Error();
-                return { km: (route.distance / 1000).toFixed(1), coords: route.geometry.coordinates.map(c => [c[1], c[0]]) };
-            }),
-        // Fallback: OSRM EU mirror
-        fetch(`https://routing.openstreetmap.de/routed-car/route/v1/driving/${plng},${plat};${dlng},${dlat}?overview=full&geometries=geojson`)
-            .then(r => r.json())
-            .then(d => {
-                const route = d?.routes?.[0];
-                if (!route) throw new Error();
-                return { km: (route.distance / 1000).toFixed(1), coords: route.geometry.coordinates.map(c => [c[1], c[0]]) };
-            })
-    ];
-
-    try {
-        const result = await Promise.any(apis);
-        if (routeLine) map.removeLayer(routeLine);
-        routeLine = L.polyline(result.coords, { color: '#0d6efd', weight: 4 }).addTo(map);
-        map.fitBounds(routeLine.getBounds(), { padding: [40, 40] });
-        setDistanceFare(result.km);
-        document.getElementById('map-distance-label').textContent = result.km + ' km (road)';
-    } catch {
-        // Keep haversine estimate already shown
-    }
+    // Try to get real road distance in background
+    fetch(`https://router.project-osrm.org/route/v1/driving/${plng},${plat};${dlng},${dlat}?overview=full&geometries=geojson`)
+        .then(r => r.json())
+        .then(data => {
+            const route = data?.routes?.[0];
+            if (!route) return;
+            const roadKm  = (route.distance / 1000).toFixed(1);
+            const roadFare = Math.max(25 * parseFloat(roadKm), 200);
+            document.getElementById('distance').value           = roadKm;
+            document.getElementById('fare').value               = roadFare.toFixed(2);
+            document.getElementById('fare-display').textContent = '\u20b9' + roadFare.toFixed(2);
+            document.getElementById('map-distance-label').textContent = roadKm + ' km (road)';
+            if (routeLine) map.removeLayer(routeLine);
+            routeLine = L.polyline(route.geometry.coordinates.map(c => [c[1], c[0]]), { color:'#0d6efd', weight:4 }).addTo(map);
+            map.fitBounds(routeLine.getBounds(), { padding:[40,40] });
+        })
+        .catch(() => {});
 }
 
 // ── Map click mode ───────────────────────────────────────
