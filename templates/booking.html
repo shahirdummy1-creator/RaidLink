@@ -270,6 +270,10 @@
                     <input type="hidden" name="username" value="{{ username }}">
                     <input type="hidden" id="pickup_pincode" name="pickup_pincode">
                     <input type="hidden" id="drop_pincode"   name="drop_pincode">
+                    <input type="hidden" id="pickup_lat" name="pickup_lat">
+                    <input type="hidden" id="pickup_lng" name="pickup_lng">
+                    <input type="hidden" id="drop_lat"   name="drop_lat">
+                    <input type="hidden" id="drop_lng"   name="drop_lng">
 
                     <!-- Pickup -->
                     <div class="mb-3">
@@ -451,6 +455,12 @@ function updateDistanceFare() {
 
     const [plat, plng] = coords.pickup;
     const [dlat, dlng] = coords.drop;
+
+    // Store coordinates in hidden fields
+    document.getElementById('pickup_lat').value = plat;
+    document.getElementById('pickup_lng').value = plng;
+    document.getElementById('drop_lat').value   = dlat;
+    document.getElementById('drop_lng').value   = dlng;
 
     // Update map markers immediately
     if (pickupMarker) map.removeLayer(pickupMarker);
