@@ -10,8 +10,12 @@
 </head>
 <body>
 <nav class="navbar navbar-dark bg-primary">
-    <div class="container justify-content-center">
-        <a class="navbar-brand fw-bold text-center" href="{{ url_for('welcome') }}">RaidLink Technologies</a>
+    <div class="container d-flex justify-content-between align-items-center">
+        <a class="navbar-brand fw-bold" href="{{ url_for('welcome') }}">RaidLink Technologies</a>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('driver_login') }}" class="btn btn-outline-light btn-sm fw-bold">Driver Login</a>
+            <a href="{{ url_for('admin_login') }}" class="btn btn-light btn-sm fw-bold text-primary">Admin</a>
+        </div>
     </div>
 </nav>
 
