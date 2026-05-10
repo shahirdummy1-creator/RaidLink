@@ -344,9 +344,10 @@
                     </div>
 
                     {% if username == 'guest' %}
-                    <a href="{{ url_for('rider_login') }}" class="btn btn-primary w-100 fw-bold py-2 mb-2">
+                    <button type="button" id="btn-confirm-guest" class="btn btn-primary w-100 fw-bold py-2 mb-2"
+                            disabled onclick="guestConfirm()">
                         <i class="bi bi-check-circle me-1"></i> Login to Confirm Booking
-                    </a>
+                    </button>
                     {% else %}
                     <button type="submit" class="btn btn-primary w-100 fw-bold py-2 mb-2">
                         <i class="bi bi-check-circle me-1"></i> Confirm Booking
@@ -488,7 +489,7 @@ function updateDistanceFare() {
     pickupMarker = L.marker([plat, plng], { icon: greenIcon }).addTo(map).bindPopup('<b>Pickup</b>').openPopup();
     dropMarker   = L.marker([dlat, dlng], { icon: redIcon   }).addTo(map).bindPopup('<b>Drop</b>');
     map.fitBounds([[plat, plng],[dlat, dlng]], { padding: [50, 50] });
-
+    updateGuestBtn();
     document.getElementById('map-distance-label').textContent = 'Calculating road distance...';
 
     // Fetch road distance using exact coordinates via OSRM
@@ -933,6 +934,33 @@ function locateMe() {
         { enableHighAccuracy: true, timeout: 8000 }
     );
 }
+
+// ── Guest booking ─────────────────────────────────────────
+function updateGuestBtn() {
+    const btn = document.getElementById('btn-confirm-guest');
+    if (!btn) return;
+    btn.disabled = !(coords.pickup && coords.drop);
+}
+
+function guestConfirm() {
+    const f = document.getElementById('guest-booking-form');
+    f.querySelector('[name=pickup]').value    = document.getElementById('pickup').value;
+    f.querySelector('[name=drop]').value      = document.getElementById('drop').value;
+    f.querySelector('[name=distance]').value  = document.getElementById('distance').value;
+    f.querySelector('[name=fare]').value      = document.getElementById('fare').value;
+    f.querySelector('[name=ride_date]').value = document.getElementById('ride_date').value;
+    f.querySelector('[name=ride_time]').value = document.getElementById('ride_time').value;
+    f.submit();
+}
 </script>
+
+<form id="guest-booking-form" method="POST" action="/guest-booking" style="display:none;">
+    <input type="hidden" name="pickup">
+    <input type="hidden" name="drop">
+    <input type="hidden" name="distance">
+    <input type="hidden" name="fare">
+    <input type="hidden" name="ride_date">
+    <input type="hidden" name="ride_time">
+</form>
 </body>
 </html>

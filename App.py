@@ -365,6 +365,30 @@ def rider_login():
                 riders = session.setdefault('riders', {})
                 riders[rider[1]] = rider[0]
                 session.modified = True
+                pending = session.pop('pending_booking', None)
+                if pending:
+                    import re
+                    try:
+                        dist_val = float(pending.get('distance', 0))
+                        if dist_val > 0:
+                            otp  = str(random.randint(1000, 9999))
+                            conn2 = get_db()
+                            if conn2:
+                                cur2 = conn2.cursor()
+                                cur2.execute(
+                                    "INSERT INTO Trip_Details (rider_id, pickup_location, drop_location, distance_km, fare, ride_date, ride_time, otp) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
+                                    (rider[0],
+                                     re.sub(r'<[^>]*>', '', pending.get('pickup', '')).strip(),
+                                     re.sub(r'<[^>]*>', '', pending.get('drop', '')).strip(),
+                                     dist_val, parse_fare(pending.get('fare', '')),
+                                     pending.get('ride_date', ''), pending.get('ride_time', ''), otp)
+                                )
+                                conn2.commit()
+                                session.setdefault('last_order', {})[rider[1]] = cur2.lastrowid
+                                cur2.close(); conn2.close()
+                    except (ValueError, TypeError):
+                        pass
+                    session.modified = True
                 return redirect(url_for('rider_bookings', username=rider[1]))
             error = 'No active account found with this phone number.'
         else:
@@ -1219,6 +1243,19 @@ def driver_info(username, booking_id):
 def rider_logout(username):
     riders = session.get('riders', {})
     riders.pop(username, None)
+    session.modified = True
+    return redirect(url_for('rider_login'))
+
+@app.route('/guest-booking', methods=['POST'])
+def guest_booking():
+    session['pending_booking'] = {
+        'pickup':    request.form.get('pickup', ''),
+        'drop':      request.form.get('drop', ''),
+        'distance':  request.form.get('distance', ''),
+        'fare':      request.form.get('fare', ''),
+        'ride_date': request.form.get('ride_date', ''),
+        'ride_time': request.form.get('ride_time', '')
+    }
     session.modified = True
     return redirect(url_for('rider_login'))
 
