@@ -267,9 +267,14 @@
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h4 class="fw-bold mb-0">Book Your Ride</h4>
                     {% if username == 'guest' %}
-                    <div class="d-flex gap-2">
-                        <a href="{{ url_for('driver_login') }}" class="btn btn-outline-primary btn-sm fw-bold">Driver Login</a>
-                        <a href="{{ url_for('admin_login') }}" class="btn btn-outline-secondary btn-sm fw-bold">Admin</a>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-primary btn-sm fw-bold dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            Login
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="{{ url_for('driver_login') }}">Driver Login</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('admin_login') }}">Admin Login</a></li>
+                        </ul>
                     </div>
                     {% endif %}
                 </div>
