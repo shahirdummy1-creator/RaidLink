@@ -365,36 +365,6 @@ def rider_login():
                 riders = session.setdefault('riders', {})
                 riders[rider[1]] = rider[0]
                 session.modified = True
-                # Auto-submit pending guest booking if exists
-                pending = session.pop('pending_booking', None)
-                if pending:
-                    session.modified = True
-                    import re
-                    pickup   = re.sub(r'<[^>]*>', '', pending.get('pickup', '')).strip()
-                    drop     = re.sub(r'<[^>]*>', '', pending.get('drop', '')).strip()
-                    distance = pending.get('distance', '')
-                    fare_str = pending.get('fare', '')
-                    ride_date = pending.get('ride_date', '')
-                    ride_time = pending.get('ride_time', '')
-                    fare_val  = parse_fare(fare_str)
-                    otp       = str(random.randint(1000, 9999))
-                    try:
-                        dist_val = float(distance)
-                        if dist_val <= 0: raise ValueError
-                        conn2 = get_db()
-                        if conn2:
-                            cur2 = conn2.cursor()
-                            cur2.execute(
-                                "INSERT INTO Trip_Details (rider_id, pickup_location, drop_location, distance_km, fare, ride_date, ride_time, otp) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
-                                (rider[0], pickup, drop, dist_val, fare_val, ride_date, ride_time, otp)
-                            )
-                            conn2.commit()
-                            order_id = cur2.lastrowid
-                            cur2.close(); conn2.close()
-                            session.setdefault('last_order', {})[rider[1]] = order_id
-                            session.modified = True
-                    except (ValueError, TypeError):
-                        pass
                 return redirect(url_for('rider_bookings', username=rider[1]))
             error = 'No active account found with this phone number.'
         else:
@@ -1252,20 +1222,8 @@ def rider_logout(username):
     session.modified = True
     return redirect(url_for('rider_login'))
 
-@app.route('/guest-booking', methods=['POST'])
-def guest_booking():
-    session['pending_booking'] = {
-        'pickup':    request.form.get('pickup', ''),
-        'drop':      request.form.get('drop', ''),
-        'distance':  request.form.get('distance', ''),
-        'fare':      request.form.get('fare', ''),
-        'ride_date': request.form.get('ride_date', ''),
-        'ride_time': request.form.get('ride_time', '')
-    }
-    session.modified = True
-    return redirect(url_for('rider_login'))
-
-
+@app.route('/book/<username>')
+def book(username):
     if username != 'guest' and not get_rider_id(username):
         return redirect(url_for('rider_login'))
     mappls_key = os.environ.get('MAPPLS_KEY', 'zwcakbtliihnvvouvbsieoonjytfjadmunsv')
