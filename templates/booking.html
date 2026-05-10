@@ -344,9 +344,18 @@
                     </div>
 
                     {% if username == 'guest' %}
-                    <a href="{{ url_for('rider_login') }}" class="btn btn-primary w-100 fw-bold py-2 mb-2">
+                    <button type="button" id="btn-confirm-guest" class="btn btn-primary w-100 fw-bold py-2 mb-2"
+                            disabled onclick="guestConfirm()">
                         <i class="bi bi-check-circle me-1"></i> Login to Confirm Booking
-                    </a>
+                    </button>
+                    <form id="guest-booking-form" method="POST" action="{{ url_for('guest_booking') }}" style="display:none;">
+                        <input type="hidden" name="pickup"    id="g-pickup">
+                        <input type="hidden" name="drop"      id="g-drop">
+                        <input type="hidden" name="distance"  id="g-distance">
+                        <input type="hidden" name="fare"      id="g-fare">
+                        <input type="hidden" name="ride_date" id="g-date">
+                        <input type="hidden" name="ride_time" id="g-time">
+                    </form>
                     {% else %}
                     <button type="submit" class="btn btn-primary w-100 fw-bold py-2 mb-2">
                         <i class="bi bi-check-circle me-1"></i> Confirm Booking
@@ -489,6 +498,7 @@ function updateDistanceFare() {
     dropMarker   = L.marker([dlat, dlng], { icon: redIcon   }).addTo(map).bindPopup('<b>Drop</b>');
     map.fitBounds([[plat, plng],[dlat, dlng]], { padding: [50, 50] });
 
+    updateGuestBtn();
     document.getElementById('map-distance-label').textContent = 'Calculating road distance...';
 
     // Fetch road distance using exact coordinates via OSRM
@@ -932,6 +942,23 @@ function locateMe() {
         },
         { enableHighAccuracy: true, timeout: 8000 }
     );
+}
+
+// ── Guest booking ─────────────────────────────────────────
+function updateGuestBtn() {
+    const btn = document.getElementById('btn-confirm-guest');
+    if (!btn) return;
+    btn.disabled = !(coords.pickup && coords.drop);
+}
+
+function guestConfirm() {
+    document.getElementById('g-pickup').value   = document.getElementById('pickup').value;
+    document.getElementById('g-drop').value     = document.getElementById('drop').value;
+    document.getElementById('g-distance').value = document.getElementById('distance').value;
+    document.getElementById('g-fare').value     = document.getElementById('fare').value;
+    document.getElementById('g-date').value     = document.getElementById('ride_date').value;
+    document.getElementById('g-time').value     = document.getElementById('ride_time').value;
+    document.getElementById('guest-booking-form').submit();
 }
 </script>
 </body>
