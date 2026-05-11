@@ -544,7 +544,14 @@
     }
 
     let buzzerInterval = null;
-    let hapticInterval = null;
+    let vibrationUnlocked = false;
+
+    // Unlock vibration on first user touch
+    document.addEventListener('touchstart', function unlock() {
+        if (navigator.vibrate) navigator.vibrate(1);
+        vibrationUnlocked = true;
+        document.removeEventListener('touchstart', unlock);
+    }, { once: true });
 
     function startBuzzer() {
         stopBuzzer();
@@ -567,7 +574,7 @@
                 beep(880,  0.22, 0.18);
                 beep(1100, 0.44, 0.3);
             } catch(e) {}
-            if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
+            if (vibrationUnlocked && navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
         }
         playBeeps();
         buzzerInterval = setInterval(playBeeps, 2000);
