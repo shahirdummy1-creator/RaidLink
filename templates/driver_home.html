@@ -519,12 +519,14 @@
 
     // ── Booking actions ────────────────────────────────────
     function acceptBooking() {
+        stopBuzzer();
         stopPolling();
         document.getElementById('acceptTripForm').submit();
     }
 
     function cancelBooking() {
         if (confirm('Are you sure you want to cancel this booking request?')) {
+            stopBuzzer();
             const tripId = document.getElementById('formTripId').value;
             fetch('/api/skip-booking', {
                 method: 'POST',
@@ -541,6 +543,41 @@
         return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
     }
 
+    let buzzerInterval = null;
+    let hapticInterval = null;
+
+    function startBuzzer() {
+        stopBuzzer();
+        function playBeeps() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                function beep(freq, start, duration) {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.type = 'square';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.6, ctx.currentTime + start);
+                    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + duration);
+                    osc.start(ctx.currentTime + start);
+                    osc.stop(ctx.currentTime + start + duration);
+                }
+                beep(880,  0,    0.18);
+                beep(880,  0.22, 0.18);
+                beep(1100, 0.44, 0.3);
+            } catch(e) {}
+            if (navigator.vibrate) navigator.vibrate([300, 100, 300, 100, 300]);
+        }
+        playBeeps();
+        buzzerInterval = setInterval(playBeeps, 2000);
+    }
+
+    function stopBuzzer() {
+        if (buzzerInterval) { clearInterval(buzzerInterval); buzzerInterval = null; }
+        if (navigator.vibrate) navigator.vibrate(0);
+    }
+
     function notifyNewBooking() {
         // Title flash
         let original = document.title;
@@ -549,30 +586,7 @@
         }, 600);
         setTimeout(() => { clearInterval(flashing); document.title = original; }, 5000);
 
-        // Haptic feedback
-        if (navigator.vibrate) {
-            navigator.vibrate([300, 100, 300, 100, 300]);
-        }
-
-        // Buzzer sound via Web Audio API
-        try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            function beep(freq, start, duration) {
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.type = 'square';
-                osc.frequency.value = freq;
-                gain.gain.setValueAtTime(0.6, ctx.currentTime + start);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + duration);
-                osc.start(ctx.currentTime + start);
-                osc.stop(ctx.currentTime + start + duration);
-            }
-            beep(880, 0,    0.18);
-            beep(880, 0.22, 0.18);
-            beep(1100, 0.44, 0.3);
-        } catch(e) {}
+        startBuzzer();
     }
 
     // Load driver data for edit modal
