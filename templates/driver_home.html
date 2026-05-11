@@ -542,11 +542,37 @@
     }
 
     function notifyNewBooking() {
+        // Title flash
         let original = document.title;
         let flashing = setInterval(() => {
             document.title = document.title === '*** NEW ORDER ***' ? original : '*** NEW ORDER ***';
         }, 600);
         setTimeout(() => { clearInterval(flashing); document.title = original; }, 5000);
+
+        // Haptic feedback
+        if (navigator.vibrate) {
+            navigator.vibrate([300, 100, 300, 100, 300]);
+        }
+
+        // Buzzer sound via Web Audio API
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            function beep(freq, start, duration) {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = 'square';
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.6, ctx.currentTime + start);
+                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + duration);
+                osc.start(ctx.currentTime + start);
+                osc.stop(ctx.currentTime + start + duration);
+            }
+            beep(880, 0,    0.18);
+            beep(880, 0.22, 0.18);
+            beep(1100, 0.44, 0.3);
+        } catch(e) {}
     }
 
     // Load driver data for edit modal
