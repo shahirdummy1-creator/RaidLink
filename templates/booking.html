@@ -346,7 +346,7 @@
                     {% if username == 'guest' %}
                     <button type="button" id="btn-confirm-guest" class="btn btn-primary w-100 fw-bold py-2 mb-2"
                             disabled onclick="guestConfirm()">
-                        <i class="bi bi-check-circle me-1"></i> Login to Confirm Booking
+                        <i class="bi bi-check-circle me-1"></i> Book Now
                     </button>
                     {% else %}
                     <button type="submit" class="btn btn-primary w-100 fw-bold py-2 mb-2">
@@ -357,9 +357,11 @@
                         <a href="{{ url_for('outstation', username=username) }}" class="btn btn-outline-warning w-50 fw-bold py-2">
                             <i class="bi bi-signpost-2 me-1"></i> Outstation Booking
                         </a>
+                        {% if username != 'guest' %}
                         <a href="{{ url_for('rider_bookings', username=username) }}" class="btn btn-outline-primary w-50 fw-bold py-2">
                             <i class="bi bi-list-ul me-1"></i> My Bookings
                         </a>
+                        {% endif %}
                     </div>
                 </form>
             </div>
