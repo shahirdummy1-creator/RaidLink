@@ -132,28 +132,6 @@
             </div>
         </div>
 
-        <!-- Driver profile card -->
-        <div class="driver-profile-card">
-            {% if driver_photo %}
-            <img src="{{ url_for('static', filename=driver_photo) }}"
-                 alt="{{ driver_name }}" class="driver-avatar-img">
-            {% else %}
-            <div class="driver-avatar-initials">{{ driver_name[0] | upper }}</div>
-            {% endif %}
-            <div>
-                <div class="driver-profile-name">{{ driver_name }}</div>
-                {% if driver_car %}
-                <div class="driver-profile-meta"><i class="bi bi-car-front me-1"></i>{{ driver_car }}</div>
-                {% endif %}
-                {% if driver_reg %}
-                <div class="driver-profile-meta"><i class="bi bi-card-text me-1"></i>{{ driver_reg }}</div>
-                {% endif %}
-            </div>
-            <button class="btn btn-sm btn-outline-primary ms-auto" data-bs-toggle="modal" data-bs-target="#editProfileModal">
-                <i class="bi bi-pencil"></i> Edit Profile
-            </button>
-        </div>
-
         <!-- Booking request card (rendered by JS) -->
         <div id="bookingArea"></div>
 
@@ -235,7 +213,7 @@
             </div>
         </div>
 
-        <!-- Searching card -->
+                <!-- Searching card -->
         <div class="card border-info mb-4 p-3" id="searchingOrdersCard">
             <div class="d-flex align-items-center justify-content-between">
                 <div class="d-flex align-items-center">
