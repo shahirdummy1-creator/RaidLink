@@ -154,85 +154,73 @@
             </button>
         </div>
 
+        <!-- Booking request card (rendered by JS) -->
+        <div id="bookingArea"></div>
+
         <!-- Subscription Info -->
         {% if subscription %}
-        <div class="row g-3 mb-4">
-            <div class="col-md-4">
-                <div class="card border-0 h-100" style="background: linear-gradient(135deg, #f0f9ff, #e0f2fe); border-radius: 12px;">
+        <div class="row g-3 mt-3 mb-3">
+            <div class="col-4">
+                <div class="card border-0 h-100" style="background:linear-gradient(135deg,#f0f9ff,#e0f2fe);border-radius:12px;">
                     <div class="card-body p-3">
                         <div class="d-flex align-items-center gap-2 mb-1">
                             <i class="bi bi-calendar-event text-primary"></i>
-                            <small class="text-muted fw-600">Date of Join</small>
+                            <small class="text-muted fw-semibold">Joined</small>
                         </div>
-                        <div class="fw-bold">{{ subscription.join_date.strftime('%d %b %Y') }}</div>
+                        <div class="fw-bold small">{{ subscription.join_date.strftime('%d %b %Y') }}</div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="card border-0 h-100" style="background: linear-gradient(135deg, #f5f3ff, #ede9fe); border-radius: 12px;">
+            <div class="col-4">
+                <div class="card border-0 h-100" style="background:linear-gradient(135deg,#f5f3ff,#ede9fe);border-radius:12px;">
                     <div class="card-body p-3">
                         <div class="d-flex align-items-center gap-2 mb-1">
-                            <i class="bi bi-calendar-x text-purple" style="color:#7c3aed;"></i>
-                            <small class="text-muted">Expiry Date</small>
+                            <i class="bi bi-calendar-x" style="color:#7c3aed;"></i>
+                            <small class="text-muted fw-semibold">Expires</small>
                         </div>
-                        <div class="fw-bold">{{ subscription.expiry_date.strftime('%d %b %Y') }}</div>
+                        <div class="fw-bold small">{{ subscription.expiry_date.strftime('%d %b %Y') }}</div>
                     </div>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="card border-0 h-100" style="background: linear-gradient(135deg, {% if subscription.days_left < 0 %}#fef2f2, #fee2e2{% elif subscription.days_left <= 7 %}#fffbeb, #fef3c7{% else %}#f0fdf4, #dcfce7{% endif %}); border-radius: 12px;">
+            <div class="col-4">
+                <div class="card border-0 h-100" style="background:linear-gradient(135deg,{% if subscription.days_left < 0 %}#fef2f2,#fee2e2{% elif subscription.days_left <= 7 %}#fffbeb,#fef3c7{% else %}#f0fdf4,#dcfce7{% endif %});border-radius:12px;">
                     <div class="card-body p-3">
                         <div class="d-flex align-items-center gap-2 mb-1">
                             <i class="bi bi-clock {% if subscription.days_left < 0 %}text-danger{% elif subscription.days_left <= 7 %}text-warning{% else %}text-success{% endif %}"></i>
-                            <small class="text-muted">Days Left</small>
+                            <small class="text-muted fw-semibold">Days Left</small>
                         </div>
                         {% if subscription.days_left < 0 %}
-                        <span class="badge bg-danger">Expired {{ -subscription.days_left }} days ago</span>
+                        <span class="badge bg-danger" style="font-size:.7rem;">Expired</span>
                         {% elif subscription.days_left == 0 %}
-                        <span class="badge bg-warning text-dark">Expires today</span>
+                        <span class="badge bg-warning text-dark" style="font-size:.7rem;">Today</span>
                         {% else %}
-                        <div class="fw-bold {% if subscription.days_left <= 7 %}text-warning{% else %}text-success{% endif %}">{{ subscription.days_left }} days</div>
+                        <div class="fw-bold small {% if subscription.days_left <= 7 %}text-warning{% else %}text-success{% endif %}">{{ subscription.days_left }} days</div>
                         {% endif %}
                     </div>
                 </div>
             </div>
         </div>
-        {% endif %}
 
-        {% if subscription and subscription.days_left <= 0 %}
-        <div class="alert alert-danger d-flex align-items-center justify-content-between mb-4">
-            <div>
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                <strong>Subscription Expired!</strong> You are offline. Renew to start receiving rides.
-            </div>
+        {% if subscription.days_left <= 0 %}
+        <div class="alert alert-danger d-flex align-items-center justify-content-between mb-3">
+            <div><i class="bi bi-exclamation-triangle-fill me-2"></i><strong>Subscription Expired!</strong> Renew to receive rides.</div>
             <div class="d-flex gap-2">
-                <a href="https://rzp.io/rzp/YwwtmdS" target="_blank" class="btn btn-danger btn-sm">
-                    <i class="bi bi-credit-card me-1"></i> Pay Now
-                </a>
+                <a href="https://rzp.io/rzp/YwwtmdS" target="_blank" class="btn btn-danger btn-sm"><i class="bi bi-credit-card me-1"></i> Pay Now</a>
                 <form method="POST" action="{{ url_for('driver_renew', username=driver_name) }}">
                     <input type="hidden" name="username" value="{{ driver_name }}">
                     <div class="input-group input-group-sm">
-                        <input type="text" class="form-control" name="payment_id"
-                               placeholder="Enter Payment ID (e.g. pay_ABC123)"
-                               pattern="pay_[A-Za-z0-9]+" title="Must start with pay_"
-                               required style="min-width:200px;">
-                        <button type="submit" class="btn btn-success">
-                            <i class="bi bi-arrow-clockwise me-1"></i> Renew
-                        </button>
+                        <input type="text" class="form-control" name="payment_id" placeholder="Payment ID (pay_...)" pattern="pay_[A-Za-z0-9]+" required style="min-width:160px;">
+                        <button type="submit" class="btn btn-success"><i class="bi bi-arrow-clockwise me-1"></i> Renew</button>
                     </div>
                 </form>
             </div>
         </div>
-        {% elif subscription and subscription.days_left <= 7 %}
-        <div class="alert alert-warning d-flex align-items-center justify-content-between mb-4">
-            <div>
-                <i class="bi bi-clock-fill me-2"></i>
-                <strong>Expiring Soon!</strong> {{ subscription.days_left }} days left. Renew to avoid interruption.
-            </div>
-            <a href="https://rzp.io/rzp/YK27HRh" target="_blank" class="btn btn-warning btn-sm ms-3">
-                <i class="bi bi-credit-card me-1"></i> Renew
-            </a>
+        {% elif subscription.days_left <= 7 %}
+        <div class="alert alert-warning d-flex align-items-center justify-content-between mb-3">
+            <div><i class="bi bi-clock-fill me-2"></i><strong>Expiring Soon!</strong> {{ subscription.days_left }} days left.</div>
+            <a href="https://rzp.io/rzp/YK27HRh" target="_blank" class="btn btn-warning btn-sm"><i class="bi bi-credit-card me-1"></i> Renew</a>
         </div>
+        {% endif %}
         {% endif %}
 
         <!-- Driver status toggle -->
@@ -264,9 +252,6 @@
                 <small class="text-muted" id="autoRefreshCountdown"></small>
             </div>
         </div>
-
-        <!-- Booking request card (rendered by JS) -->
-        <div id="bookingArea"></div>
 
         <div class="mt-3">
             <a href="{{ url_for('driver_home', username=driver_name) }}" class="btn btn-secondary">Back to Home</a>
