@@ -187,12 +187,19 @@
         <div class="row g-3 align-items-end">
             <div class="col-md-6">
                 <label class="form-label fw-bold">📊 Quick Filters</label>
-                <div class="d-flex flex-wrap gap-2">
-                    <button class="filter-btn active" data-period="all">All Time</button>
-                    <button class="filter-btn" data-period="today">Today</button>
-                    <button class="filter-btn" data-period="week">This Week</button>
-                    <button class="filter-btn" data-period="month">This Month</button>
-                    <button class="filter-btn" data-period="year">This Year</button>
+                <div>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-primary dropdown-toggle fw-semibold" type="button" id="filterDropdown" data-bs-toggle="dropdown">
+                            <i class="bi bi-funnel me-1"></i> <span id="filterLabel">All Time</span>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item filter-btn active" href="#" data-period="all">All Time</a></li>
+                            <li><a class="dropdown-item filter-btn" href="#" data-period="today">Today</a></li>
+                            <li><a class="dropdown-item filter-btn" href="#" data-period="week">This Week</a></li>
+                            <li><a class="dropdown-item filter-btn" href="#" data-period="month">This Month</a></li>
+                            <li><a class="dropdown-item filter-btn" href="#" data-period="year">This Year</a></li>
+                        </ul>
+                    </div>
                 </div>
             </div>
             <div class="col-md-3">
@@ -305,12 +312,12 @@
         const toDate = document.getElementById('toDate');
         
         filterBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
                 filterBtns.forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
-                
-                const period = this.dataset.period;
-                filterByPeriod(period);
+                document.getElementById('filterLabel').textContent = this.textContent.trim();
+                filterByPeriod(this.dataset.period);
             });
         });
         
