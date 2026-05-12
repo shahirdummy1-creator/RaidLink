@@ -120,16 +120,15 @@
 
         /* Search results dropdown */
         #fsSearchResults {
-            position: absolute;
-            top: 100%;
+            position: fixed;
+            top: 56px;
             left: 0; right: 0;
             background: #fff;
-            z-index: 10002;
+            z-index: 10010;
             max-height: 260px;
             overflow-y: auto;
             display: none;
-            border-radius: 0 0 12px 12px;
-            box-shadow: 0 8px 24px rgba(0,0,0,.25);
+            box-shadow: 0 8px 24px rgba(0,0,0,.3);
         }
         #fsSearchResults.show { display: block; }
         .fs-search-item {
@@ -394,17 +393,17 @@
 <!-- Fullscreen Map Overlay -->
 <div id="fullscreenMapOverlay">
     <!-- Top bar: search + exit -->
-    <div class="fs-topbar" style="position:relative;">
+    <div class="fs-topbar">
         <input type="text" id="fsSearchInput" placeholder="Search location..." autocomplete="off">
-        <button class="fs-search-btn" onclick="triggerFsSearch()" aria-label="Search">
+        <button class="fs-search-btn" onmousedown="event.preventDefault(); triggerFsSearch();" aria-label="Search">
             <i class="bi bi-search"></i>
         </button>
         <button class="fs-exit-btn" onclick="closeFullscreenMap()" aria-label="Close map">
             <i class="bi bi-x-lg"></i> Exit
         </button>
-        <!-- Search results anchored below topbar input -->
-        <div id="fsSearchResults"></div>
     </div>
+    <!-- Search results: fixed below topbar -->
+    <div id="fsSearchResults"></div>
     <!-- Map -->
     <div class="fs-map-wrap">
         <div id="fullscreenMap"></div>
