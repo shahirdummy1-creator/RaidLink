@@ -455,6 +455,33 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Map search functionality
     initMapSearch();
+
+    // Auto-set pickup from current location
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(async pos => {
+            const lat = pos.coords.latitude, lng = pos.coords.longitude;
+            try {
+                const res  = await fetch(
+                    `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
+                    { headers: { 'Accept-Language': 'en' } }
+                );
+                const data = await res.json();
+                const name = data.display_name;
+                const pin  = data.address?.postcode || '';
+                document.getElementById('pickup').value = name;
+                document.getElementById('pickup_pincode').value = pin;
+                document.getElementById('pickup_lat').value = lat;
+                document.getElementById('pickup_lng').value = lng;
+                coords.pickup = [lat, lng];
+                document.getElementById('pickup-badge').innerHTML =
+                    `<span class="loc-badge"><i class="bi bi-geo-alt-fill"></i> Current Location</span>`;
+                // Place marker on small map
+                if (pickupMarker) map.removeLayer(pickupMarker);
+                pickupMarker = L.marker([lat, lng], { icon: greenIcon }).addTo(map).bindPopup('<b>Pickup</b>').openPopup();
+                map.setView([lat, lng], 14);
+            } catch(e) {}
+        }, () => {}, { enableHighAccuracy: true, timeout: 8000 });
+    }
 });
 
 // ── Haversine fallback ────────────────────────────────────
