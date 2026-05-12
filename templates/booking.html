@@ -277,7 +277,7 @@
                     <h4 class="fw-bold mb-0">Book Your Ride</h4>
                     {% if username == 'guest' %}
                     <div class="dropdown">
-                        <button class="btn btn-outline-primary btn-sm fw-bold dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <button class="btn btn-outline-primary btn-sm fw-bold dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-label="More options">
                             <i class="bi bi-three-dots-vertical"></i>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
@@ -383,7 +383,7 @@
     <!-- Top bar: search + exit -->
     <div class="fs-topbar">
         <input type="text" id="fsSearchInput" placeholder="🔍 Search location..." autocomplete="off">
-        <button class="fs-exit-btn" onclick="closeFullscreenMap()">
+        <button class="fs-exit-btn" onclick="closeFullscreenMap()" aria-label="Close map">
             <i class="bi bi-x-lg"></i> Exit
         </button>
     </div>
@@ -393,7 +393,7 @@
     <div class="fs-map-wrap">
         <div id="fullscreenMap"></div>
         <div class="fs-crosshair" id="fsCrosshair">📍</div>
-        <button class="fs-btn-locate" onclick="locateMe()" title="My Location">
+        <button class="fs-btn-locate" onclick="locateMe()" title="My Location" aria-label="My Location">
             <i class="bi bi-crosshair"></i>
         </button>
     </div>

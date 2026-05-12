@@ -121,7 +121,7 @@
                 </button>
                 <div class="dropdown ms-1">
                     <button class="btn btn-primary" type="button" id="driverMenuButton"
-                            data-bs-toggle="dropdown" aria-expanded="false">
+                            data-bs-toggle="dropdown" aria-expanded="false" aria-label="Driver menu">
                         <i class="bi bi-three-dots-vertical"></i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="driverMenuButton">
@@ -392,7 +392,7 @@
                                 <i class="bi bi-exclamation-circle me-2"></i>
                                 <strong>Booking picked by another driver.</strong> Searching for new orders…
                             </div>
-                            <button type="button" class="btn-close" onclick="document.getElementById('pickedAlert').remove()"></button>
+                            <button type="button" class="btn-close" onclick="document.getElementById('pickedAlert').remove()" aria-label="Close"></button>
                         </div>`;
                 } else {
                     // No booking available — only clear card if we weren't showing one
@@ -686,9 +686,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Edit Profile</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form action="{{ url_for('update_driver_profile') }}" method="POST" enctype="multipart/form-data">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> method="POST" enctype="multipart/form-data">
                 <div class="modal-body">
                     <input type="hidden" name="username" value="{{ driver_name }}">
                     
