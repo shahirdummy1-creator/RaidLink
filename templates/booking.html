@@ -221,7 +221,9 @@
         }
         .map-legend { display: flex; gap: 16px; margin-top: 8px; font-size: .8rem; color: #6b7280; }
         .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 4px; }
-        .booking-card { background: #fff; border-radius: 20px; box-shadow: 0 4px 24px rgba(0,0,0,.08); padding: 32px; }
+        body.map-fullscreen .hide-on-map {
+            display: none !important;
+        }
         .section-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #6b7280; margin-bottom: 6px; }
         .distance-badge {
             background: #eff6ff; border: 1px solid #bfdbfe;
@@ -232,7 +234,7 @@
 </head>
 <body>
 
-<nav class="navbar navbar-dark bg-primary">
+<nav class="navbar navbar-dark bg-primary hide-on-map">
     <div class="container justify-content-center">
         <a class="navbar-brand fw-bold" href="{{ url_for('welcome') }}">RaidLink Technologies</a>
     </div>
@@ -804,6 +806,7 @@ let fsMap = null, fsCenterMarker = null;
 function openFullscreenMap() {
     const overlay = document.getElementById('fullscreenMapOverlay');
     overlay.classList.add('show');
+    document.body.classList.add('map-fullscreen');
 
     if (!fsMap) {
         fsMap = L.map('fullscreenMap').setView(
@@ -835,6 +838,7 @@ function openFullscreenMap() {
 
 function closeFullscreenMap() {
     document.getElementById('fullscreenMapOverlay').classList.remove('show');
+    document.body.classList.remove('map-fullscreen');
     closeFsSearch();
     if (fsMap) fsMap.invalidateSize();
 }
@@ -974,7 +978,7 @@ function guestConfirm() {
     <input type="hidden" name="ride_time">
 </form>
 {% if username == 'guest' %}
-<div style="position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:10px;align-items:flex-end;">
+<div class="hide-on-map" style="position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:10px;align-items:flex-end;">
     <a href="tel:+919003666080"
        style="background:#0d6efd;color:#fff;border-radius:50px;
               padding:12px 20px;font-weight:700;font-size:.95rem;
