@@ -48,12 +48,23 @@
         }
         .fs-topbar input {
             flex: 1;
-            border-radius: 8px;
+            border-radius: 8px 0 0 8px;
             border: none;
             padding: 8px 12px;
             font-size: .9rem;
             outline: none;
         }
+        .fs-search-btn {
+            background: #fff;
+            border: none;
+            border-radius: 0 8px 8px 0;
+            padding: 8px 14px;
+            color: #0d6efd;
+            font-size: 1rem;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+        .fs-search-btn:hover { background: #e9ecef; }
         .fs-exit-btn {
             background: rgba(255,255,255,.2);
             border: none;
@@ -384,7 +395,10 @@
 <div id="fullscreenMapOverlay">
     <!-- Top bar: search + exit -->
     <div class="fs-topbar" style="position:relative;">
-        <input type="text" id="fsSearchInput" placeholder="🔍 Search location..." autocomplete="off">
+        <input type="text" id="fsSearchInput" placeholder="Search location..." autocomplete="off">
+        <button class="fs-search-btn" onclick="triggerFsSearch()" aria-label="Search">
+            <i class="bi bi-search"></i>
+        </button>
         <button class="fs-exit-btn" onclick="closeFullscreenMap()" aria-label="Close map">
             <i class="bi bi-x-lg"></i> Exit
         </button>
@@ -870,6 +884,9 @@ function openFullscreenMap() {
         if (q.length < 3) { closeFsSearch(); return; }
         fsTimer = setTimeout(() => fetchFsSuggestions(q), 400);
     };
+    fsInput.onkeydown = function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); triggerFsSearch(); }
+    };
 }
 
 function closeFullscreenMap() {
@@ -949,6 +966,11 @@ function selectFsResult(idx) {
     fsMap.setView([lat, lng], 15);
     document.getElementById('fsSearchInput').value = place.display_name.split(',')[0];
     closeFsSearch();
+}
+
+function triggerFsSearch() {
+    const q = document.getElementById('fsSearchInput').value.trim();
+    if (q.length >= 1) fetchFsSuggestions(q);
 }
 
 function closeFsSearch() {
