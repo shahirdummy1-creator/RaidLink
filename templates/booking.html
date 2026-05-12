@@ -163,7 +163,13 @@
             flex-shrink: 0;
         }
         .fs-btn-locate:hover { background: #f4f4f4; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        /* Leaflet zoom controls - ensure 48px touch targets */
+        .leaflet-control-zoom a {
+            width: 48px !important;
+            height: 48px !important;
+            line-height: 48px !important;
+            font-size: 1.2rem !important;
+        }
         
         /* Map Search Bar */
         .map-search-container {
@@ -182,6 +188,7 @@
             font-size: 0.9rem;
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
             width: 100%;
+            min-height: 48px;
             transition: all 0.2s ease;
         }
         .map-search-bar:focus {
