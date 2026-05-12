@@ -252,27 +252,11 @@
         <div class="col-lg-6">
             <div style="position: relative;">
                 <div id="map" onclick="openFullscreenMap()"></div>
-                <!-- Map Search Bar Overlay -->
-                <div class="map-search-container">
-                    <div style="position: relative;">
-                        <input type="text" class="map-search-bar" id="mapSearchInput" 
-                               placeholder="🔍 Search location on map..." autocomplete="off">
-                        <div class="map-search-results" id="mapSearchResults"></div>
-                    </div>
-                </div>
             </div>
             <div class="map-legend">
                 <span><span class="legend-dot" style="background:#22c55e;"></span>Pickup</span>
                 <span><span class="legend-dot" style="background:#ef4444;"></span>Drop</span>
                 <span id="map-distance-label" class="ms-auto fw-semibold text-primary"></span>
-            </div>
-            <div class="d-flex gap-2 mt-2">
-                <button type="button" class="btn btn-sm btn-outline-success w-50 fw-semibold" onclick="setMapMode('pickup')" id="btn-pickup-mode">
-                    <i class="bi bi-geo-alt-fill me-1"></i>Set Pickup on Map
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-danger w-50 fw-semibold" onclick="setMapMode('drop')" id="btn-drop-mode">
-                    <i class="bi bi-flag-fill me-1"></i>Set Drop on Map
-                </button>
             </div>
             <small id="map-mode-hint" class="text-muted d-block mt-1 text-center"></small>
         </div>
