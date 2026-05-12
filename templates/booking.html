@@ -378,13 +378,19 @@
 <div id="fullscreenMapOverlay">
     <!-- Top bar: search + exit -->
     <div class="fs-topbar">
-        <input type="text" id="fsSearchInput" placeholder="🔍 Search location..." autocomplete="off">
+        <input type="text" id="fsSearchInput" placeholder="Search location..." autocomplete="off"
+               style="flex:1;" onkeydown="if(event.key==='Enter'){event.preventDefault();fsMoveToSearch(this.value.trim());}">
+        <button onclick="fsMoveToSearch(document.getElementById('fsSearchInput').value.trim())"
+                style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;white-space:nowrap;"
+                aria-label="Search">
+            <i class="bi bi-search"></i>
+        </button>
         <button class="fs-exit-btn" onclick="closeFullscreenMap()" aria-label="Close map">
             <i class="bi bi-x-lg"></i> Exit
         </button>
     </div>
-    <!-- Search results -->
-    <div id="fsSearchResults"></div>
+    <!-- Search results hidden -->
+    <div id="fsSearchResults" style="display:none;"></div>
     <!-- Map -->
     <div class="fs-map-wrap">
         <div id="fullscreenMap"></div>
@@ -856,13 +862,10 @@ function openFullscreenMap() {
 
     // Search input
     const fsInput = document.getElementById('fsSearchInput');
+    fsInput.oninput = null;
     fsInput.value = '';
-    let fsTimer;
-    fsInput.oninput = function() {
-        clearTimeout(fsTimer);
-        const q = this.value.trim();
-        if (q.length < 3) { closeFsSearch(); return; }
-        fsTimer = setTimeout(() => fetchFsSuggestions(q), 400);
+    fsInput.onkeydown = function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); fsMoveToSearch(this.value.trim()); }
     };
 }
 
@@ -910,43 +913,22 @@ async function setLocationFromFullscreen(type) {
     }
 }
 
-async function fetchFsSuggestions(query) {
-    try {
-        const res  = await fetch(
-            `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + ', India')}&format=json&limit=5`,
-            { headers: { 'Accept-Language': 'en' } }
-        );
-        const data = await res.json();
-        const box  = document.getElementById('fsSearchResults');
-        if (!data.length) { closeFsSearch(); return; }
-        box._data = data;
-        box.innerHTML = data.map((p, i) => {
-            const name = p.display_name.split(',')[0];
-            const addr = p.display_name.split(',').slice(1, 3).join(',').trim();
-            return `<div class="fs-search-item" onmousedown="selectFsResult(${i})">
-                        <i class="bi bi-geo-alt text-primary me-2"></i>
-                        <strong>${name}</strong> <span class="text-muted ms-1">${addr}</span>
-                    </div>`;
-        }).join('');
-        box.classList.add('show');
-    } catch { closeFsSearch(); }
+
+function fsMoveToSearch(query) {
+    if (!query || query.length < 2) return;
+    fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(query + ', India') + '&format=json&limit=1', { headers: { 'Accept-Language': 'en' } })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (!data.length) return;
+        var lat = parseFloat(data[0].lat), lng = parseFloat(data[0].lon);
+        if (isNaN(lat) || isNaN(lng)) return;
+        fsMap.setView([lat, lng], 15);
+        if (window._fsSearchMarker) fsMap.removeLayer(window._fsSearchMarker);
+        window._fsSearchMarker = L.marker([lat, lng]).addTo(fsMap)
+            .bindPopup('<b>' + data[0].display_name.split(',')[0] + '</b>').openPopup();
+    }).catch(function() {});
 }
 
-function selectFsResult(idx) {
-    const box  = document.getElementById('fsSearchResults');
-    const place = box._data[idx];
-    const lat = parseFloat(place.lat), lng = parseFloat(place.lon);
-    if (isNaN(lat) || isNaN(lng)) return;
-    fsMap.setView([lat, lng], 15);
-    document.getElementById('fsSearchInput').value = place.display_name.split(',')[0];
-    closeFsSearch();
-}
-
-function closeFsSearch() {
-    const box = document.getElementById('fsSearchResults');
-    box.classList.remove('show');
-    box.innerHTML = '';
-}
 
 // ── Locate current position on fullscreen map ────────────────
 let fsLocationMarker = null;
