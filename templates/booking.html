@@ -240,12 +240,12 @@
             color: #166534; font-size: .78rem; font-weight: 600;
             padding: 4px 10px; border-radius: 20px; margin-top: 4px;
         }
-        .map-legend { display: flex; gap: 16px; margin-top: 8px; font-size: .8rem; color: #6b7280; }
+        .map-legend { display: flex; gap: 16px; margin-top: 8px; font-size: .8rem; color: #374151; }
         .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 4px; }
         body.map-fullscreen .hide-on-map {
             display: none !important;
         }
-        .section-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #6b7280; margin-bottom: 6px; }
+        .section-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #374151; margin-bottom: 6px; }
         .distance-badge {
             background: #eff6ff; border: 1px solid #bfdbfe;
             border-radius: 10px; padding: 12px 16px;
@@ -375,7 +375,7 @@
                     </button>
                     {% endif %}
                     <div class="d-flex gap-2">
-                        <a href="{{ url_for('outstation', username=username) }}" class="btn btn-outline-warning w-50 fw-bold py-2">
+                        <a href="{{ url_for('outstation', username=username) }}" class="btn btn-warning text-dark w-50 fw-bold py-2">
                             <i class="bi bi-signpost-2 me-1"></i> Outstation Booking
                         </a>
                         {% if username != 'guest' %}
@@ -635,8 +635,8 @@ async function reverseGeocode(lat, lng, type) {
     mapClickMode = null;
     if (map) map.getContainer().style.cursor = '';
     document.getElementById('map-mode-hint').textContent = '';
-    document.getElementById('btn-pickup-mode').className = 'btn btn-sm btn-outline-success w-50 fw-semibold';
-    document.getElementById('btn-drop-mode').className   = 'btn btn-sm btn-outline-danger w-50 fw-semibold';
+    document.getElementById('btn-pickup-mode').className = 'btn btn-sm btn-success w-50 fw-semibold';
+    document.getElementById('btn-drop-mode').className   = 'btn btn-sm btn-danger w-50 fw-semibold';
 }
 
 // ── Nominatim autosuggest ─────────────────────────────────
@@ -1047,7 +1047,7 @@ function guestConfirm() {
         <i class="bi bi-telephone-fill"></i> Call to Book
     </a>
     <a href="https://wa.me/919003666080?text=Hi%2C%20I%20need%20help%20with%20booking%20a%20ride" target="_blank"
-       style="background:#25D366;color:#fff;border-radius:50px;
+       style="background:#128C7E;color:#fff;border-radius:50px;
               padding:12px 20px;font-weight:700;font-size:.95rem;
               text-decoration:none;box-shadow:0 4px 16px rgba(0,0,0,.25);
               display:flex;align-items:center;gap:8px;">
