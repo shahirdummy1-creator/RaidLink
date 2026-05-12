@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ city.title }} – RaidLink | {{ city.meta_title }}</title>
+    <meta name="description" content="{{ city.meta_desc }}">
+    <meta name="keywords" content="{{ city.keywords }}">
+    <meta name="robots" content="index, follow">
+    <meta name="author" content="RaidLink Technologies">
+    <meta property="og:title" content="{{ city.title }} – RaidLink">
+    <meta property="og:description" content="{{ city.meta_desc }}">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://raidlink-production.up.railway.app{{ city.url }}">
+    <link rel="canonical" href="https://raidlink-production.up.railway.app{{ city.url }}">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f8f9fa; }
+        .hero { background: linear-gradient(135deg, #0d6efd, #0a58ca); color: #fff; padding: 60px 0 40px; }
+        .hero h1 { font-size: 2.2rem; font-weight: 800; }
+        .hero p  { font-size: 1.1rem; opacity: .85; }
+        .section-card { background: #fff; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,.07); padding: 32px; margin-bottom: 28px; }
+        .service-item { display: flex; align-items: flex-start; gap: 14px; padding: 14px 0; border-bottom: 1px solid #f3f4f6; }
+        .service-item:last-child { border-bottom: none; }
+        .service-icon { width: 44px; height: 44px; border-radius: 10px; background: #eff6ff; color: #0d6efd; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; flex-shrink: 0; }
+        .price-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f3f4f6; }
+        .price-row:last-child { border-bottom: none; }
+        .faq-item { border-bottom: 1px solid #f3f4f6; padding: 16px 0; }
+        .faq-item:last-child { border-bottom: none; }
+        .faq-q { font-weight: 700; color: #111827; cursor: pointer; display: flex; justify-content: space-between; }
+        .faq-a { color: #6b7280; margin-top: 8px; font-size: .95rem; display: none; }
+        .faq-a.show { display: block; }
+        .contact-btn { display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px; border-radius: 50px; font-weight: 700; font-size: 1rem; text-decoration: none; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar navbar-dark bg-primary">
+    <div class="container d-flex justify-content-between align-items-center">
+        <a class="navbar-brand fw-bold" href="{{ url_for('welcome') }}">RaidLink Technologies</a>
+        <a href="{{ url_for('book', username='guest') }}" class="btn btn-light btn-sm fw-bold">Book Now</a>
+    </div>
+</nav>
+
+<!-- Hero -->
+<div class="hero">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1><i class="bi bi-taxi-front me-2"></i>{{ city.title }}</h1>
+                <p>{{ city.hero_desc }}</p>
+                <div class="d-flex gap-3 flex-wrap mt-4">
+                    <a href="tel:+919003666080" class="contact-btn" style="background:#fff;color:#0d6efd;">
+                        <i class="bi bi-telephone-fill"></i> Call to Book
+                    </a>
+                    <a href="https://wa.me/919003666080?text=Hi%2C+I+need+a+cab+in+{{ city.name }}" target="_blank" class="contact-btn" style="background:#25D366;color:#fff;">
+                        <i class="bi bi-whatsapp"></i> WhatsApp
+                    </a>
+                    <a href="{{ url_for('book', username='guest') }}" class="contact-btn" style="background:rgba(255,255,255,.15);color:#fff;border:2px solid rgba(255,255,255,.4);">
+                        <i class="bi bi-map me-1"></i> Book Online
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container py-4">
+    <div class="row g-4">
+        <div class="col-lg-8">
+
+            <!-- Services -->
+            <div class="section-card">
+                <h2 class="fw-bold mb-4" style="font-size:1.4rem;"><i class="bi bi-grid-fill text-primary me-2"></i>Our Services in {{ city.name }}</h2>
+                {% for s in city.services %}
+                <div class="service-item">
+                    <div class="service-icon"><i class="bi {{ s.icon }}"></i></div>
+                    <div>
+                        <div class="fw-bold">{{ s.name }}</div>
+                        <div class="text-muted small">{{ s.desc }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Pricing -->
+            <div class="section-card">
+                <h2 class="fw-bold mb-4" style="font-size:1.4rem;"><i class="bi bi-currency-rupee text-success me-2"></i>Pricing</h2>
+                {% for p in city.pricing %}
+                <div class="price-row">
+                    <div>
+                        <div class="fw-semibold">{{ p.route }}</div>
+                        <div class="text-muted small">{{ p.note }}</div>
+                    </div>
+                    <div class="fw-bold text-success fs-5">{{ p.price }}</div>
+                </div>
+                {% endfor %}
+                <div class="alert alert-info mt-3 mb-0 py-2 small">
+                    <i class="bi bi-info-circle me-1"></i> Minimum fare ₹200. Final fare calculated by road distance.
+                </div>
+            </div>
+
+            <!-- FAQs -->
+            <div class="section-card">
+                <h2 class="fw-bold mb-4" style="font-size:1.4rem;"><i class="bi bi-question-circle text-warning me-2"></i>Frequently Asked Questions</h2>
+                {% for f in city.faqs %}
+                <div class="faq-item">
+                    <div class="faq-q" onclick="toggleFaq(this)">
+                        {{ f.q }}
+                        <i class="bi bi-chevron-down"></i>
+                    </div>
+                    <div class="faq-a">{{ f.a }}</div>
+                </div>
+                {% endfor %}
+            </div>
+
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Contact Card -->
+            <div class="section-card text-center">
+                <i class="bi bi-headset text-primary" style="font-size:2.5rem;"></i>
+                <h5 class="fw-bold mt-3">Book Instantly</h5>
+                <p class="text-muted small">Call or WhatsApp us 24/7 for instant cab booking in {{ city.name }}</p>
+                <a href="tel:+919003666080" class="btn btn-primary w-100 fw-bold mb-2">
+                    <i class="bi bi-telephone-fill me-2"></i>9003666080
+                </a>
+                <a href="https://wa.me/919003666080?text=Hi%2C+I+need+a+cab+in+{{ city.name }}" target="_blank" class="btn w-100 fw-bold mb-2" style="background:#25D366;color:#fff;">
+                    <i class="bi bi-whatsapp me-2"></i>WhatsApp Us
+                </a>
+                <a href="{{ url_for('book', username='guest') }}" class="btn btn-outline-primary w-100 fw-bold">
+                    <i class="bi bi-map me-2"></i>Book Online
+                </a>
+            </div>
+
+            <!-- Why RaidLink -->
+            <div class="section-card">
+                <h5 class="fw-bold mb-3">Why RaidLink?</h5>
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Verified & trained drivers</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Transparent pricing</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>24/7 availability</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>AC & Non-AC cabs</li>
+                    <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Airport pickups & drops</li>
+                    <li><i class="bi bi-check-circle-fill text-success me-2"></i>Outstation trips available</li>
+                </ul>
+            </div>
+
+            <!-- Other Cities -->
+            <div class="section-card">
+                <h5 class="fw-bold mb-3">Other Cities</h5>
+                <div class="d-flex flex-column gap-2">
+                    <a href="/cab-service-chennai" class="btn btn-outline-secondary btn-sm text-start">🚕 Cab Service Chennai</a>
+                    <a href="/taxi-service-trichy" class="btn btn-outline-secondary btn-sm text-start">🚕 Taxi Service Trichy</a>
+                    <a href="/airport-taxi-coimbatore" class="btn btn-outline-secondary btn-sm text-start">✈️ Airport Taxi Coimbatore</a>
+                    <a href="/outstation-cab-madurai" class="btn btn-outline-secondary btn-sm text-start">🛣️ Outstation Cab Madurai</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer class="bg-primary text-white text-center py-3 mt-4">
+    <small>© 2024 RaidLink Technologies | <a href="tel:+919003666080" class="text-white">9003666080</a> | Serving Tamil Nadu</small>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function toggleFaq(el) {
+    const ans = el.nextElementSibling;
+    const icon = el.querySelector('i');
+    ans.classList.toggle('show');
+    icon.className = ans.classList.contains('show') ? 'bi bi-chevron-up' : 'bi bi-chevron-down';
+}
+</script>
+</body>
+</html>

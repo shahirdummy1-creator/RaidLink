@@ -201,6 +201,131 @@ def welcome():
 def google_verify():
     return app.send_static_file('googlec9d557a3d16bb541.html')
 
+# ── City SEO Pages ────────────────────────────────────────
+
+CITY_PAGES = {
+    'chennai': {
+        'name': 'Chennai', 'url': '/cab-service-chennai',
+        'title': 'Cab Service in Chennai',
+        'meta_title': 'Affordable Taxi & Cab Booking Chennai',
+        'meta_desc': 'Book reliable cab service in Chennai at affordable rates. RaidLink offers local cab, airport taxi, and outstation cab from Chennai 24/7.',
+        'keywords': 'cab service Chennai, taxi booking Chennai, airport taxi Chennai, local cab Chennai, outstation cab Chennai, affordable taxi Chennai',
+        'hero_desc': 'Reliable, affordable cab service across Chennai. Airport pickups, local rides and outstation trips — available 24/7.',
+        'services': [
+            {'icon': 'bi-geo-alt-fill',   'name': 'Local Cab',          'desc': 'Rides within Chennai city at affordable per-km rates.'},
+            {'icon': 'bi-airplane',       'name': 'Airport Taxi',       'desc': 'Timely pickups and drops to Chennai International Airport.'},
+            {'icon': 'bi-signpost-2',     'name': 'Outstation Cab',     'desc': 'One-way and round trips from Chennai to any city in Tamil Nadu.'},
+            {'icon': 'bi-building',       'name': 'Corporate Cab',      'desc': 'Reliable cab service for office commutes and corporate travel.'},
+        ],
+        'pricing': [
+            {'route': 'Chennai City Local',         'note': 'Per km rate',          'price': '₹25/km'},
+            {'route': 'Chennai → Airport',          'note': 'One way',              'price': 'From ₹400'},
+            {'route': 'Chennai → Trichy',           'note': '~330 km one way',      'price': 'From ₹3,500'},
+            {'route': 'Chennai → Coimbatore',       'note': '~500 km one way',      'price': 'From ₹5,000'},
+        ],
+        'faqs': [
+            {'q': 'How do I book a cab in Chennai?',         'a': 'You can book online at our website, call us at 9003666080, or WhatsApp us for instant booking.'},
+            {'q': 'Do you provide airport taxi in Chennai?', 'a': 'Yes, we provide 24/7 airport pickup and drop service to Chennai International Airport.'},
+            {'q': 'What is the minimum fare?',               'a': 'The minimum fare is ₹200. Fare is calculated at ₹25 per km.'},
+            {'q': 'Are outstation trips available?',         'a': 'Yes, we offer one-way and round-trip outstation cabs from Chennai to all major Tamil Nadu cities.'},
+        ]
+    },
+    'trichy': {
+        'name': 'Trichy', 'url': '/taxi-service-trichy',
+        'title': 'Taxi Service in Trichy',
+        'meta_title': 'Affordable Cab & Taxi Booking Trichy',
+        'meta_desc': 'Book reliable taxi service in Trichy (Tiruchirappalli) at affordable rates. RaidLink offers local cab, airport taxi, and outstation trips from Trichy.',
+        'keywords': 'taxi service Trichy, cab booking Trichy, Tiruchirappalli taxi, airport taxi Trichy, outstation cab Trichy, affordable taxi Trichy',
+        'hero_desc': 'Affordable and reliable taxi service across Trichy. Local rides, airport transfers and outstation trips — available 24/7.',
+        'services': [
+            {'icon': 'bi-geo-alt-fill',   'name': 'Local Taxi',         'desc': 'Rides within Trichy city at affordable per-km rates.'},
+            {'icon': 'bi-airplane',       'name': 'Airport Taxi',       'desc': 'Timely pickups and drops to Trichy International Airport.'},
+            {'icon': 'bi-signpost-2',     'name': 'Outstation Cab',     'desc': 'One-way and round trips from Trichy to Chennai, Madurai, Coimbatore and more.'},
+            {'icon': 'bi-building',       'name': 'Temple Tours',       'desc': 'Comfortable cab service for Rockfort, Srirangam and nearby temple visits.'},
+        ],
+        'pricing': [
+            {'route': 'Trichy City Local',          'note': 'Per km rate',          'price': '₹25/km'},
+            {'route': 'Trichy → Airport',           'note': 'One way',              'price': 'From ₹300'},
+            {'route': 'Trichy → Chennai',           'note': '~330 km one way',      'price': 'From ₹3,500'},
+            {'route': 'Trichy → Madurai',           'note': '~140 km one way',      'price': 'From ₹1,800'},
+        ],
+        'faqs': [
+            {'q': 'How do I book a taxi in Trichy?',         'a': 'Book online, call 9003666080, or WhatsApp us for instant cab booking in Trichy.'},
+            {'q': 'Do you provide airport taxi in Trichy?',  'a': 'Yes, we provide 24/7 airport pickup and drop service to Trichy International Airport.'},
+            {'q': 'Can I book an outstation cab from Trichy?','a': 'Yes, we offer one-way and round-trip outstation cabs from Trichy to Chennai, Madurai, Coimbatore and all Tamil Nadu cities.'},
+            {'q': 'What is the fare per km in Trichy?',      'a': 'Our fare starts at ₹25 per km with a minimum fare of ₹200.'},
+        ]
+    },
+    'coimbatore': {
+        'name': 'Coimbatore', 'url': '/airport-taxi-coimbatore',
+        'title': 'Airport Taxi in Coimbatore',
+        'meta_title': 'Airport Taxi & Cab Booking Coimbatore',
+        'meta_desc': 'Book reliable airport taxi in Coimbatore at affordable rates. RaidLink offers 24/7 airport pickup, local cab and outstation trips from Coimbatore.',
+        'keywords': 'airport taxi Coimbatore, cab service Coimbatore, taxi booking Coimbatore, outstation cab Coimbatore, affordable taxi Coimbatore, Coimbatore airport cab',
+        'hero_desc': 'Reliable airport taxi and cab service in Coimbatore. On-time airport pickups, local rides and outstation trips — 24/7.',
+        'services': [
+            {'icon': 'bi-airplane',       'name': 'Airport Taxi',       'desc': '24/7 pickup and drop to Coimbatore International Airport.'},
+            {'icon': 'bi-geo-alt-fill',   'name': 'Local Cab',          'desc': 'Rides within Coimbatore city at affordable per-km rates.'},
+            {'icon': 'bi-signpost-2',     'name': 'Outstation Cab',     'desc': 'One-way and round trips from Coimbatore to Chennai, Ooty, Trichy and more.'},
+            {'icon': 'bi-tree',           'name': 'Hill Station Trips', 'desc': 'Comfortable cab service to Ooty, Kodaikanal and Munnar from Coimbatore.'},
+        ],
+        'pricing': [
+            {'route': 'Coimbatore City Local',      'note': 'Per km rate',          'price': '₹25/km'},
+            {'route': 'Coimbatore → Airport',       'note': 'One way',              'price': 'From ₹300'},
+            {'route': 'Coimbatore → Chennai',       'note': '~500 km one way',      'price': 'From ₹5,000'},
+            {'route': 'Coimbatore → Ooty',          'note': '~90 km one way',       'price': 'From ₹1,200'},
+        ],
+        'faqs': [
+            {'q': 'Do you provide airport taxi in Coimbatore?', 'a': 'Yes, we provide 24/7 airport pickup and drop to Coimbatore International Airport.'},
+            {'q': 'How do I book a cab in Coimbatore?',         'a': 'Book online, call 9003666080, or WhatsApp us for instant cab booking in Coimbatore.'},
+            {'q': 'Can I book a cab to Ooty from Coimbatore?',  'a': 'Yes, we offer comfortable cab service from Coimbatore to Ooty, Kodaikanal and other hill stations.'},
+            {'q': 'What is the fare for airport taxi?',         'a': 'Airport taxi starts from ₹300 depending on your pickup location within Coimbatore.'},
+        ]
+    },
+    'madurai': {
+        'name': 'Madurai', 'url': '/outstation-cab-madurai',
+        'title': 'Outstation Cab in Madurai',
+        'meta_title': 'Outstation Cab & Taxi Booking Madurai',
+        'meta_desc': 'Book reliable outstation cab in Madurai at affordable rates. RaidLink offers one-way and round-trip cabs from Madurai to Chennai, Trichy, Coimbatore and more.',
+        'keywords': 'outstation cab Madurai, taxi service Madurai, cab booking Madurai, Madurai to Chennai cab, airport taxi Madurai, affordable taxi Madurai',
+        'hero_desc': 'Affordable outstation cab and taxi service in Madurai. One-way and round trips to all Tamil Nadu cities — available 24/7.',
+        'services': [
+            {'icon': 'bi-signpost-2',     'name': 'Outstation Cab',     'desc': 'One-way and round trips from Madurai to Chennai, Trichy, Coimbatore and more.'},
+            {'icon': 'bi-geo-alt-fill',   'name': 'Local Cab',          'desc': 'Rides within Madurai city at affordable per-km rates.'},
+            {'icon': 'bi-airplane',       'name': 'Airport Taxi',       'desc': 'Timely pickups and drops to Madurai Airport.'},
+            {'icon': 'bi-building2',      'name': 'Temple Tours',       'desc': 'Comfortable cab for Meenakshi Amman Temple and nearby pilgrimage sites.'},
+        ],
+        'pricing': [
+            {'route': 'Madurai City Local',         'note': 'Per km rate',          'price': '₹25/km'},
+            {'route': 'Madurai → Airport',          'note': 'One way',              'price': 'From ₹300'},
+            {'route': 'Madurai → Chennai',          'note': '~460 km one way',      'price': 'From ₹4,500'},
+            {'route': 'Madurai → Trichy',           'note': '~140 km one way',      'price': 'From ₹1,800'},
+        ],
+        'faqs': [
+            {'q': 'How do I book an outstation cab from Madurai?', 'a': 'Book online, call 9003666080, or WhatsApp us for instant outstation cab booking from Madurai.'},
+            {'q': 'Do you provide airport taxi in Madurai?',       'a': 'Yes, we provide 24/7 airport pickup and drop service to Madurai Airport.'},
+            {'q': 'What cities can I travel to from Madurai?',     'a': 'We offer outstation cabs from Madurai to Chennai, Trichy, Coimbatore, Rameshwaram, Kanyakumari and all Tamil Nadu cities.'},
+            {'q': 'What is the fare per km?',                      'a': 'Our fare starts at ₹25 per km with a minimum fare of ₹200.'},
+        ]
+    }
+}
+
+@app.route('/cab-service-chennai')
+def city_chennai():
+    return render_template('city_page.html', city=CITY_PAGES['chennai'])
+
+@app.route('/taxi-service-trichy')
+def city_trichy():
+    return render_template('city_page.html', city=CITY_PAGES['trichy'])
+
+@app.route('/airport-taxi-coimbatore')
+def city_coimbatore():
+    return render_template('city_page.html', city=CITY_PAGES['coimbatore'])
+
+@app.route('/outstation-cab-madurai')
+def city_madurai():
+    return render_template('city_page.html', city=CITY_PAGES['madurai'])
+
 @app.route('/sitemap.xml')
 def sitemap():
     return app.send_static_file('sitemap.xml'), 200, {'Content-Type': 'application/xml'}
