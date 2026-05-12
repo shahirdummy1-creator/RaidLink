@@ -197,6 +197,10 @@ def get_driver(username):
 def welcome():
     return redirect(url_for('book', username='guest'))
 
+@app.route('/sitemap.xml')
+def sitemap():
+    return app.send_static_file('sitemap.xml'), 200, {'Content-Type': 'application/xml'}
+
 @app.route('/ping')
 def ping():
     """Simple ping endpoint that doesn't require database"""
