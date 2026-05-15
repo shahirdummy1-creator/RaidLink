@@ -1153,7 +1153,7 @@ def accept_trip():
         cur.execute("UPDATE Trip_Details SET accepted_by=%s WHERE id=%s", (driver_name, trip_id))
         conn.commit()
         cur.execute("""
-            SELECT t.id, t.pickup_location, t.drop_location, t.fare, t.distance_km,
+            SELECT t.id, t.pickup_location, t.drop_location, t.fare, t.distance_km, t.ride_date,
                    r.username AS rider_name, r.mobile AS rider_mobile
             FROM Trip_Details t
             LEFT JOIN Rider_Details r ON r.id = t.rider_id
