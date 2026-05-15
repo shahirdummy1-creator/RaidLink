@@ -407,6 +407,13 @@
 
                 const b = data.booking;
 
+                if (data.busy) {
+                    // Driver has active trip — stop polling, resume banner handles it
+                    stopPolling();
+                    searchingOrdersCard.style.display = 'none';
+                    return;
+                }
+
                 if (b) {
                     // New or different booking — render immediately
                     if (b.id !== currentBookingId) {

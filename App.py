@@ -951,6 +951,14 @@ def api_latest_booking():
     conn = get_db()
     if conn:
         cur = conn.cursor()
+        # Check if this driver already has an active trip in progress
+        cur.execute(
+            "SELECT id FROM Trip_Details WHERE accepted_by=%s AND status IN ('Confirmed','In Progress') LIMIT 1",
+            (driver_name,)
+        )
+        if cur.fetchone():
+            cur.close(); conn.close()
+            return jsonify({'booking': None, 'picked': False, 'busy': True})
         cur.execute(
             """SELECT t.id, t.rider_id, t.pickup_location, t.drop_location,
                       t.distance_km, t.fare, t.ride_date, t.ride_time,
