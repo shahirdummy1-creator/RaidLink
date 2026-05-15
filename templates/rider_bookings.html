@@ -454,7 +454,10 @@ function switchTab(name, btn) {
     document.getElementById('tab-' + name).classList.add('active');
     btn.classList.add('active');
 }
-setInterval(() => location.reload(), 10000);
+setInterval(() => {
+    const activeTab = document.querySelector('.tab-btn.active');
+    if (activeTab && activeTab.textContent.trim().startsWith('Active')) location.reload();
+}, 10000);
 </script>
 </body>
 </html>
