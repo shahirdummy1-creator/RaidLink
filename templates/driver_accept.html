@@ -78,7 +78,7 @@
             background: #000;
         }
         #directionOverlay.show { display: flex; }
-        #directionMap { flex: 1; width: 100%; }
+        #directionMap { flex: 1; width: 100%; position: relative; }
         .dir-topbar {
             background: linear-gradient(135deg,#059669,#047857);
             padding: 10px 16px;
@@ -108,7 +108,23 @@
         .dir-label { font-size: .68rem; font-weight: 700; text-transform: uppercase; color: #6b7280; }
         .dir-value { font-size: 1.1rem; font-weight: 800; color: #0d6efd; }
 
-        /* Action buttons */
+        /* My Location button */
+        .btn-locate {
+            position: absolute;
+            bottom: 16px; right: 10px;
+            z-index: 1000;
+            background: #fff;
+            border: 2px solid rgba(0,0,0,.2);
+            border-radius: 8px;
+            width: 44px; height: 44px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,.25);
+            color: #0d6efd;
+        }
+        .btn-locate:hover { background: #f0f4ff; }
+        .map-wrap { position: relative; }
+        @keyframes spin { to { transform: rotate(360deg); } }
         .action-section { padding:14px 16px; display:grid; grid-template-columns:1fr auto; gap:10px; }
         .btn-start {
             padding:14px; border-radius:12px; border:none;
@@ -143,7 +159,12 @@
 </div>
 
 <!-- Live Map -->
-<div id="map"></div>
+<div class="map-wrap">
+    <div id="map"></div>
+    <button class="btn-locate" id="locateBtn" onclick="locateMe()" title="My Location" aria-label="My Location">
+        <i class="bi bi-crosshair"></i>
+    </button>
+</div>
 
 <!-- ETA bar -->
 <div class="eta-bar">
@@ -243,6 +264,9 @@
 
     </div>
     <div id="directionMap"></div>
+    <button class="btn-locate" id="dirLocateBtn" onclick="locateMeDir()" title="My Location" aria-label="My Location" style="bottom:80px;">
+        <i class="bi bi-crosshair"></i>
+    </button>
     <div class="dir-bottombar">
         <div class="dir-info">
             <div class="dir-label">Distance to Pickup</div>
@@ -368,6 +392,35 @@ function onPosition(lat, lng, accuracy) {
     } else {
         map.setView([lat, lng], 14);
     }
+}
+
+// ── My Location button ───────────────────────────────────
+function locateMe() {
+    const btn = document.getElementById('locateBtn');
+    btn.innerHTML = '<i class="bi bi-arrow-repeat" style="animation:spin .7s linear infinite"></i>';
+    if (!navigator.geolocation) { btn.innerHTML = '<i class="bi bi-crosshair"></i>'; return; }
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            onPosition(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
+            btn.innerHTML = '<i class="bi bi-crosshair"></i>';
+        },
+        () => { btn.innerHTML = '<i class="bi bi-crosshair"></i>'; },
+        { enableHighAccuracy: true, timeout: 8000 }
+    );
+}
+
+function locateMeDir() {
+    const btn = document.getElementById('dirLocateBtn');
+    btn.innerHTML = '<i class="bi bi-arrow-repeat" style="animation:spin .7s linear infinite"></i>';
+    if (!navigator.geolocation) { btn.innerHTML = '<i class="bi bi-crosshair"></i>'; return; }
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            updateDirection(pos.coords.latitude, pos.coords.longitude);
+            btn.innerHTML = '<i class="bi bi-crosshair"></i>';
+        },
+        () => { btn.innerHTML = '<i class="bi bi-crosshair"></i>'; },
+        { enableHighAccuracy: true, timeout: 8000 }
+    );
 }
 
 // ── OTP verify ────────────────────────────────────────────
