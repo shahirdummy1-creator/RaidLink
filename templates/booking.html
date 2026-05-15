@@ -427,6 +427,9 @@
                         <a href="{{ url_for('rider_bookings', username=username) }}" class="btn btn-primary w-50 fw-bold py-2" style="min-height:48px;display:flex;align-items:center;justify-content:center;">
                             <i class="bi bi-list-ul me-1"></i> My Bookings
                         </a>
+                        <a href="{{ url_for('rider_logout', username=username) }}" class="btn btn-danger fw-bold py-2" style="min-height:48px;display:flex;align-items:center;justify-content:center;padding-left:16px;padding-right:16px;">
+                            <i class="bi bi-box-arrow-right"></i>
+                        </a>
                         {% endif %}
                     </div>
                 </form>
