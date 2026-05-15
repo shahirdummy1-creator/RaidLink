@@ -1138,12 +1138,19 @@ def driver_cancel_trip():
         cur.close(); conn.close()
     return redirect(url_for('driver_home', username=driver_name))
 
-@app.route('/accept-trip', methods=['POST'])
+@app.route('/accept-trip', methods=['GET', 'POST'])
 def accept_trip():
-    trip_id     = request.form.get('trip_id')
-    driver_name = request.form.get('driver_name', 'Unknown Driver')
+    if request.method == 'GET':
+        drivers = session.get('drivers', {})
+        if drivers:
+            username = next(iter(drivers))
+            return redirect(url_for('driver_home', username=username))
+        return redirect(url_for('driver_login'))
 
-    if not get_driver(driver_name):
+    trip_id     = request.form.get('trip_id')
+    driver_name = request.form.get('driver_name', '').strip()
+
+    if not driver_name or not get_driver(driver_name):
         return redirect(url_for('driver_login'))
 
     conn = get_db()
