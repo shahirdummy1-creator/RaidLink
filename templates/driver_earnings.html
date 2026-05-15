@@ -188,41 +188,50 @@
     </div>
 
     <!-- KPI Cards -->
-    <div class="stats-grid">
-        <div class="kpi-card">
+    <div class="stats-grid" id="kpiGrid" style="display:none;">
+        <div class="kpi-card" id="kpi-today">
             <div class="kpi-icon" style="background: linear-gradient(135deg, #28a745, #20c997); color: white;">
                 <i class="bi bi-calendar-day"></i>
             </div>
             <div class="kpi-value text-success" id="dailyEarnings">{{ daily_earnings }}</div>
             <div class="kpi-label">Today's Earnings</div>
-            <div class="kpi-change text-success" id="dailyChange">+12% from yesterday</div>
+            <div class="kpi-change text-muted" id="dailyTrips"></div>
         </div>
         
-        <div class="kpi-card">
+        <div class="kpi-card" id="kpi-week">
             <div class="kpi-icon" style="background: linear-gradient(135deg, #007bff, #0056b3); color: white;">
                 <i class="bi bi-calendar-week"></i>
             </div>
             <div class="kpi-value text-primary" id="weeklyEarnings">{{ weekly_earnings }}</div>
             <div class="kpi-label">This Week</div>
-            <div class="kpi-change text-success" id="weeklyChange">+8% from last week</div>
+            <div class="kpi-change text-muted" id="weeklyTrips"></div>
         </div>
         
-        <div class="kpi-card">
+        <div class="kpi-card" id="kpi-month">
             <div class="kpi-icon" style="background: linear-gradient(135deg, #ffc107, #e0a800); color: white;">
                 <i class="bi bi-calendar-month"></i>
             </div>
             <div class="kpi-value text-warning" id="monthlyEarnings">{{ monthly_earnings }}</div>
             <div class="kpi-label">This Month</div>
-            <div class="kpi-change text-success" id="monthlyChange">+15% from last month</div>
+            <div class="kpi-change text-muted" id="monthlyTrips"></div>
         </div>
         
-        <div class="kpi-card">
+        <div class="kpi-card" id="kpi-year">
+            <div class="kpi-icon" style="background: linear-gradient(135deg, #fd7e14, #e55a00); color: white;">
+                <i class="bi bi-calendar"></i>
+            </div>
+            <div class="kpi-value text-warning" id="yearlyEarnings">—</div>
+            <div class="kpi-label">This Year</div>
+            <div class="kpi-change text-muted" id="yearlyTrips"></div>
+        </div>
+
+        <div class="kpi-card" id="kpi-all">
             <div class="kpi-icon" style="background: linear-gradient(135deg, #6f42c1, #5a2d91); color: white;">
                 <i class="bi bi-graph-up-arrow"></i>
             </div>
             <div class="kpi-value text-purple" id="totalEarnings">{{ total_earnings }}</div>
             <div class="kpi-label">Total Earnings</div>
-            <div class="kpi-change text-success" id="totalTrips">{{ trips|length }} total trips</div>
+            <div class="kpi-change text-muted" id="totalTrips">{{ trips|length }} total trips</div>
         </div>
     </div>
 
@@ -302,65 +311,62 @@
     function filterByPeriod(period) {
         const rows = document.querySelectorAll('.trip-row');
         const today = new Date();
-        
+
+        // Show/hide KPI grid and the right card
+        const kpiGrid = document.getElementById('kpiGrid');
+        const kpiMap = { today: 'kpi-today', week: 'kpi-week', month: 'kpi-month', year: 'kpi-year', all: 'kpi-all' };
+        kpiGrid.style.display = 'grid';
+        document.querySelectorAll('.kpi-card').forEach(c => c.style.display = 'none');
+        const activeCard = document.getElementById(kpiMap[period]);
+        if (activeCard) activeCard.style.display = '';
+
+        let visibleFare = 0, visibleCount = 0;
         rows.forEach(row => {
             const tripDate = new Date(row.dataset.date);
             let show = true;
-            
             switch(period) {
                 case 'today':
-                    show = tripDate.toDateString() === today.toDateString();
-                    break;
+                    show = tripDate.toDateString() === today.toDateString(); break;
                 case 'week':
-                    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-                    show = tripDate >= weekAgo;
-                    break;
+                    show = tripDate >= new Date(today.getTime() - 7*24*60*60*1000); break;
                 case 'month':
-                    show = tripDate.getMonth() === today.getMonth() && tripDate.getFullYear() === today.getFullYear();
-                    break;
+                    show = tripDate.getMonth() === today.getMonth() && tripDate.getFullYear() === today.getFullYear(); break;
                 case 'year':
-                    show = tripDate.getFullYear() === today.getFullYear();
-                    break;
-                default:
-                    show = true;
+                    show = tripDate.getFullYear() === today.getFullYear(); break;
+                default: show = true;
             }
-            
             row.style.display = show ? '' : 'none';
+            if (show) {
+                const fare = parseFloat(row.querySelector('.fare-amount')?.textContent?.replace(/[^0-9.]/g,'')) || 0;
+                visibleFare += fare;
+                visibleCount++;
+            }
         });
-        
-        updateKPIs(period);
+
+        // Update the active card's value and trip count
+        const valueIds = { today: 'dailyEarnings', week: 'weeklyEarnings', month: 'monthlyEarnings', year: 'yearlyEarnings', all: 'totalEarnings' };
+        const tripIds  = { today: 'dailyTrips',   week: 'weeklyTrips',    month: 'monthlyTrips',   year: 'yearlyTrips',   all: 'totalTrips' };
+        const el = document.getElementById(valueIds[period]);
+        if (el) el.textContent = '\u20b9' + visibleFare.toFixed(2);
+        const tEl = document.getElementById(tripIds[period]);
+        if (tEl) tEl.textContent = visibleCount + ' trip' + (visibleCount !== 1 ? 's' : '');
     }
     
     function filterByDateRange() {
         const fromDate = document.getElementById('fromDate').value;
         const toDate = document.getElementById('toDate').value;
-        
         if (!fromDate || !toDate) return;
-        
-        const rows = document.querySelectorAll('.trip-row');
-        const from = new Date(fromDate);
-        const to = new Date(toDate);
-        
-        rows.forEach(row => {
+        // Hide KPI cards when using custom date range
+        document.getElementById('kpiGrid').style.display = 'none';
+        const from = new Date(fromDate), to = new Date(toDate);
+        document.querySelectorAll('.trip-row').forEach(row => {
             const tripDate = new Date(row.dataset.date);
-            const show = tripDate >= from && tripDate <= to;
-            row.style.display = show ? '' : 'none';
+            row.style.display = (tripDate >= from && tripDate <= to) ? '' : 'none';
         });
     }
     
-    function updateKPIs(period) {
-        // This would typically fetch updated data from backend
-        // For demo, we'll just update the change indicators
-        const changes = {
-            today: '+12%',
-            week: '+8%', 
-            month: '+15%',
-            year: '+25%',
-            all: 'All time'
-        };
-        
-        document.getElementById('dailyChange').textContent = changes[period] + ' growth';
-    }
+    function updateKPIs(period) {}
+
     
     // Initialize everything
     document.addEventListener('DOMContentLoaded', function() {
