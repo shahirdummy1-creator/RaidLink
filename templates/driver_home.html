@@ -133,6 +133,24 @@
             </div>
         </div>
 
+        <!-- Active Trip Resume Banner (shown if driver has an accepted trip) -->
+        <div id="activeTripBanner" style="display:none;" class="mb-3">
+            <div style="background:linear-gradient(135deg,#059669,#047857);border-radius:14px;padding:14px 18px;color:#fff;">
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-10">
+                        <div style="width:10px;height:10px;border-radius:50%;background:#4ade80;animation:blink 1.2s infinite;flex-shrink:0;margin-right:10px;"></div>
+                        <div>
+                            <div style="font-weight:700;font-size:.95rem;">Active Trip in Progress</div>
+                            <div id="activeTripRoute" style="font-size:.78rem;opacity:.85;margin-top:2px;"></div>
+                        </div>
+                    </div>
+                    <a id="activeTripBtn" href="#" class="btn btn-sm fw-bold" style="background:#fff;color:#059669;border-radius:8px;white-space:nowrap;">
+                        <i class="bi bi-arrow-right-circle-fill me-1"></i> Resume Trip
+                    </a>
+                </div>
+            </div>
+        </div>
+
         <!-- Booking request card (rendered by JS) -->
         <div id="bookingArea"></div>
 
@@ -263,6 +281,26 @@
     let countdownVal      = AUTO_REFRESH_SEC;
     let countdownInterval = null;
 
+    // ── Check & restore active trip session ──────────────────
+    function checkActiveTrip() {
+        fetch(`/api/active-trip/${DRIVER_USERNAME}`)
+            .then(r => r.json())
+            .then(data => {
+                const trip = data.trip;
+                if (!trip) return;
+                const banner = document.getElementById('activeTripBanner');
+                const route  = document.getElementById('activeTripRoute');
+                const btn    = document.getElementById('activeTripBtn');
+                route.textContent = `#${trip.id} · ${trip.pickup_location} → ${trip.drop_location} · ${trip.fare}`;
+                btn.href = `/start-trip/${DRIVER_USERNAME}`;
+                banner.style.display = 'block';
+                // Stop searching — driver already has an active trip
+                stopPolling();
+                document.getElementById('searchingOrdersCard').style.display = 'none';
+            })
+            .catch(() => {});
+    }
+
     // ── Check account status from DB ───────────────────────
     function checkAccountStatus(callback) {
         fetch(`/api/driver-status/${DRIVER_USERNAME}`)
@@ -348,6 +386,7 @@
         searchingOrdersCard.style.display = 'none';
     }
     // Check account status first, then initialise
+    checkActiveTrip();
     checkAccountStatus(updateStatus);
 
     // ── Fetch latest booking via API ───────────────────────

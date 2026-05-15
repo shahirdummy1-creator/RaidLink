@@ -1077,6 +1077,31 @@ def api_verify_otp():
         return jsonify({'valid': False})
     return jsonify({'valid': False})
 
+@app.route('/api/active-trip/<username>')
+def api_active_trip(username):
+    conn = get_db()
+    if conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT t.id, t.pickup_location, t.drop_location, t.fare,
+                   t.distance_km, t.ride_date, t.ride_time, t.status,
+                   r.username AS rider_name, r.mobile AS rider_mobile
+            FROM Trip_Details t
+            LEFT JOIN Rider_Details r ON r.id = t.rider_id
+            WHERE t.accepted_by=%s AND t.status IN ('Confirmed','In Progress')
+            ORDER BY t.id DESC LIMIT 1
+        """, (username,))
+        row = cur.fetchone()
+        if row:
+            t = row_to_dict(cur, row)
+            t['fare']      = format_fare(t['fare'])
+            t['ride_date'] = str(t['ride_date'])
+            t['ride_time'] = str(t['ride_time'])
+            cur.close(); conn.close()
+            return jsonify({'trip': t})
+        cur.close(); conn.close()
+    return jsonify({'trip': None})
+
 @app.route('/api/skip-booking', methods=['POST'])
 def api_skip_booking():
     trip_id     = request.json.get('trip_id')
