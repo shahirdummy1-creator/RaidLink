@@ -329,6 +329,7 @@ const blueIcon  = L.icon({ iconUrl:'https://raw.githubusercontent.com/pointhi/le
 
 let driverMarker = null, pickupMarker = null, routeLine = null;
 let pickupCoords = null;
+let lastDriverPos = null;
 
 // ── Haversine ─────────────────────────────────────────────
 function haversineKm(lat1,lon1,lat2,lon2) {
@@ -348,6 +349,7 @@ async function geocodePickup() {
             pickupMarker = L.marker(pickupCoords, { icon: greenIcon }).addTo(map)
                 .bindPopup(`<b>📍 Pickup</b><br>${PICKUP_ADDR}`).openPopup();
             map.setView(pickupCoords, 13);
+            if (lastDriverPos) onPosition(lastDriverPos[0], lastDriverPos[1], lastDriverPos[2]);
         }
     } catch {}
 }
@@ -372,6 +374,7 @@ function startTracking() {
 
 function onPosition(lat, lng, accuracy) {
     document.getElementById('gps-status').textContent = `📡 ±${Math.round(accuracy)}m`;
+    lastDriverPos = [lat, lng, accuracy];
 
     // Update driver marker
     if (driverMarker) map.removeLayer(driverMarker);
