@@ -946,8 +946,8 @@ def api_driver_data(username):
 
 @app.route('/api/latest-booking')
 def api_latest_booking():
-    from flask import jsonify
     driver_name = request.args.get('driver', '')
+    last_id = request.args.get('last_id', 0, type=int)
     conn = get_db()
     if conn:
         cur = conn.cursor()
@@ -958,7 +958,8 @@ def api_latest_booking():
                       r.username AS rider_name, r.mobile AS rider_mobile
                FROM Trip_Details t
                LEFT JOIN Rider_Details r ON r.id = t.rider_id
-               WHERE t.status='Confirmed' AND (t.accepted_by IS NULL OR t.accepted_by='')
+               WHERE t.status='Confirmed'
+               AND (t.accepted_by IS NULL OR t.accepted_by='')
                AND t.rider_id IS NOT NULL
                AND t.id NOT IN (
                    SELECT trip_id FROM Driver_Skipped_Trips WHERE driver_name=%s
@@ -974,14 +975,15 @@ def api_latest_booking():
             b['ride_time'] = str(b['ride_time'])
             cur.close(); conn.close()
             return jsonify({'booking': b, 'picked': False})
-        # Check if there was a recently accepted booking (picked by another driver)
-        cur.execute(
-            "SELECT id, accepted_by FROM Trip_Details WHERE status='Confirmed' AND accepted_by IS NOT NULL AND accepted_by != '' ORDER BY id DESC LIMIT 1"
-        )
-        picked = cur.fetchone()
+        picked = False
+        if last_id > 0:
+            cur.execute(
+                "SELECT id FROM Trip_Details WHERE id=%s AND status='Confirmed' AND accepted_by IS NOT NULL AND accepted_by != ''",
+                (last_id,)
+            )
+            picked = cur.fetchone() is not None
         cur.close(); conn.close()
-        if picked:
-            return jsonify({'booking': None, 'picked': True, 'picked_by': picked[1]})
+        return jsonify({'booking': None, 'picked': picked})
     return jsonify({'booking': None, 'picked': False})
 
 @app.route('/driver-logout/<username>')

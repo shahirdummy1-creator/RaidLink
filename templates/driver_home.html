@@ -398,7 +398,7 @@
 
         if (manual) refreshBtn.classList.add('spinning');
 
-        fetch(`/api/latest-booking?driver=${DRIVER_USERNAME}`)
+        fetch(`/api/latest-booking?driver=${DRIVER_USERNAME}&last_id=${currentBookingId || 0}`)
             .then(r => r.json())
             .then(data => {
                 refreshBtn.classList.remove('spinning');
