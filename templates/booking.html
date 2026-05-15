@@ -347,7 +347,7 @@
                             <div class="input-group">
                                 <input type="text" class="form-control" id="pickup" name="pickup"
                                        placeholder="Search pickup location..." required autocomplete="off">
-                                <button type="button" class="btn btn-outline-success" onclick="openFullscreenMap('pickup')" title="Choose from map" aria-label="Choose pickup from map">
+                                <button type="button" class="btn btn-success" onclick="openFullscreenMap('pickup')" title="Choose from map" aria-label="Choose pickup from map">
                                     <i class="bi bi-map"></i>
                                 </button>
                             </div>
@@ -363,7 +363,7 @@
                             <div class="input-group">
                                 <input type="text" class="form-control" id="drop" name="drop"
                                        placeholder="Search drop location..." required autocomplete="off">
-                                <button type="button" class="btn btn-outline-danger" onclick="openFullscreenMap('drop')" title="Choose from map" aria-label="Choose drop from map">
+                                <button type="button" class="btn btn-danger" onclick="openFullscreenMap('drop')" title="Choose from map" aria-label="Choose drop from map">
                                     <i class="bi bi-map"></i>
                                 </button>
                             </div>
@@ -424,7 +424,7 @@
                             <i class="bi bi-person-fill me-1"></i> Login
                         </a>
                         {% else %}
-                        <a href="{{ url_for('rider_bookings', username=username) }}" class="btn btn-outline-primary w-50 fw-bold py-2" style="min-height:48px;display:flex;align-items:center;justify-content:center;">
+                        <a href="{{ url_for('rider_bookings', username=username) }}" class="btn btn-primary w-50 fw-bold py-2" style="min-height:48px;display:flex;align-items:center;justify-content:center;">
                             <i class="bi bi-list-ul me-1"></i> My Bookings
                         </a>
                         {% endif %}
