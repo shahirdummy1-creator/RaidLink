@@ -1142,6 +1142,10 @@ def driver_cancel_trip():
 def accept_trip():
     trip_id     = request.form.get('trip_id')
     driver_name = request.form.get('driver_name', 'Unknown Driver')
+
+    if not get_driver(driver_name):
+        return redirect(url_for('driver_login'))
+
     conn = get_db()
     booking = None
     if conn:
