@@ -306,6 +306,13 @@
         <a class="navbar-brand fw-bold" href="{{ url_for('welcome') }}">PAYANUM</a>
     </div>
 </nav>
+{% if username != 'guest' %}
+<div class="hide-on-map d-flex justify-content-end px-3 pt-2">
+    <a href="{{ url_for('rider_logout', username=username) }}" class="btn btn-danger btn-sm fw-bold">
+        <i class="bi bi-box-arrow-right me-1"></i> Logout
+    </a>
+</div>
+{% endif %}
 
 <main>
 <div class="container py-4">
@@ -426,9 +433,6 @@
                         {% else %}
                         <a href="{{ url_for('rider_bookings', username=username) }}" class="btn btn-primary w-50 fw-bold py-2" style="min-height:48px;display:flex;align-items:center;justify-content:center;">
                             <i class="bi bi-list-ul me-1"></i> My Bookings
-                        </a>
-                        <a href="{{ url_for('rider_logout', username=username) }}" class="btn btn-danger fw-bold py-2" style="min-height:48px;display:flex;align-items:center;justify-content:center;padding-left:16px;padding-right:16px;">
-                            <i class="bi bi-box-arrow-right"></i>
                         </a>
                         {% endif %}
                     </div>
