@@ -360,16 +360,29 @@ let watchId = null;
 function startTracking() {
     if (!navigator.geolocation) {
         document.getElementById('gps-status').textContent = 'GPS not supported';
+        showPickupOnly();
         return;
     }
     document.getElementById('gps-status').textContent = '⏳ Getting GPS...';
+    // Fast one-shot first fix
+    navigator.geolocation.getCurrentPosition(
+        pos => onPosition(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy),
+        () => showPickupOnly(),
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+    );
+    // Then keep watching for updates
     watchId = navigator.geolocation.watchPosition(
         pos => onPosition(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy),
-        () => {
-            document.getElementById('gps-status').textContent = '⚠️ GPS unavailable';
-        },
-        { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+        () => {},
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
     );
+}
+
+function showPickupOnly() {
+    document.getElementById('gps-status').textContent = '⚠️ GPS unavailable';
+    document.getElementById('dist-to-pickup').textContent = 'GPS off';
+    document.getElementById('eta-val').textContent = 'N/A';
+    if (pickupCoords) map.setView(pickupCoords, 14);
 }
 
 function onPosition(lat, lng, accuracy) {
@@ -529,7 +542,9 @@ function closeDirection() {
 }
 
 // ── Init ──────────────────────────────────────────────────
-geocodePickup().then(() => startTracking());
+// Run geocoding and GPS in parallel - whichever finishes first, the other catches up
+geocodePickup();
+startTracking();
 </script>
 </body>
 </html>
