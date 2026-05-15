@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -6,23 +6,8 @@
     <title>Trip In Progress</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <style>
         body { background: #f0f4f8; font-family: 'Segoe UI', sans-serif; }
-        #map { width: 100%; height: 340px; border-radius: 14px; z-index: 0; }
-
-        .live-badge {
-            display: inline-flex; align-items: center; gap: 6px;
-            background: #dcfce7; color: #166534;
-            font-size: .78rem; font-weight: 700;
-            padding: 5px 12px; border-radius: 20px;
-        }
-        .live-dot {
-            width: 8px; height: 8px; border-radius: 50%;
-            background: #22c55e;
-            animation: blink 1.2s ease-in-out infinite;
-        }
-        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.2} }
 
         .trip-card { background:#fff; border-radius:16px; box-shadow:0 4px 20px rgba(0,0,0,.08); padding:24px; }
         .info-box { background:#f8faff; border:1px solid #e0e7ff; border-radius:10px; padding:10px 14px; }
@@ -37,6 +22,18 @@
         .stat-value { font-size:1.2rem; font-weight:800; color:#1d4ed8; margin-top:2px; }
 
         .progress { height: 8px; border-radius: 4px; }
+
+        .nav-btn {
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            background: #1a73e8; color: #fff;
+            border: none; border-radius: 12px;
+            padding: 14px; font-weight: 700; font-size: 1rem;
+            text-decoration: none; width: 100%;
+            box-shadow: 0 4px 14px rgba(26,115,232,.35);
+            margin-bottom: 10px;
+        }
+        .nav-btn:hover { background: #1558b0; color: #fff; }
+        .nav-btn img { width: 22px; height: 22px; }
 
         /* Success overlay */
         #successOverlay {
@@ -79,14 +76,13 @@
             <span class="text-muted fw-semibold" id="tripTimer" style="font-size:1.1rem;">00:00</span>
         </div>
 
-        <!-- Live Map -->
-        <div id="map" class="mb-3 shadow-sm"></div>
-        <div class="d-flex justify-content-between mb-3" style="font-size:.78rem;color:#6b7280;">
-            <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#22c55e;margin-right:4px;"></span>Pickup</span>
-            <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#0d6efd;margin-right:4px;"></span>Your Location</span>
-            <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ef4444;margin-right:4px;"></span>Drop</span>
-            <span id="gps-status" class="text-muted"></span>
-        </div>
+        <!-- Google Maps Navigation Button -->
+        <a id="googleMapsBtn" href="#" target="_blank" rel="noopener noreferrer" class="nav-btn mb-3">
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="white">
+                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/>
+            </svg>
+            Navigate to Drop — Google Maps
+        </a>
 
         <!-- Trip Info -->
         <div class="row g-2 mb-3">
@@ -127,36 +123,17 @@
 
         <!-- Stats -->
         <div class="row g-2 mb-3">
-            <div class="col-4">
+            <div class="col-6">
                 <div class="stat-pill">
                     <div class="stat-label">Distance</div>
                     <div class="stat-value">{{ booking.distance_km if booking else '—' }} <small style="font-size:.7rem;">km</small></div>
                 </div>
             </div>
-            <div class="col-4">
+            <div class="col-6">
                 <div class="stat-pill">
                     <div class="stat-label">Fare</div>
                     <div class="stat-value" style="color:#059669;">{{ booking.fare if booking else '—' }}</div>
                 </div>
-            </div>
-            <div class="col-4">
-                <div class="stat-pill">
-                    <div class="stat-label">Covered</div>
-                    <div class="stat-value" id="covered-km">0 <small style="font-size:.7rem;">km</small></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Progress bar -->
-        <div class="mb-3">
-            <div class="d-flex justify-content-between mb-1">
-                <small class="text-muted fw-semibold">Pickup</small>
-                <small class="text-muted fw-semibold" id="progress-pct">0%</small>
-                <small class="text-muted fw-semibold">Destination</small>
-            </div>
-            <div class="progress">
-                <div id="progressBar" class="progress-bar bg-primary progress-bar-striped progress-bar-animated"
-                     role="progressbar" style="width:0%"></div>
             </div>
         </div>
 
@@ -186,130 +163,19 @@
     <input type="hidden" name="username" value="{{ username }}">
 </form>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-const TOTAL_KM = parseFloat('{{ booking.distance_km if booking else 0 }}') || 0;
+const DROP_ADDR = '{{ booking.drop_location if booking else "" }}';
 
-// ── Map init ──────────────────────────────────────────────
-const map = L.map('map').setView([20.5937, 78.9629], 5);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap', maxZoom: 19
-}).addTo(map);
-
-const greenIcon = L.icon({ iconUrl:'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png', shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png', iconSize:[25,41], iconAnchor:[12,41] });
-const redIcon   = L.icon({ iconUrl:'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',   shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png', iconSize:[25,41], iconAnchor:[12,41] });
-const blueIcon  = L.icon({ iconUrl:'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',  shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png', iconSize:[25,41], iconAnchor:[12,41] });
-
-// All state declared upfront
-let driverMarker = null, routeLine = null;
-let pickupCoords = null, dropCoords = null;
-let tripStartCoords = null;  // first GPS position when trip started
-let watchId = null;
-let mapLocked = true;  // auto-pan only initially
-
-// ── Haversine ─────────────────────────────────────────────
-function haversineKm(lat1, lon1, lat2, lon2) {
-    const R = 6371, r = x => x * Math.PI / 180;
-    const a = Math.sin(r(lat2-lat1)/2)**2 + Math.cos(r(lat1))*Math.cos(r(lat2))*Math.sin(r(lon2-lon1)/2)**2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+// ── Build Google Maps navigation URL ─────────────────────
+function buildGoogleMapsUrl(destination) {
+    const encoded = encodeURIComponent(destination + ', India');
+    // Use current location as origin if available, else just destination
+    return `https://www.google.com/maps/dir/?api=1&destination=${encoded}&travelmode=driving`;
 }
 
-// ── Geocode pickup/drop ───────────────────────────────────
-async function geocodeAndMark(query, iconType, label) {
-    try {
-        const res  = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query+', India')}&format=json&limit=1`, { headers:{'Accept-Language':'en'} });
-        const data = await res.json();
-        if (data.length) {
-            const lat = parseFloat(data[0].lat), lng = parseFloat(data[0].lon);
-            const icon = iconType === 'green' ? greenIcon : redIcon;
-            L.marker([lat, lng], { icon }).addTo(map).bindPopup(`<b>${label}</b>`);
-            return [lat, lng];
-        }
-    } catch {}
-    return null;
-}
-
-// ── GPS tracking ──────────────────────────────────────────
-function startTracking() {
-    if (!navigator.geolocation) {
-        document.getElementById('gps-status').textContent = 'GPS not supported';
-        simulateMovement();
-        return;
-    }
-    document.getElementById('gps-status').textContent = '⏳ Getting GPS...';
-    watchId = navigator.geolocation.watchPosition(
-        pos => onPosition(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy),
-        () => {
-            document.getElementById('gps-status').textContent = '⚠️ GPS unavailable — simulating';
-            simulateMovement();
-        },
-        { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
-    );
-}
-
-function onPosition(lat, lng, accuracy) {
-    document.getElementById('gps-status').textContent = `📡 GPS ±${Math.round(accuracy)}m`;
-
-    // Record trip start position once
-    if (!tripStartCoords) tripStartCoords = [lat, lng];
-
-    // Update driver marker
-    if (driverMarker) map.removeLayer(driverMarker);
-    driverMarker = L.marker([lat, lng], { icon: blueIcon })
-        .addTo(map)
-        .bindPopup('<b>🚗 Your Location</b>');
-
-    // Draw route: driver → drop
-    if (routeLine) map.removeLayer(routeLine);
-    if (dropCoords) {
-        routeLine = L.polyline([[lat, lng], dropCoords], {
-            color: '#0d6efd', weight: 4, dashArray: '8,6'
-        }).addTo(map);
-    }
-
-    // Auto-pan only on first fix, then let driver pan freely
-    if (mapLocked) {
-        if (pickupCoords && dropCoords) {
-            map.fitBounds([pickupCoords, dropCoords, [lat, lng]], { padding: [40, 40] });
-        } else {
-            map.setView([lat, lng], 14);
-        }
-        mapLocked = false;
-    }
-
-    updateProgress(lat, lng);
-}
-
-// ── Progress ──────────────────────────────────────────────
-function updateProgress(dLat, dLng) {
-    if (!tripStartCoords || !dropCoords || TOTAL_KM <= 0) return;
-    const covered = haversineKm(tripStartCoords[0], tripStartCoords[1], dLat, dLng);
-    const pct = Math.min(Math.round((covered / TOTAL_KM) * 100), 100);
-    document.getElementById('progressBar').style.width = pct + '%';
-    document.getElementById('progress-pct').textContent = pct + '%';
-    document.getElementById('covered-km').innerHTML = covered.toFixed(1) + ' <small style="font-size:.7rem;">km</small>';
-}
-
-// ── Simulate movement (GPS fallback) ─────────────────────
-function simulateMovement() {
-    // Wait until geocoding is done
-    const waitAndSim = setInterval(() => {
-        if (!pickupCoords || !dropCoords) return;
-        clearInterval(waitAndSim);
-        tripStartCoords = pickupCoords;
-        const steps = 30;
-        let step = 0;
-        const interval = setInterval(() => {
-            if (step >= steps) { clearInterval(interval); return; }
-            step++;
-            const t   = step / steps;
-            const lat = pickupCoords[0] + (dropCoords[0] - pickupCoords[0]) * t;
-            const lng = pickupCoords[1] + (dropCoords[1] - pickupCoords[1]) * t;
-            onPosition(lat, lng, 50);
-        }, 3000);
-    }, 500);
-}
+// Set the Google Maps link
+document.getElementById('googleMapsBtn').href = buildGoogleMapsUrl(DROP_ADDR);
 
 // ── Timer ─────────────────────────────────────────────────
 let timerInterval = null, seconds = 0;
@@ -325,38 +191,12 @@ function startTimer() {
 // ── Complete trip ─────────────────────────────────────────
 function onCompleteTrip() {
     if (timerInterval) clearInterval(timerInterval);
-    if (watchId) navigator.geolocation.clearWatch(watchId);
     document.getElementById('completeTripBtn').disabled = true;
     document.getElementById('successOverlay').classList.add('show');
     setTimeout(() => document.getElementById('completeTripForm').submit(), 2500);
 }
 
-// ── Init ──────────────────────────────────────────────────
-(async function init() {
-    startTimer();
-
-    const pickup = '{{ booking.pickup_location if booking else "" }}';
-    const drop   = '{{ booking.drop_location   if booking else "" }}';
-
-    const [pCoords, dCoords] = await Promise.all([
-        geocodeAndMark(pickup, 'green', 'Pickup: ' + pickup),
-        geocodeAndMark(drop,   'red',   'Drop: '   + drop)
-    ]);
-
-    pickupCoords = pCoords;
-    dropCoords   = dCoords;
-
-    if (pCoords && dCoords) {
-        map.fitBounds([pCoords, dCoords], { padding: [40, 40] });
-    } else if (pCoords) {
-        map.setView(pCoords, 13);
-    }
-
-    // Allow manual panning after user touches map
-    map.on('dragstart', () => { mapLocked = false; });
-
-    startTracking();
-})();
+startTimer();
 </script>
 </body>
 </html>
