@@ -77,7 +77,7 @@
         </div>
 
         <!-- Google Maps Navigation Button -->
-        <a id="googleMapsBtn" href="#" target="_blank" rel="noopener noreferrer" class="nav-btn mb-3">
+        <a id="googleMapsBtn" href="#" target="_blank" rel="noopener noreferrer" class="nav-btn mb-3 d-none">
             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="white">
                 <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/>
             </svg>
@@ -89,7 +89,7 @@
             <div class="col-6">
                 <div class="info-box">
                     <div class="info-label">📍 Pickup</div>
-                    <div class="info-value">{{ booking.pickup_location if booking else 'N/A' }}</div>
+                    <div class="info-value">{{ booking.pickup_location.split(',')[0] if booking else 'N/A' }}</div>
                     <a href="https://www.google.com/maps/dir/?api=1&destination={{ booking.pickup_location | urlencode if booking else '' }}, India&travelmode=driving"
                        target="_blank" rel="noopener noreferrer"
                        style="display:inline-flex;align-items:center;gap:4px;margin-top:6px;font-size:.75rem;font-weight:700;color:#1a73e8;text-decoration:none;">
@@ -101,7 +101,7 @@
             <div class="col-6">
                 <div class="info-box">
                     <div class="info-label">🏁 Drop</div>
-                    <div class="info-value">{{ booking.drop_location if booking else 'N/A' }}</div>
+                    <div class="info-value">{{ booking.drop_location.split(',')[0] if booking else 'N/A' }}</div>
                     <a href="https://www.google.com/maps/dir/?api=1&destination={{ booking.drop_location | urlencode if booking else '' }}, India&travelmode=driving"
                        target="_blank" rel="noopener noreferrer"
                        style="display:inline-flex;align-items:center;gap:4px;margin-top:6px;font-size:.75rem;font-weight:700;color:#1a73e8;text-decoration:none;">
