@@ -48,8 +48,6 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
         body { background: #f0f4f8; font-family: 'Segoe UI', sans-serif; }
-        #map { width: 100%; height: 180px; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.12); z-index: 0; position: relative; cursor: pointer; }
-
         /* Fullscreen map overlay */
         #fullscreenMapOverlay {
             display: none;
@@ -298,7 +296,6 @@
             .fs-bottombar button { min-height: 52px; font-size: 1rem; }
             .fs-topbar input { min-height: 44px; font-size: 1rem; }
             .fs-search-btn { min-height: 44px; padding: 8px 16px; }
-            #map { height: 220px; }
         }
     </style>
 </head>
@@ -314,26 +311,10 @@
 <div class="container py-4">
     <div class="row g-4 align-items-start">
 
-        <!-- LEFT: Map -->
-        <div class="col-lg-6">
-            <div style="position: relative;">
-                <div id="map" onclick="openFullscreenMap()"></div>
-                <div onclick="openFullscreenMap()" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:1;pointer-events:none;">
-                    <div style="background:rgba(0,0,0,.45);color:#fff;padding:8px 18px;border-radius:20px;font-size:.85rem;font-weight:600;display:flex;align-items:center;gap:6px;">
-                        <i class="bi bi-hand-index-thumb"></i> Tap to select location
-                    </div>
-                </div>
-            </div>
-            <div class="map-legend">
-                <span><span class="legend-dot" style="background:#22c55e;"></span>Pickup</span>
-                <span><span class="legend-dot" style="background:#ef4444;"></span>Drop</span>
-                <span id="map-distance-label" class="ms-auto fw-semibold text-primary"></span>
-            </div>
-            <small id="map-mode-hint" class="text-muted d-block mt-1 text-center"></small>
-        </div>
-
-        <!-- RIGHT: Booking Form -->
-        <div class="col-lg-6">
+        <!-- Booking Form (full width) -->
+        <div class="col-12 col-lg-8 mx-auto">
+            <span id="map-distance-label" class="d-none"></span>
+            <small id="map-mode-hint" class="d-none"></small>
             <div class="booking-card">
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h4 class="fw-bold mb-0">Book Your Ride</h4>
@@ -363,8 +344,13 @@
                     <div class="mb-3">
                         <div class="section-label"><i class="bi bi-geo-alt-fill text-success me-1"></i>Pickup Location</div>
                         <div class="autocomplete-wrap">
-                            <input type="text" class="form-control" id="pickup" name="pickup"
-                                   placeholder="Search pickup location..." required autocomplete="off">
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="pickup" name="pickup"
+                                       placeholder="Search pickup location..." required autocomplete="off">
+                                <button type="button" class="btn btn-outline-success" onclick="openFullscreenMap('pickup')" title="Choose from map" aria-label="Choose pickup from map">
+                                    <i class="bi bi-map"></i>
+                                </button>
+                            </div>
                             <div class="autocomplete-list" id="pickup-list"></div>
                         </div>
                         <div id="pickup-badge"></div>
@@ -374,8 +360,13 @@
                     <div class="mb-3">
                         <div class="section-label"><i class="bi bi-flag-fill text-danger me-1"></i>Drop Location</div>
                         <div class="autocomplete-wrap">
-                            <input type="text" class="form-control" id="drop" name="drop"
-                                   placeholder="Search drop location..." required autocomplete="off">
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="drop" name="drop"
+                                       placeholder="Search drop location..." required autocomplete="off">
+                                <button type="button" class="btn btn-outline-danger" onclick="openFullscreenMap('drop')" title="Choose from map" aria-label="Choose drop from map">
+                                    <i class="bi bi-map"></i>
+                                </button>
+                            </div>
                             <div class="autocomplete-list" id="drop-list"></div>
                         </div>
                         <div id="drop-badge"></div>
@@ -479,33 +470,10 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 const coords = { pickup: null, drop: null };
-let map, pickupMarker, dropMarker, routeLine;
-let mapClickMode = null; // 'pickup' or 'drop'
+let pickupMarker, dropMarker, routeLine;
 
-const greenIcon = L.icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-    iconSize: [25,41], iconAnchor: [12,41], popupAnchor: [1,-34]
-});
-const redIcon = L.icon({
-    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-    shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-    iconSize: [25,41], iconAnchor: [12,41], popupAnchor: [1,-34]
-});
 
 document.addEventListener('DOMContentLoaded', function () {
-    // Init map
-    map = L.map('map').setView([20.5937, 78.9629], 5);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
-    }).addTo(map);
-
-    // Map click — always active, only acts when mode is set
-    map.on('click', function (e) {
-        if (!mapClickMode) return;
-        reverseGeocode(e.latlng.lat, e.latlng.lng, mapClickMode);
-    });
-
     // Default date/time
     const now = new Date();
     document.getElementById('ride_date').value = now.toISOString().split('T')[0];
@@ -596,15 +564,7 @@ function updateDistanceFare() {
     document.getElementById('drop_lat').value   = dlat;
     document.getElementById('drop_lng').value   = dlng;
 
-    // Update map markers
-    if (pickupMarker) map.removeLayer(pickupMarker);
-    if (dropMarker)   map.removeLayer(dropMarker);
-    if (routeLine)    map.removeLayer(routeLine);
-    pickupMarker = L.marker([plat, plng], { icon: greenIcon }).addTo(map).bindPopup('<b>Pickup</b>').openPopup();
-    dropMarker   = L.marker([dlat, dlng], { icon: redIcon   }).addTo(map).bindPopup('<b>Drop</b>');
-    map.fitBounds([[plat, plng],[dlat, dlng]], { padding: [50, 50] });
     updateGuestBtn();
-    document.getElementById('map-distance-label').textContent = 'Calculating road distance...';
 
     // Fetch road distance using exact coordinates via OSRM
     fetch(`https://router.project-osrm.org/route/v1/driving/${plng},${plat};${dlng},${dlat}?overview=full&geometries=geojson`)
@@ -617,13 +577,6 @@ function updateDistanceFare() {
             document.getElementById('distance').value            = roadKm;
             document.getElementById('fare').value                = roadFare.toFixed(2);
             document.getElementById('fare-display').textContent  = '\u20b9' + roadFare.toFixed(2);
-            document.getElementById('map-distance-label').textContent = roadKm + ' km (road)';
-            if (routeLine) map.removeLayer(routeLine);
-            routeLine = L.polyline(
-                route.geometry.coordinates.map(c => [c[1], c[0]]),
-                { color: '#0d6efd', weight: 4 }
-            ).addTo(map);
-            map.fitBounds(routeLine.getBounds(), { padding: [40, 40] });
         })
         .catch(() => {
             // Fallback to Haversine only if OSRM fails
@@ -633,10 +586,6 @@ function updateDistanceFare() {
             document.getElementById('distance').value            = estKm;
             document.getElementById('fare').value                = fareVal.toFixed(2);
             document.getElementById('fare-display').textContent  = '\u20b9' + fareVal.toFixed(2);
-            document.getElementById('map-distance-label').textContent = estKm + ' km (est.)';
-            if (routeLine) map.removeLayer(routeLine);
-            routeLine = L.polyline([[plat, plng],[dlat, dlng]], { color:'#0d6efd', weight:3, dashArray:'8,6' }).addTo(map);
-            map.fitBounds([[plat, plng],[dlat, dlng]], { padding: [50, 50] });
         });
 }
 
@@ -904,10 +853,17 @@ function closeMapSearchResults() {
 // ── Fullscreen Map ────────────────────────────────────────
 let fsMap = null, fsCenterMarker = null;
 
-function openFullscreenMap() {
+function openFullscreenMap(presetType) {
     const overlay = document.getElementById('fullscreenMapOverlay');
     overlay.classList.add('show');
     document.body.classList.add('map-fullscreen');
+    if (presetType) {
+        // Update bottom bar label to hint which field will be set
+        const pickup = document.querySelector('.fs-btn-pickup');
+        const drop   = document.querySelector('.fs-btn-drop');
+        if (presetType === 'pickup') { pickup.style.outline = '3px solid #fff'; drop.style.outline = ''; }
+        else                         { drop.style.outline   = '3px solid #fff'; pickup.style.outline = ''; }
+    }
 
     if (!fsMap) {
         fsMap = L.map('fullscreenMap').setView(
