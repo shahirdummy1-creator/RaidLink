@@ -1171,7 +1171,13 @@ def start_trip(username):
     booking = None
     if conn:
         cur = conn.cursor()
-        cur.execute("SELECT * FROM Trip_Details WHERE status='Confirmed' AND accepted_by=%s ORDER BY id DESC LIMIT 1", (username,))
+        cur.execute("""
+            SELECT t.*, r.username AS rider_name, r.mobile AS rider_mobile
+            FROM Trip_Details t
+            LEFT JOIN Rider_Details r ON r.id = t.rider_id
+            WHERE t.status='Confirmed' AND t.accepted_by=%s
+            ORDER BY t.id DESC LIMIT 1
+        """, (username,))
         row = cur.fetchone()
         if row:
             booking = row_to_dict(cur, row)
