@@ -1138,26 +1138,24 @@ def driver_cancel_trip():
         cur.close(); conn.close()
     return redirect(url_for('driver_home', username=driver_name))
 
-@app.route('/accept-trip', methods=['GET', 'POST'])
-def accept_trip():
+@app.route('/accept-trip/<username>', methods=['GET', 'POST'])
+def accept_trip(username):
+    driver = get_driver(username)
+    if not driver:
+        return redirect(url_for('driver_login'))
+
     if request.method == 'GET':
-        drivers = session.get('drivers', {})
-        if drivers:
-            username = next(iter(drivers))
-            return redirect(url_for('driver_home', username=username))
-        return redirect(url_for('driver_login'))
+        return redirect(url_for('driver_home', username=username))
 
-    trip_id     = request.form.get('trip_id')
-    driver_name = request.form.get('driver_name', '').strip()
-
-    if not driver_name or not get_driver(driver_name):
-        return redirect(url_for('driver_login'))
+    trip_id = request.form.get('trip_id')
+    if not trip_id:
+        return redirect(url_for('driver_home', username=username))
 
     conn = get_db()
     booking = None
     if conn:
         cur = conn.cursor()
-        cur.execute("UPDATE Trip_Details SET accepted_by=%s WHERE id=%s", (driver_name, trip_id))
+        cur.execute("UPDATE Trip_Details SET accepted_by=%s WHERE id=%s", (username, trip_id))
         conn.commit()
         cur.execute("""
             SELECT t.id, t.pickup_location, t.drop_location, t.fare, t.distance_km, t.ride_date,
@@ -1171,7 +1169,7 @@ def accept_trip():
             booking = row_to_dict(cur, row)
             booking['fare'] = format_fare(booking['fare'])
         cur.close(); conn.close()
-    return render_template('driver_accept.html', booking=booking, driver_name=driver_name)
+    return render_template('driver_accept.html', booking=booking, driver_name=username)
 
 @app.route('/start-trip/<username>')
 def start_trip(username):

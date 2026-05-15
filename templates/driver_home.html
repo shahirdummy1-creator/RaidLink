@@ -193,9 +193,8 @@
 </div>
 
 <!-- Hidden accept form (populated by JS) -->
-<form id="acceptTripForm" method="POST" action="{{ url_for('accept_trip') }}">
-    <input type="hidden" name="trip_id"     id="formTripId">
-    <input type="hidden" name="driver_name" value="{{ driver_name }}">
+<form id="acceptTripForm" method="POST" action="{{ url_for('accept_trip', username=driver_name) }}">
+    <input type="hidden" name="trip_id" id="formTripId">
 </form>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
