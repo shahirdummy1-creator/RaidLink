@@ -1,12 +1,12 @@
--- ============================================================
---  RaidLink_DB  –  Database Schema
+﻿-- ============================================================
+--  PAYANUM_DB  –  Database Schema
 -- ============================================================
 
-CREATE DATABASE IF NOT EXISTS RaidLink_DB
+CREATE DATABASE IF NOT EXISTS PAYANUM_DB
     CHARACTER SET utf8mb4
     COLLATE utf8mb4_unicode_ci;
 
-USE RaidLink_DB;
+USE PAYANUM_DB;
 
 -- ------------------------------------------------------------
 --  Rider_Details

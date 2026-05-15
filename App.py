@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+﻿from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from db import get_db, init_db
 from werkzeug.utils import secure_filename
 import hashlib
@@ -17,7 +17,7 @@ except ImportError:
     print("Warning: python-dotenv not available. Using system environment variables only.")
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'raidlink_secret_2024')
+app.secret_key = os.environ.get('SECRET_KEY', 'PAYANUM_secret_2024')
 app.permanent_session_lifetime = timedelta(days=7)
 
 UPLOAD_FOLDER = os.path.join('static', 'uploads', 'drivers')
@@ -54,13 +54,13 @@ def send_reset_email(email, reset_token, user_type):
     try:
         smtp_server = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
         smtp_port = int(os.environ.get('SMTP_PORT', '587'))
-        smtp_user = os.environ.get('SMTP_USER', 'raidlink.tech@gmail.com')
+        smtp_user = os.environ.get('SMTP_USER', 'PAYANUM.tech@gmail.com')
         smtp_pass = os.environ.get('SMTP_PASS', 'your_app_password')
         
         msg = MIMEMultipart()
         msg['From'] = smtp_user
         msg['To'] = email
-        msg['Subject'] = 'RaidLink - Password Reset Request'
+        msg['Subject'] = 'PAYANUM - Password Reset Request'
         
         reset_url = f"{request.url_root}reset-password?token={reset_token}&type={user_type}"
         
@@ -69,13 +69,13 @@ def send_reset_email(email, reset_token, user_type):
         <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
             <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
                 <div style="text-align: center; margin-bottom: 30px;">
-                    <h1 style="color: #0d6efd; margin: 0;">🚕 RaidLink Technologies</h1>
+                    <h1 style="color: #0d6efd; margin: 0;">🚕 PAYANUM</h1>
                     <p style="color: #666; margin: 5px 0;">Password Reset Request</p>
                 </div>
                 
                 <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
                     <h2 style="color: #0d6efd; margin-top: 0;">Reset Your Password</h2>
-                    <p>We received a request to reset your password for your RaidLink {user_type.title()} account.</p>
+                    <p>We received a request to reset your password for your PAYANUM {user_type.title()} account.</p>
                     <p>Click the button below to reset your password:</p>
                     
                     <div style="text-align: center; margin: 30px 0;">
@@ -98,7 +98,7 @@ def send_reset_email(email, reset_token, user_type):
                         <li>If you didn't request this reset, please ignore this email</li>
                         <li>Never share this link with anyone</li>
                     </ul>
-                    <p style="margin-top: 20px;">© 2024 RaidLink Technologies. All rights reserved.</p>
+                    <p style="margin-top: 20px;">© 2024 PAYANUM. All rights reserved.</p>
                 </div>
             </div>
         </body>
@@ -208,7 +208,7 @@ CITY_PAGES = {
         'name': 'Chennai', 'url': '/cab-service-chennai',
         'title': 'Cab Service in Chennai',
         'meta_title': 'Affordable Taxi & Cab Booking Chennai',
-        'meta_desc': 'Book reliable cab service in Chennai at affordable rates. RaidLink offers local cab, airport taxi, and outstation cab from Chennai 24/7.',
+        'meta_desc': 'Book reliable cab service in Chennai at affordable rates. PAYANUM offers local cab, airport taxi, and outstation cab from Chennai 24/7.',
         'keywords': 'cab service Chennai, taxi booking Chennai, airport taxi Chennai, local cab Chennai, outstation cab Chennai, affordable taxi Chennai',
         'hero_desc': 'Reliable, affordable cab service across Chennai. Airport pickups, local rides and outstation trips — available 24/7.',
         'services': [
@@ -234,7 +234,7 @@ CITY_PAGES = {
         'name': 'Trichy', 'url': '/taxi-service-trichy',
         'title': 'Taxi Service in Trichy',
         'meta_title': 'Affordable Cab & Taxi Booking Trichy',
-        'meta_desc': 'Book reliable taxi service in Trichy (Tiruchirappalli) at affordable rates. RaidLink offers local cab, airport taxi, and outstation trips from Trichy.',
+        'meta_desc': 'Book reliable taxi service in Trichy (Tiruchirappalli) at affordable rates. PAYANUM offers local cab, airport taxi, and outstation trips from Trichy.',
         'keywords': 'taxi service Trichy, cab booking Trichy, Tiruchirappalli taxi, airport taxi Trichy, outstation cab Trichy, affordable taxi Trichy',
         'hero_desc': 'Affordable and reliable taxi service across Trichy. Local rides, airport transfers and outstation trips — available 24/7.',
         'services': [
@@ -260,7 +260,7 @@ CITY_PAGES = {
         'name': 'Coimbatore', 'url': '/airport-taxi-coimbatore',
         'title': 'Airport Taxi in Coimbatore',
         'meta_title': 'Airport Taxi & Cab Booking Coimbatore',
-        'meta_desc': 'Book reliable airport taxi in Coimbatore at affordable rates. RaidLink offers 24/7 airport pickup, local cab and outstation trips from Coimbatore.',
+        'meta_desc': 'Book reliable airport taxi in Coimbatore at affordable rates. PAYANUM offers 24/7 airport pickup, local cab and outstation trips from Coimbatore.',
         'keywords': 'airport taxi Coimbatore, cab service Coimbatore, taxi booking Coimbatore, outstation cab Coimbatore, affordable taxi Coimbatore, Coimbatore airport cab',
         'hero_desc': 'Reliable airport taxi and cab service in Coimbatore. On-time airport pickups, local rides and outstation trips — 24/7.',
         'services': [
@@ -286,7 +286,7 @@ CITY_PAGES = {
         'name': 'Madurai', 'url': '/outstation-cab-madurai',
         'title': 'Outstation Cab in Madurai',
         'meta_title': 'Outstation Cab & Taxi Booking Madurai',
-        'meta_desc': 'Book reliable outstation cab in Madurai at affordable rates. RaidLink offers one-way and round-trip cabs from Madurai to Chennai, Trichy, Coimbatore and more.',
+        'meta_desc': 'Book reliable outstation cab in Madurai at affordable rates. PAYANUM offers one-way and round-trip cabs from Madurai to Chennai, Trichy, Coimbatore and more.',
         'keywords': 'outstation cab Madurai, taxi service Madurai, cab booking Madurai, Madurai to Chennai cab, airport taxi Madurai, affordable taxi Madurai',
         'hero_desc': 'Affordable outstation cab and taxi service in Madurai. One-way and round trips to all Tamil Nadu cities — available 24/7.',
         'services': [
@@ -361,7 +361,7 @@ def health_check():
         # Database issues shouldn't fail the health check during deployment
         return jsonify({
             'status': 'healthy',
-            'message': 'RaidLink API is running',
+            'message': 'PAYANUM API is running',
             'database': db_status,
             'database_error': db_error,
             'port': os.environ.get('PORT', 'not_set'),
@@ -548,7 +548,7 @@ def rider_signup():
                     try:
                         cur.execute(
                             "INSERT INTO Rider_Details (username, mobile, email, password_hash) VALUES (%s,%s,%s,%s)",
-                            (username, mobile, f"{mobile}@raidlink.local", hashlib.sha256(mobile.encode()).hexdigest())
+                            (username, mobile, f"{mobile}@PAYANUM.local", hashlib.sha256(mobile.encode()).hexdigest())
                         )
                         conn.commit()
                         cur.close(); conn.close()
@@ -608,7 +608,7 @@ def forgot_password():
                     cur.execute("SELECT id, username FROM Driver_Details WHERE email=%s AND account_status='Active'", (email,))
                 elif user_type == 'admin':
                     # For admin, check against environment variable
-                    admin_email = os.environ.get('ADMIN_EMAIL', 'admin@raidlink.com')
+                    admin_email = os.environ.get('ADMIN_EMAIL', 'admin@PAYANUM.com')
                     if email == admin_email:
                         # Create a temporary admin record for reset
                         user_data = (1, 'admin')

@@ -1,5 +1,5 @@
----
-title: RaidLink Taxi Booking App
+﻿---
+title: PAYANUM Taxi Booking App
 emoji: 🚕
 colorFrom: blue
 colorTo: green
@@ -8,7 +8,7 @@ pinned: false
 app_port: 7860
 ---
 
-# RaidLink Technologies — Taxi Booking App
+# PAYANUM — Taxi Booking App
 
 A full-stack taxi booking platform built with Flask and MySQL.
 

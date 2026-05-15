@@ -1,5 +1,5 @@
-"""
-seed_demo.py — Generate demo accounts and bookings for RaidLink testing.
+﻿"""
+seed_demo.py — Generate demo accounts and bookings for PAYANUM testing.
 Run: python seed_demo.py
 """
 import sys

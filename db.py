@@ -1,4 +1,4 @@
-import mysql.connector
+﻿import mysql.connector
 from mysql.connector import Error
 import os
 
@@ -7,7 +7,7 @@ DB_CONFIG = {
     'port': int(os.environ.get('MYSQLPORT',     os.environ.get('DB_PORT',     '3306'))),
     'user':     os.environ.get('MYSQLUSER',     os.environ.get('DB_USER',     'root')),
     'password': os.environ.get('MYSQLPASSWORD', os.environ.get('DB_PASSWORD', 'sqlbook123')),
-    'database': os.environ.get('MYSQLDATABASE', os.environ.get('DB_NAME',     'raidlink_db'))
+    'database': os.environ.get('MYSQLDATABASE', os.environ.get('DB_NAME',     'PAYANUM_db'))
 }
 
 def get_db():

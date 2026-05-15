@@ -1,4 +1,4 @@
-import os
+﻿import os
 
 # Server socket
 bind = f"0.0.0.0:{os.environ.get('PORT', '8000')}"
@@ -21,7 +21,7 @@ errorlog = "-"
 loglevel = "info"
 
 # Process naming
-proc_name = "raidlink"
+proc_name = "PAYANUM"
 
 # Server mechanics
 preload_app = False
