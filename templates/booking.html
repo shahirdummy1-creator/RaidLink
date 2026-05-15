@@ -306,13 +306,6 @@
         <a class="navbar-brand fw-bold" href="{{ url_for('welcome') }}">PAYANUM</a>
     </div>
 </nav>
-{% if username != 'guest' %}
-<div class="hide-on-map d-flex justify-content-end px-3 pt-2">
-    <a href="{{ url_for('rider_logout', username=username) }}" class="btn btn-danger btn-sm fw-bold">
-        <i class="bi bi-box-arrow-right me-1"></i> Logout
-    </a>
-</div>
-{% endif %}
 
 <main>
 <div class="container py-4">
@@ -335,6 +328,10 @@
                             <li><a class="dropdown-item" href="{{ url_for('admin_login') }}">Admin Login</a></li>
                         </ul>
                     </div>
+                    {% else %}
+                    <a href="{{ url_for('rider_logout', username=username) }}" class="btn btn-danger btn-sm fw-bold">
+                        <i class="bi bi-box-arrow-right me-1"></i> Logout
+                    </a>
                     {% endif %}
                 </div>
 
@@ -437,7 +434,7 @@
                         {% endif %}
                     </div>
                     {% if username == 'guest' %}
-                    <div class="d-flex gap-2 mt-2">
+                    <div class="d-flex gap-2 mt-4">
                         <a href="tel:+919003666080" class="btn btn-primary w-50 fw-bold py-2" style="min-height:48px;display:flex;align-items:center;justify-content:center;gap:8px;">
                             <i class="bi bi-telephone-fill"></i> Call to Book
                         </a>
