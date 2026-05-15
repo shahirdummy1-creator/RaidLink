@@ -629,7 +629,7 @@ async function reverseGeocode(lat, lng, type) {
         document.getElementById(type === 'pickup' ? 'pickup_lng' : 'drop_lng').value = lng;
 
         document.getElementById(type + '-badge').innerHTML =
-            `<span class="loc-badge"><i class="bi bi-check-circle-fill"></i>${lat.toFixed(6)}, ${lng.toFixed(6)}</span>`;
+            `<span class="loc-badge"><i class="bi bi-check-circle-fill"></i> Location set</span>`;
 
         updateDistanceFare();
     } catch {
@@ -713,7 +713,7 @@ function selectPlace(idx, type) {
     document.getElementById(type === 'pickup' ? 'pickup_lng' : 'drop_lng').value = lng;
 
     document.getElementById(type + '-badge').innerHTML =
-        `<span class="loc-badge"><i class="bi bi-check-circle-fill"></i>${lat.toFixed(6)}, ${lng.toFixed(6)}</span>`;
+        `<span class="loc-badge"><i class="bi bi-check-circle-fill"></i> Location set</span>`;
 
     closeList(type);
     updateDistanceFare();
@@ -930,7 +930,7 @@ async function setLocationFromFullscreen(type) {
         document.getElementById(type === 'pickup' ? 'pickup_lat' : 'drop_lat').value = lat;
         document.getElementById(type === 'pickup' ? 'pickup_lng' : 'drop_lng').value = lng;
         document.getElementById(type + '-badge').innerHTML =
-            `<span class="loc-badge"><i class="bi bi-check-circle-fill"></i>${lat.toFixed(6)}, ${lng.toFixed(6)}</span>`;
+            `<span class="loc-badge"><i class="bi bi-check-circle-fill"></i> Location set</span>`;
         updateDistanceFare();
     } catch {
         const fallbackName = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
@@ -939,7 +939,7 @@ async function setLocationFromFullscreen(type) {
         document.getElementById(type === 'pickup' ? 'pickup_lat' : 'drop_lat').value = lat;
         document.getElementById(type === 'pickup' ? 'pickup_lng' : 'drop_lng').value = lng;
         document.getElementById(type + '-badge').innerHTML =
-            `<span class="loc-badge"><i class="bi bi-check-circle-fill"></i>${fallbackName}</span>`;
+            `<span class="loc-badge"><i class="bi bi-check-circle-fill"></i> Location set</span>`;
         updateDistanceFare();
     }
 }
