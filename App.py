@@ -787,7 +787,8 @@ def driver_signup_step1():
                     session['signup_step1'] = {
                         'username': username, 'mobile': mobile,
                         'email': email, 'password': hash_password(password),
-                        'profile_photo': profile_photo, 'admin_name': admin_name
+                        'profile_photo': profile_photo, 'admin_name': admin_name,
+                        'subscription_plan': request.form.get('subscription_plan', 'monthly')
                     }
                     session.permanent = True
                     session.modified = True
@@ -888,14 +889,14 @@ def driver_signup_step3(username):
                        (username, mobile, email, password_hash, car_make, car_model, car_color,
                         reg_number, aadhaar_number, licence_validity, fitness_validity,
                         pollution_validity, permit_validity,
-                        licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo, admin_name)
-                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
+                        licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo, admin_name, subscription_plan)
+                       VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                     (s1['username'], s1['mobile'], s1['email'], s1['password'],
                      s2['car_make'], s2['car_model'], s2['car_color'],
                      s2['reg_number'], s2['aadhaar_number'],
                      licence_validity, fitness_validity, pollution_validity, permit_validity,
                      licence_img, rc_img, aadhaar_img, permit_img, pollution_img, profile_photo,
-                     s1.get('admin_name'))
+                     s1.get('admin_name'), s1.get('subscription_plan', 'monthly'))
                 )
                 conn.commit()
                 print(f"Driver account created successfully for: {s1['username']}")
@@ -1628,7 +1629,9 @@ def _load_admin_data():
             from datetime import date
             reg = d.get('registered_at', '')
             reg_date = datetime.strptime(str(reg)[:10], '%Y-%m-%d').date()
-            d['expiry_date'] = reg_date + timedelta(days=30)
+            plan = d.get('subscription_plan', 'monthly')
+            days = 365 if plan == 'yearly' else 30
+            d['expiry_date'] = reg_date + timedelta(days=days)
         except Exception:
             d['expiry_date'] = None
     for r in riders:

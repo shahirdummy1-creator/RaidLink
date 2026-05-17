@@ -261,6 +261,7 @@
                             <th>Pollution Validity</th>
                             <th>Permit Validity</th>
                             <th>Date of Join</th>
+                            <th>Subscription</th>
                             <th>Expiry Date</th>
                             <th>Payment ID</th>
                             <th>Payment Date</th>
@@ -298,6 +299,13 @@
                                 <button class="btn btn-sm btn-outline-secondary ms-1 py-0 px-1" style="font-size:.7rem;" onclick="editJoinDate({{ d.id }}, '{{ d.registered_at[:10] if d.registered_at else '' }}')">
                                     <i class="bi bi-pencil"></i>
                                 </button>
+                            </td>
+                            <td>
+                                {% if d.get('subscription_plan', 'monthly') == 'yearly' %}
+                                    <span style="background:#f0fdf4;color:#166534;font-size:.72rem;font-weight:600;padding:4px 10px;border-radius:6px;">Yearly</span>
+                                {% else %}
+                                    <span style="background:#eff6ff;color:#1d4ed8;font-size:.72rem;font-weight:600;padding:4px 10px;border-radius:6px;">Monthly</span>
+                                {% endif %}
                             </td>
                             <td>
                                 {% if d.expiry_date %}
@@ -349,7 +357,7 @@
                             </td>
                         </tr>
                         {% else %}
-                        <tr><td colspan="17" class="text-center text-muted py-5">No drivers registered yet.</td></tr>
+                        <tr><td colspan="18" class="text-center text-muted py-5">No drivers registered yet.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>

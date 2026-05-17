@@ -59,7 +59,7 @@ def init_db():
         ALLOWED_COLS = {
             'licence_validity', 'fitness_validity', 'pollution_validity', 'permit_validity',
             'licence_img', 'rc_img', 'aadhaar_img', 'permit_img', 'pollution_img',
-            'profile_photo', 'car_color', 'admin_name', 'payment_id', 'payment_date'
+            'profile_photo', 'car_color', 'admin_name', 'payment_id', 'payment_date', 'subscription_plan'
         }
         for col, definition in [
             ('licence_validity',   'DATE DEFAULT NULL'),
@@ -76,6 +76,7 @@ def init_db():
             ('admin_name',         'VARCHAR(100) DEFAULT NULL'),
             ('payment_id',         'VARCHAR(100) DEFAULT NULL'),
             ('payment_date',       'DATETIME DEFAULT NULL'),
+            ('subscription_plan',  "VARCHAR(10) NOT NULL DEFAULT 'monthly'"),
         ]:
             if col not in ALLOWED_COLS:
                 continue
