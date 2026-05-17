@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -8,7 +8,7 @@
     <meta name="keywords" content="online cab booking, taxi service, airport taxi, local cab, outstation cab, taxi booking in Chennai, cab service in Trichy, affordable taxi Tamil Nadu, cab booking Tamil Nadu, taxi near me">
     <meta name="robots" content="index, follow">
     <meta name="author" content="PAYANUM">
-    <meta property="og:title" content="PAYANUM � Online Cab Booking in Chennai & Tamil Nadu">
+    <meta property="og:title" content="PAYANUM – Online Cab Booking in Chennai & Tamil Nadu">
     <meta property="og:description" content="Book affordable taxi online in Chennai, Trichy and across Tamil Nadu. Local cab, outstation cab and airport taxi available 24/7.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://PAYANUM-production.up.railway.app/book/guest">
@@ -27,7 +27,7 @@
             { "@type": "City",  "name": "Trichy" }
         ],
         "serviceType": ["Local Cab", "Outstation Cab", "Airport Taxi"],
-        "priceRange": "??",
+        "priceRange": "₹₹",
         "availableChannel": {
             "@type": "ServiceChannel",
             "serviceUrl": "https://PAYANUM-production.up.railway.app/book/guest",
@@ -180,8 +180,8 @@
             color: #333;
             border: 2px solid rgba(0,0,0,0.2);
             border-radius: 4px;
-            width: 42px;
-            height: 42px;
+            width: 38px;
+            height: 38px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -288,7 +288,7 @@
             display: flex; align-items: center; justify-content: space-between;
         }
 
-        /* -- Mobile friendliness -- */
+        /* ── Mobile friendliness ── */
         @media (max-width: 576px) {
             .booking-card { padding: 16px !important; }
             .btn { min-height: 48px; font-size: 1rem; }
@@ -386,14 +386,14 @@
                                 <div class="d-flex align-items-baseline gap-1">
                                     <input type="number" id="distance" name="distance" step="0.1"
                                            class="form-control form-control-sm border-0 p-0 fw-bold bg-transparent"
-                                           placeholder="�" style="width:80px;font-size:1.4rem;" required>
+                                           placeholder="—" style="width:80px;font-size:1.4rem;" required>
                                     <span class="text-muted fw-semibold">km</span>
                                 </div>
                                 <small class="text-muted d-none">Auto-calculated via road route</small>
                             </div>
                             <div class="text-end">
                                 <div class="section-label mb-1">Estimated Fare</div>
-                                <div id="fare-display" class="fw-bold text-success" style="font-size:1.4rem;">�</div>
+                                <div id="fare-display" class="fw-bold text-success" style="font-size:1.4rem;">—</div>
                                 <input type="hidden" id="fare" name="fare">
                             </div>
                         </div>
@@ -468,7 +468,7 @@
     <!-- Map -->
     <div class="fs-map-wrap">
         <div id="fullscreenMap"></div>
-        <div class="fs-crosshair" id="fsCrosshair">??</div>
+        <div class="fs-crosshair" id="fsCrosshair">📍</div>
         <button class="fs-btn-locate" onclick="locateMe()" title="My Location" aria-label="My Location">
             <i class="bi bi-crosshair"></i>
         </button>
@@ -497,7 +497,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('ride_date').value = now.toISOString().split('T')[0];
     document.getElementById('ride_time').value = now.toTimeString().substring(0, 5);
 
-    // Manual distance ? update fare
+    // Manual distance → update fare
     document.getElementById('distance').addEventListener('input', function () {
         const d = parseFloat(this.value);
         if (!isNaN(d) && d > 0) {
@@ -506,7 +506,7 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('fare-display').textContent = '\u20b9' + fareVal.toFixed(2);
         } else {
             document.getElementById('fare').value = '';
-            document.getElementById('fare-display').textContent = '�';
+            document.getElementById('fare-display').textContent = '—';
         }
     });
 
@@ -550,7 +550,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 });
 
-// -- Haversine fallback ------------------------------------
+// ── Haversine fallback ────────────────────────────────────
 function haversineKm(lat1, lon1, lat2, lon2) {
     const R = 6371, r = x => x * Math.PI / 180;
     const dLat = r(lat2-lat1), dLon = r(lon2-lon1);
@@ -558,7 +558,7 @@ function haversineKm(lat1, lon1, lat2, lon2) {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-// -- Set distance & fare -----------------------------------
+// ── Set distance & fare ───────────────────────────────────
 function setDistanceFare(km) {
     km = parseFloat(km).toFixed(1);
     document.getElementById('distance').value = km;
@@ -569,7 +569,7 @@ function setDistanceFare(km) {
     document.getElementById('map-distance-label').textContent = km + ' km (road)';
 }
 
-// -- Update map markers + calculate distance ---------------
+// ── Update map markers + calculate distance ───────────────
 function updateDistanceFare() {
     if (!coords.pickup || !coords.drop) return;
 
@@ -607,7 +607,7 @@ function updateDistanceFare() {
         });
 }
 
-// -- Map click mode ---------------------------------------
+// ── Map click mode ───────────────────────────────────────
 function setMapMode(type) {
     mapClickMode = type;
     const hint = document.getElementById('map-mode-hint');
@@ -653,7 +653,7 @@ async function reverseGeocode(lat, lng, type) {
     document.getElementById('btn-drop-mode').className   = 'btn btn-sm btn-danger w-50 fw-semibold';
 }
 
-// -- Nominatim autosuggest ---------------------------------
+// ── Nominatim autosuggest ─────────────────────────────────
 const timers = {};
 ['pickup', 'drop'].forEach(type => {
     document.getElementById(type).addEventListener('input', function () {
@@ -665,7 +665,7 @@ const timers = {};
             document.getElementById(type + '-badge').innerHTML = '';
             document.getElementById('distance').value = '';
             document.getElementById('fare').value = '';
-            document.getElementById('fare-display').textContent = '�';
+            document.getElementById('fare-display').textContent = '—';
             document.getElementById('map-distance-label').textContent = '';
             return;
         }
@@ -747,7 +747,7 @@ document.addEventListener('click', e => {
     }
 });
 
-// -- Map Search Functionality --------------------------------------------------
+// ── Map Search Functionality ──────────────────────────────────────────────────
 let mapSearchTimer;
 
 function initMapSearch() {
@@ -849,7 +849,7 @@ function selectMapSearchResult(index) {
     
     // Show hint to user
     document.getElementById('map-mode-hint').innerHTML = 
-        '<span class="text-info fw-semibold">?? Location found! Use the buttons below to set as pickup or drop location.</span>';
+        '<span class="text-info fw-semibold">📍 Location found! Use the buttons below to set as pickup or drop location.</span>';
     
     setTimeout(() => {
         document.getElementById('map-mode-hint').textContent = '';
@@ -862,7 +862,7 @@ function closeMapSearchResults() {
     resultsContainer.innerHTML = '';
 }
 
-// -- Fullscreen Map ----------------------------------------
+// ── Fullscreen Map ────────────────────────────────────────
 let fsMap = null, fsCenterMarker = null;
 
 function openFullscreenMap(presetType) {
@@ -1002,7 +1002,7 @@ function closeFsSearch() {
     box.innerHTML = '';
 }
 
-// -- Locate current position on fullscreen map ----------------
+// ── Locate current position on fullscreen map ────────────────
 let fsLocationMarker = null;
 
 function locateMe() {
@@ -1022,7 +1022,7 @@ function locateMe() {
                 fillColor: '#0d6efd',
                 fillOpacity: 0.8,
                 weight: 3
-            }).addTo(fsMap).bindPopup('<b>?? Your Location</b>').openPopup();
+            }).addTo(fsMap).bindPopup('<b>📍 Your Location</b>').openPopup();
             fsMap.setView([lat, lng], 16);
             btn.innerHTML = '<i class="bi bi-crosshair"></i>';
         },
@@ -1034,7 +1034,7 @@ function locateMe() {
     );
 }
 
-// -- Guest booking -----------------------------------------
+// ── Guest booking ─────────────────────────────────────────
 function updateGuestBtn() {
     const btn = document.getElementById('btn-confirm-guest');
     if (!btn) return;
