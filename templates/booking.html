@@ -871,8 +871,15 @@ function openFullscreenMap(presetType) {
         // Update bottom bar label to hint which field will be set
         const pickup = document.querySelector('.fs-btn-pickup');
         const drop   = document.querySelector('.fs-btn-drop');
-        if (presetType === 'pickup') { pickup.style.outline = '3px solid #fff'; drop.style.outline = ''; }
-        else                         { drop.style.outline   = '3px solid #fff'; pickup.style.outline = ''; }
+        if (presetType === 'pickup') {
+            pickup.style.display = 'flex';
+            drop.style.display   = 'none';
+            pickup.style.outline = '3px solid #fff';
+        } else {
+            drop.style.display   = 'flex';
+            pickup.style.display = 'none';
+            drop.style.outline   = '3px solid #fff';
+        }
     }
 
     if (!fsMap) {
