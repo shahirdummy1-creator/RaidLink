@@ -1561,6 +1561,7 @@ def rider_bookings(username):
             b['ride_date'] = str(b['ride_date'])
             b['ride_time'] = str(b['ride_time'])
             b['otp']       = b.get('otp') or ''
+            b['booking_type'] = b.get('booking_type') or 'local'
             bookings.append(b)
         cur.close(); conn.close()
     return render_template('rider_bookings.html', bookings=bookings, order_id=order_id, rider_name=username)

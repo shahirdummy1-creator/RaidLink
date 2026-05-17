@@ -255,7 +255,7 @@
 
     {% set confirmed   = bookings | selectattr('status', 'equalto', 'Confirmed') | rejectattr('booking_type', 'equalto', 'outstation') | list %}
     {% set completed   = bookings | selectattr('status', 'equalto', 'Completed') | rejectattr('booking_type', 'equalto', 'outstation') | list %}
-    {% set outstation  = bookings | selectattr('booking_type', 'equalto', 'outstation') | list %}
+    {% set outstation  = bookings | selectattr('booking_type', 'defined') | selectattr('booking_type', 'equalto', 'outstation') | list %}
 
     <!-- Tabs -->
     <div class="tab-bar">
