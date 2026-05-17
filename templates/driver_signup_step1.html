@@ -148,10 +148,18 @@
             <!-- Hidden profile photo carried forward -->
             <input type="file" class="d-none" id="profile_photo_real" name="profile_photo" accept="image/*" required>
             
-            <div class="alert alert-info mb-3">
+            <div class="alert alert-info mb-3" id="paymentInfo">
                 <i class="bi bi-info-circle me-2"></i>
-                <strong>Next:</strong> After submitting your details, you'll need to pay ₹50 joining fee to continue registration.
+                <strong>Next:</strong> After submitting your details, you'll need to pay <span id="planAmount">₹50</span> joining fee to continue registration.
             </div>
+            
+            <script>
+            document.querySelectorAll('input[name="subscription_plan"]').forEach(function(r) {
+                r.addEventListener('change', function() {
+                    document.getElementById('planAmount').textContent = this.value === 'yearly' ? '₹500' : '₹50';
+                });
+            });
+            </script>
             
             <button type="submit" class="btn btn-primary w-100 fw-bold py-2">
                 Save Details & Continue to Payment <i class="bi bi-arrow-right ms-1"></i>
