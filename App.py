@@ -793,8 +793,10 @@ def driver_signup_step1():
                     session.permanent = True
                     session.modified = True
                     
-                    # Redirect directly to step2
-                    return redirect(url_for('driver_signup_step2', username=username))
+                    # Redirect to payment based on plan
+                    plan = request.form.get('subscription_plan', 'monthly')
+                    payment_url = 'https://rzp.io/rzp/TZPCMrau' if plan == 'yearly' else 'https://rzp.io/rzp/iZvG09vT'
+                    return redirect(payment_url)
             else:
                 error = 'Database connection failed.'
     
