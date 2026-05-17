@@ -793,8 +793,8 @@ def driver_signup_step1():
                     session.permanent = True
                     session.modified = True
                     
-                    # Redirect to Razorpay payment link
-                    return redirect('https://rzp.io/rzp/YK27HRh')
+                    # Redirect directly to step2
+                    return redirect(url_for('driver_signup_step2', username=username))
             else:
                 error = 'Database connection failed.'
     
