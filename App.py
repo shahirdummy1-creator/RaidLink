@@ -1,4 +1,4 @@
-﻿from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from db import get_db, init_db
 from werkzeug.utils import secure_filename
 import hashlib
@@ -818,7 +818,20 @@ def driver_signup_step2_redirect():
 @app.route('/driver-signup/step2/<username>', methods=['GET', 'POST'])
 def driver_signup_step2(username):
     if 'signup_step1' not in session:
-        return redirect(url_for('driver_signup_step1'))
+        conn = get_db()
+        if conn:
+            cur = conn.cursor()
+            cur.execute("SELECT username, mobile, email, profile_photo, admin_name, subscription_plan FROM Driver_Details WHERE username=%s", (username,))
+            row = cur.fetchone()
+            cur.close(); conn.close()
+            if row:
+                session['signup_step1'] = {'username': row[0], 'mobile': str(row[1]), 'email': row[2], 'password': '', 'profile_photo': row[3], 'admin_name': row[4], 'subscription_plan': row[5] or 'monthly'}
+                session.permanent = True
+                session.modified = True
+            else:
+                return redirect(url_for('driver_signup_step1'))
+        else:
+            return redirect(url_for('driver_signup_step1'))
     error = None
     form  = session.get('signup_step2', {})
     if request.method == 'POST':
