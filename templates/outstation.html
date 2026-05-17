@@ -38,7 +38,7 @@
             box-shadow: 0 -4px 16px rgba(0,0,0,.12); position: absolute;
             bottom: 60px; left: 16px; right: 16px; border-radius: 14px;
         }
-        .fs-bottombar button { flex: 1; padding: 12px; border-radius: 10px; font-weight: 700; font-size: .9rem; border: none; cursor: pointer; }
+        .fs-bottombar button { flex: 1; padding: 12px; border-radius: 10px; font-weight: 700; font-size: .9rem; border: none; cursor: pointer; text-align: center; justify-content: center; }
         .fs-btn-pickup { background: #22c55e; color: #fff; }
         .fs-btn-drop   { background: #ef4444; color: #fff; }
         .fs-btn-pickup:hover { background: #16a34a; }
@@ -353,8 +353,15 @@ function openFullscreenMap(presetType) {
     document.body.classList.add('map-fullscreen');
     const pickup = document.querySelector('.fs-btn-pickup');
     const drop   = document.querySelector('.fs-btn-drop');
-    if (presetType === 'pickup') { pickup.style.outline = '3px solid #fff'; drop.style.outline = ''; }
-    else                         { drop.style.outline   = '3px solid #fff'; pickup.style.outline = ''; }
+    if (presetType === 'pickup') {
+            pickup.style.display = 'flex';
+            drop.style.display   = 'none';
+            pickup.style.outline = '3px solid #fff';
+        } else {
+            drop.style.display   = 'flex';
+            pickup.style.display = 'none';
+            drop.style.outline   = '3px solid #fff';
+        }
 
     if (!fsMap) {
         fsMap = L.map('fullscreenMap').setView(coords.pickup || coords.drop || [20.5937, 78.9629], coords.pickup || coords.drop ? 14 : 5);
