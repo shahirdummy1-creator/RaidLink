@@ -91,7 +91,13 @@
         .driver-profile-name { font-size: 1.05rem; font-weight: 700; color: #111827; }
         .driver-profile-meta { font-size: .78rem; color: #6b7280; margin-top: 2px; }
 
-        /* OTP input - REMOVED */
+        /* Pull to refresh */
+        .ptr-indicator {
+            text-align: center; padding: 10px; font-size: .82rem;
+            color: #6b7280; display: none; transition: all .2s;
+        }
+        .ptr-indicator.visible { display: block; }
+        .ptr-indicator i { animation: spin .6s linear infinite; }
     </style>
 </head>
 <body>
@@ -106,6 +112,8 @@
         <a href="{{ url_for('driver_logout', username=driver_name) }}" class="btn btn-sm btn-outline-danger">Logout</a>
     </div>
 </div>
+
+<div class="ptr-indicator" id="ptrIndicator"><i class="bi bi-arrow-clockwise"></i> Refreshing…</div>
 
 <div class="container mt-4">
     <div class="card shadow-sm p-4">
@@ -622,6 +630,33 @@
 
         startBuzzer();
     }
+
+    // ── Pull to refresh ────────────────────────────────────
+    (function() {
+        let startY = 0, pulling = false;
+        const threshold = 80;
+        const indicator = document.getElementById('ptrIndicator');
+
+        document.addEventListener('touchstart', e => {
+            if (window.scrollY === 0) { startY = e.touches[0].clientY; pulling = true; }
+        }, { passive: true });
+
+        document.addEventListener('touchmove', e => {
+            if (!pulling) return;
+            const dist = e.touches[0].clientY - startY;
+            if (dist > 30) indicator.classList.add('visible');
+        }, { passive: true });
+
+        document.addEventListener('touchend', e => {
+            if (!pulling) return;
+            pulling = false;
+            const dist = e.changedTouches[0].clientY - startY;
+            if (dist > threshold) {
+                fetchBooking(true);
+            }
+            setTimeout(() => indicator.classList.remove('visible'), 800);
+        });
+    })();
 
     // Load driver data for edit modal
     function loadDriverData() {
