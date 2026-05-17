@@ -793,10 +793,8 @@ def driver_signup_step1():
                     session.permanent = True
                     session.modified = True
                     
-                    # Redirect to Razorpay payment link based on subscription plan
-                    plan = request.form.get('subscription_plan', 'monthly')
-                    amount_paise = 50000 if plan == 'yearly' else 5000
-                    return redirect(f'https://rzp.io/rzp/YK27HRh?amount={amount_paise}')
+                    # Redirect to Razorpay payment link
+                    return redirect('https://rzp.io/rzp/YK27HRh')
             else:
                 error = 'Database connection failed.'
     
