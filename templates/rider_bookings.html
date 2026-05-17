@@ -253,8 +253,9 @@
     </div>
     {% endif %}
 
-    {% set confirmed = bookings | selectattr('status', 'equalto', 'Confirmed') | list %}
-    {% set completed = bookings | selectattr('status', 'equalto', 'Completed') | list %}
+    {% set confirmed   = bookings | selectattr('status', 'equalto', 'Confirmed') | rejectattr('booking_type', 'equalto', 'outstation') | list %}
+    {% set completed   = bookings | selectattr('status', 'equalto', 'Completed') | rejectattr('booking_type', 'equalto', 'outstation') | list %}
+    {% set outstation  = bookings | selectattr('booking_type', 'equalto', 'outstation') | list %}
 
     <!-- Tabs -->
     <div class="tab-bar">
@@ -265,6 +266,10 @@
         <button class="tab-btn" onclick="switchTab('completed', this)">
             <i class="bi bi-check2-circle"></i> Completed
             <span class="tab-count">{{ completed | length }}</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('outstation', this)">
+            <i class="bi bi-signpost-2"></i> Outstation
+            <span class="tab-count">{{ outstation | length }}</span>
         </button>
     </div>
 
@@ -427,6 +432,82 @@
             <div class="empty-icon"><i class="bi bi-check2-circle text-muted"></i></div>
             <div class="empty-title">No completed trips yet</div>
             <div class="empty-sub">Your completed rides will appear here</div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Tab: Outstation -->
+    <div id="tab-outstation" class="tab-pane">
+        {% if outstation %}
+            {% for b in outstation %}
+            <div class="booking-card">
+                <div class="card-header-strip {{ 'confirmed' if b.status == 'Confirmed' else 'completed' }}">
+                    <span class="order-id"><i class="bi bi-hash"></i>{{ b.id }} <span class="badge bg-warning text-dark ms-1" style="font-size:.65rem;">Outstation</span></span>
+                    <div class="d-flex align-items-center gap-2">
+                        {% if b.status == 'Completed' %}
+                        <span class="status-pill pill-completed"><i class="bi bi-check-circle-fill"></i> Completed</span>
+                        {% elif b.accepted_by %}
+                        <span class="status-pill pill-assigned"><i class="bi bi-person-check"></i> Driver Assigned</span>
+                        {% else %}
+                        <span class="status-pill pill-waiting"><i class="bi bi-hourglass-split"></i> Waiting for Driver</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body-wrap">
+                    <div class="route-row">
+                        <div class="route-point">
+                            <div class="route-icon pickup"><i class="bi bi-geo-alt-fill"></i></div>
+                            <div>
+                                <div class="route-label">From</div>
+                                <div class="route-value">{{ b.pickup_location | capitalize }}</div>
+                            </div>
+                        </div>
+                        <i class="bi bi-arrow-right route-arrow"></i>
+                        <div class="route-point">
+                            <div class="route-icon drop"><i class="bi bi-flag-fill"></i></div>
+                            <div>
+                                <div class="route-label">Destination</div>
+                                <div class="route-value">{{ b.drop_location | capitalize }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="meta-row">
+                        <div class="meta-item">
+                            <span class="meta-label">Distance</span>
+                            <span class="meta-value">{{ b.distance_km }} km</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Fare</span>
+                            <span class="meta-value fare">{{ b.fare }}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Date</span>
+                            <span class="meta-value">{{ b.ride_date }}</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="meta-label">Time</span>
+                            <span class="meta-value">{{ b.ride_time }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% if b.status == 'Confirmed' and b.otp %}
+                <div class="action-row">
+                    <div class="otp-box">
+                        <div>
+                            <div class="otp-label">Trip OTP</div>
+                            <div class="otp-digits">{{ b.otp }}</div>
+                        </div>
+                        <i class="bi bi-shield-lock-fill text-primary"></i>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon"><i class="bi bi-signpost-2 text-muted"></i></div>
+            <div class="empty-title">No outstation bookings</div>
+            <div class="empty-sub">Your outstation trips will appear here</div>
         </div>
         {% endif %}
     </div>

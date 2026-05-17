@@ -1471,6 +1471,7 @@ def submit():
 
     fare_val  = parse_fare(fare_str)
     otp       = str(random.randint(1000, 9999))
+    booking_type = request.form.get('booking_type', 'local')
     try:
         dist_val = float(distance)
         if dist_val != dist_val or dist_val <= 0:
@@ -1482,8 +1483,8 @@ def submit():
     if conn:
         cur = conn.cursor()
         cur.execute(
-            "INSERT INTO Trip_Details (rider_id, pickup_location, drop_location, distance_km, fare, ride_date, ride_time, otp) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)",
-            (rider_id, pickup, drop, dist_val, fare_val, ride_date, ride_time, otp)
+            "INSERT INTO Trip_Details (rider_id, pickup_location, drop_location, distance_km, fare, ride_date, ride_time, otp, booking_type) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            (rider_id, pickup, drop, dist_val, fare_val, ride_date, ride_time, otp, booking_type)
         )
         conn.commit()
         order_id = cur.lastrowid

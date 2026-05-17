@@ -102,11 +102,12 @@ def init_db():
             )
         """)
 
-        ALLOWED_TRIP_COLS = {'rider_id', 'accepted_by', 'otp'}
+        ALLOWED_TRIP_COLS = {'rider_id', 'accepted_by', 'otp', 'booking_type'}
         for col, definition in [
-            ('rider_id',    'INT DEFAULT NULL AFTER id'),
-            ('accepted_by', 'VARCHAR(100) DEFAULT NULL AFTER ride_time'),
-            ('otp',         'CHAR(4) DEFAULT NULL AFTER accepted_by'),
+            ('rider_id',     'INT DEFAULT NULL AFTER id'),
+            ('accepted_by',  'VARCHAR(100) DEFAULT NULL AFTER ride_time'),
+            ('otp',          'CHAR(4) DEFAULT NULL AFTER accepted_by'),
+            ('booking_type', "VARCHAR(20) NOT NULL DEFAULT 'local' AFTER otp"),
         ]:
             if col not in ALLOWED_TRIP_COLS:
                 continue
