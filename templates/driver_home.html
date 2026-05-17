@@ -109,7 +109,24 @@
 <div class="container mt-2">
     <div class="d-flex justify-content-between align-items-center">
         <span class="fw-semibold text-muted"><i class="bi bi-person-circle me-1"></i>{{ driver_name }}</span>
-        <a href="{{ url_for('driver_logout', username=driver_name) }}" class="btn btn-sm btn-outline-danger">Logout</a>
+        <div class="d-flex align-items-center gap-2">
+            <div class="dropdown">
+                <button class="btn btn-sm btn-primary fw-bold" type="button" id="driverMenuButton"
+                        data-bs-toggle="dropdown" aria-expanded="false" aria-label="Driver menu">
+                    <i class="bi bi-list"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="driverMenuButton">
+                    <li><a class="dropdown-item" href="{{ url_for('driver_profile', username=driver_name) }}">Driver Profile</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('driver_earnings', username=driver_name) }}">Earnings</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('driver_trips', username=driver_name) }}">Completed Trips</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#subscriptionModal"><i class="bi bi-credit-card me-2"></i>Subscription</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="https://wa.me/919003666080?text=Hi%2C%20I%20need%20driver%20support" target="_blank"><i class="bi bi-whatsapp text-success me-2"></i>WhatsApp Help</a></li>
+                </ul>
+            </div>
+            <a href="{{ url_for('driver_logout', username=driver_name) }}" class="btn btn-sm btn-danger fw-bold">Logout</a>
+        </div>
     </div>
 </div>
 
@@ -125,24 +142,10 @@
                 <span id="lastUpdated">Checking for orders…</span>
             </div>
             <div class="d-flex align-items-center gap-2">
-                <button class="btn-refresh" id="refreshBtn" onclick="fetchBooking(true)">
+                <button class="btn-refresh d-none" id="refreshBtn" onclick="fetchBooking(true)">
                     <i class="bi bi-arrow-clockwise"></i> Refresh
                 </button>
-                <div class="dropdown ms-1">
-                    <button class="btn btn-primary" type="button" id="driverMenuButton"
-                            data-bs-toggle="dropdown" aria-expanded="false" aria-label="Driver menu">
-                        <i class="bi bi-list"></i>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="driverMenuButton">
-                        <li><a class="dropdown-item" href="{{ url_for('driver_profile', username=driver_name) }}">Driver Profile</a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('driver_earnings', username=driver_name) }}">Earnings</a></li>
-                        <li><a class="dropdown-item" href="{{ url_for('driver_trips', username=driver_name) }}">Completed Trips</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#subscriptionModal"><i class="bi bi-credit-card me-2"></i>Subscription</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="https://wa.me/919003666080?text=Hi%2C%20I%20need%20driver%20support" target="_blank"><i class="bi bi-whatsapp text-success me-2"></i>WhatsApp Help</a></li>
-                    </ul>
-                </div>
+
             </div>
         </div>
 
