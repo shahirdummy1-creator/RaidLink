@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -431,6 +431,9 @@ let googleMapsLoaded = false;
 let geocoder = null;
 let directionsService = null;
 let autocompleteService = null;
+let bookingDomReady = false;
+let defaultPickupRequested = false;
+let autocompleteWidgetsReady = false;
 let fsMap = null;
 let fsLocationMarker = null;
 let fsActiveType = null;
@@ -441,7 +444,15 @@ window.initGoogleBookingMap = function () {
     googleMapsLoaded = true;
     geocoder = new google.maps.Geocoder();
     directionsService = new google.maps.DirectionsService();
-    autocompleteService = new google.maps.places.AutocompleteService();
+    if (google.maps.places?.AutocompleteService) {
+        autocompleteService = new google.maps.places.AutocompleteService();
+    }
+    initPlaceAutocompleteWidgets();
+    if (window._pendingPickupLatLng) {
+        const { lat, lng } = window._pendingPickupLatLng;
+        window._pendingPickupLatLng = null;
+        setLocationFromLatLng('pickup', lat, lng);
+    }
 };
 
 window.gm_authFailure = function () {
@@ -474,6 +485,17 @@ function resetDistanceFare() {
     document.getElementById('fare').value = '';
     document.getElementById('fare-display').textContent = '—';
     document.getElementById('map-distance-label').textContent = '';
+}
+
+function showSuggestionMessage(type, message) {
+    const list = document.getElementById(type + '-list');
+    if (!list) return;
+    list._data = [];
+    list.innerHTML = `<div class="autocomplete-item text-muted">
+                        <i class="bi bi-geo-alt text-primary mt-1"></i>
+                        <div>${escapeHtml(message)}</div>
+                    </div>`;
+    list.classList.add('show');
 }
 
 function setBadge(type, text) {
@@ -510,6 +532,37 @@ function clearLocation(type) {
     refreshFullscreenMarkers();
     resetDistanceFare();
     updateGuestBtn();
+}
+
+function initPlaceAutocompleteWidgets() {
+    if (!googleMapsLoaded || !bookingDomReady || autocompleteWidgetsReady || !google.maps.places?.Autocomplete) return;
+
+    ['pickup', 'drop'].forEach(type => {
+        const input = document.getElementById(type);
+        if (!input) return;
+        const autocomplete = new google.maps.places.Autocomplete(input, {
+            componentRestrictions: { country: 'in' },
+            fields: ['address_components', 'formatted_address', 'geometry', 'name']
+        });
+
+        autocomplete.addListener('place_changed', () => {
+            const place = autocomplete.getPlace();
+            closeList(type);
+            if (place?.geometry?.location) {
+                setLocationFields(
+                    type,
+                    place.geometry.location.lat(),
+                    place.geometry.location.lng(),
+                    place.formatted_address || input.value,
+                    getPostalCode(place.address_components)
+                );
+                return;
+            }
+            geocodeInputIfNeeded(type);
+        });
+    });
+
+    autocompleteWidgetsReady = true;
 }
 
 function getPlacePredictions(query, limit = 6) {
@@ -643,6 +696,8 @@ function refreshFullscreenMarkers() {
 
 
 document.addEventListener('DOMContentLoaded', function () {
+    bookingDomReady = true;
+    initPlaceAutocompleteWidgets();
     // Default date/time
     const now = new Date();
     document.getElementById('ride_date').value = now.toISOString().split('T')[0];
@@ -673,6 +728,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     setLocationFromLatLng('pickup', lat, lng)
                         .catch(function() { pickupInput.placeholder = 'Search pickup location...'; });
                 } else {
+                    window._pendingPickupLatLng = { lat, lng };
                     pickupInput.placeholder = 'Search pickup location...';
                 }
             },
