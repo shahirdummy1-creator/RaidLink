@@ -1190,7 +1190,9 @@ function guestConfirm() {
     f.submit();
 }
 </script>
-<script defer src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_key|urlencode }}&libraries=places&callback=initGoogleBookingMap"></script>
+<script async
+    src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_key|urlencode }}&loading=async&libraries=places&callback=initGoogleBookingMap">
+</script>
 
 <form id="guest-booking-form" method="POST" action="/guest-booking" style="display:none;">
     <input type="hidden" name="pickup">
