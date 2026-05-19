@@ -371,16 +371,7 @@
 
                 {% if b.accepted_by %}
                 <!-- Driver Location -->
-                <div id="driver-loc-{{ b.id }}" style="padding:14px 20px;border-top:1px solid #f3f4f6;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-                        <div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;">
-                            <i class="bi bi-geo-alt-fill text-primary me-1"></i> Driver Location
-                        </div>
-                        <a id="track-btn-{{ b.id }}" href="#" target="_blank"
-                           style="display:none;align-items:center;gap:5px;background:#0d6efd;color:#fff;padding:5px 12px;border-radius:8px;font-size:.75rem;font-weight:600;text-decoration:none;">
-                            <i class="bi bi-broadcast"></i> Live Track
-                        </a>
-                    </div>
+                <div id="driver-loc-{{ b.id }}" style="padding:12px 20px;border-top:1px solid #f3f4f6;">
                     <div id="driver-stats-{{ b.id }}" style="display:none;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
                         <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:8px 12px;text-align:center;">
                             <div style="font-size:.62rem;font-weight:700;text-transform:uppercase;color:#6b7280;">Distance Away</div>
@@ -391,8 +382,14 @@
                             <div id="driver-eta-val-{{ b.id }}" style="font-size:1.1rem;font-weight:800;color:#059669;">&#8212;</div>
                         </div>
                     </div>
-                    <div id="driver-map-{{ b.id }}" style="width:100%;height:200px;border-radius:10px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;">
-                        <span style="color:#9ca3af;font-size:.82rem;"><i class="bi bi-arrow-clockwise me-1"></i>Fetching driver location&#8230;</span>
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                        <span id="driver-loc-status-{{ b.id }}" style="font-size:.8rem;color:#9ca3af;">
+                            <i class="bi bi-arrow-clockwise me-1"></i>Fetching driver location&#8230;
+                        </span>
+                        <a id="track-btn-{{ b.id }}" href="#" target="_blank"
+                           style="display:none;align-items:center;gap:6px;background:#0d6efd;color:#fff;padding:7px 16px;border-radius:8px;font-size:.82rem;font-weight:600;text-decoration:none;">
+                            <i class="bi bi-geo-alt-fill"></i> View Driver Location
+                        </a>
                     </div>
                 </div>
                 {% endif %}
@@ -580,72 +577,25 @@ const DRIVER_BOOKINGS = [
     {% endif %}{% endfor %}
 ];
 
-const driverMaps    = {};   // bookingId -> google.maps.Map
-const driverMarkers = {};   // bookingId -> google.maps.Marker
-
-function initDriverMaps() {
-    // Called once Google Maps JS is ready
-    DRIVER_BOOKINGS.forEach(b => {
-        const el = document.getElementById(`driver-map-${b.id}`);
-        if (!el) return;
-        const map = new google.maps.Map(el, {
-            zoom: 14,
-            center: { lat: 11.0168, lng: 76.9558 },   // default Coimbatore
-            disableDefaultUI: true,
-            zoomControl: true,
-            gestureHandling: 'cooperative'
-        });
-        driverMaps[b.id] = map;
-        driverMarkers[b.id] = new google.maps.Marker({
-            map,
-            icon: {
-                url: 'https://maps.google.com/mapfiles/ms/icons/cabs/taxi.png',
-                scaledSize: new google.maps.Size(40, 40)
-            },
-            title: 'Driver'
-        });
-        // Also add pickup marker if coords available
-        if (b.pickup_lat) {
-            new google.maps.Marker({
-                map,
-                position: { lat: b.pickup_lat, lng: b.pickup_lng },
-                icon: { url: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png' },
-                title: 'Your Pickup'
-            });
-        }
-    });
-    // Start polling
-    DRIVER_BOOKINGS.forEach(updateDriverLocation);
-    setInterval(() => DRIVER_BOOKINGS.forEach(updateDriverLocation), 15000);
-}
-
 function updateDriverLocation(booking) {
     fetch(`/api/driver-location/${booking.driver}`)
         .then(r => r.json())
         .then(data => {
-            const statsEl = document.getElementById(`driver-stats-${booking.id}`);
-            const distEl  = document.getElementById(`driver-dist-val-${booking.id}`);
-            const etaEl   = document.getElementById(`driver-eta-val-${booking.id}`);
-            const trackEl = document.getElementById(`track-btn-${booking.id}`);
-            const mapEl   = document.getElementById(`driver-map-${booking.id}`);
+            const statsEl  = document.getElementById(`driver-stats-${booking.id}`);
+            const distEl   = document.getElementById(`driver-dist-val-${booking.id}`);
+            const etaEl    = document.getElementById(`driver-eta-val-${booking.id}`);
+            const trackEl  = document.getElementById(`track-btn-${booking.id}`);
+            const statusEl = document.getElementById(`driver-loc-status-${booking.id}`);
 
             if (!data.lat) {
-                if (mapEl && mapEl.children.length === 0)
-                    mapEl.innerHTML = '<span style="color:#9ca3af;font-size:.82rem;"><i class="bi bi-geo-alt me-1"></i>Driver location not available yet</span>';
+                if (statusEl) statusEl.innerHTML = '<i class="bi bi-geo-alt me-1"></i>Driver location not available yet';
                 return;
             }
 
-            const driverPos = { lat: data.lat, lng: data.lng };
+            // Hide status text
+            if (statusEl) statusEl.style.display = 'none';
 
-            // Update map marker
-            const map    = driverMaps[booking.id];
-            const marker = driverMarkers[booking.id];
-            if (map && marker) {
-                marker.setPosition(driverPos);
-                map.panTo(driverPos);
-            }
-
-            // Live track button
+            // Show View Driver Location button
             if (trackEl) {
                 const dest = booking.pickup_lat
                     ? `${booking.pickup_lat},${booking.pickup_lng}`
@@ -655,10 +605,9 @@ function updateDriverLocation(booking) {
             }
 
             // Distance Matrix for real road distance + ETA
-            if (booking.pickup_lat && window.google) {
-                const svc = new google.maps.DistanceMatrixService();
-                svc.getDistanceMatrix({
-                    origins:      [driverPos],
+            if (booking.pickup_lat && window.google && google.maps) {
+                new google.maps.DistanceMatrixService().getDistanceMatrix({
+                    origins:      [{ lat: data.lat, lng: data.lng }],
                     destinations: [{ lat: booking.pickup_lat, lng: booking.pickup_lng }],
                     travelMode:   google.maps.TravelMode.DRIVING,
                     unitSystem:   google.maps.UnitSystem.METRIC
@@ -674,8 +623,15 @@ function updateDriverLocation(booking) {
         })
         .catch(() => {});
 }
+
+function initDriverTracking() {
+    if (DRIVER_BOOKINGS.length > 0) {
+        DRIVER_BOOKINGS.forEach(updateDriverLocation);
+        setInterval(() => DRIVER_BOOKINGS.forEach(updateDriverLocation), 15000);
+    }
+}
 </script>
 
-<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_key }}&libraries=places&callback=initDriverMaps" async defer></script>
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_key }}&libraries=places&callback=initDriverTracking" async defer></script>
 </body>
 </html>
