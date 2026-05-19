@@ -986,7 +986,7 @@ async function fetchFsSuggestions(query) {
         const data = await getPlacePredictions(query, 5);
         const box  = document.getElementById('fsSearchResults');
         if (!data.length) { closeFsSearch(); return; }
-        box._data = data;
+        window._fsSearchData = data;
         box.innerHTML = data.map((p, i) => {
             const name = p.structured_formatting?.main_text || p.description.split(',')[0];
             const addr = p.structured_formatting?.secondary_text || p.description.split(',').slice(1, 3).join(',').trim();
@@ -1003,8 +1003,8 @@ async function fetchFsSuggestions(query) {
 }
 
 async function selectFsResult(idx) {
-    const box  = document.getElementById('fsSearchResults');
-    const place = box._data[idx];
+    const data = window._fsSearchData || [];
+    const place = data[idx];
     if (!place) return;
     document.getElementById('fsSearchInput').value = place.description.split(',')[0];
     closeFsSearch();
@@ -1014,10 +1014,12 @@ async function selectFsResult(idx) {
         fsMap.setCenter(location);
         fsMap.setZoom(15);
     } catch {
-        const result = await geocodeAddress(place.description);
-        const location = result.geometry.location;
-        fsMap.setCenter(location);
-        fsMap.setZoom(15);
+        try {
+            const result = await geocodeAddress(place.description);
+            const location = result.geometry.location;
+            fsMap.setCenter(location);
+            fsMap.setZoom(15);
+        } catch {}
     }
 }
 
@@ -1049,7 +1051,7 @@ function closeFsSearch() {
     const box = document.getElementById('fsSearchResults');
     box.classList.remove('show');
     box.innerHTML = '';
-    box._data = [];
+    window._fsSearchData = [];
 }
 
 // ── Locate current position on fullscreen map ────────────────
