@@ -955,6 +955,25 @@ function openFullscreenMap(presetType) {
     // Search input
     const fsInput = document.getElementById('fsSearchInput');
     fsInput.value = '';
+
+    // Attach Google Places Autocomplete to fullscreen search input
+    if (!fsInput._autocomplete && google.maps.places?.Autocomplete) {
+        const fsAc = new google.maps.places.Autocomplete(fsInput, {
+            componentRestrictions: { country: 'in' },
+            fields: ['geometry', 'name', 'formatted_address']
+        });
+        fsAc.addListener('place_changed', () => {
+            const place = fsAc.getPlace();
+            if (place?.geometry?.location) {
+                fsMap.setCenter(place.geometry.location);
+                fsMap.setZoom(15);
+                placeFsPin(place.geometry.location);
+                closeFsSearch();
+            }
+        });
+        fsInput._autocomplete = fsAc;
+    }
+
     let fsTimer;
     fsInput.oninput = function() {
         clearTimeout(fsTimer);
@@ -982,9 +1001,9 @@ async function setLocationFromFullscreen(type) {
 }
 
 async function fetchFsSuggestions(query) {
+    const box = document.getElementById('fsSearchResults');
     try {
         const data = await getPlacePredictions(query, 5);
-        const box  = document.getElementById('fsSearchResults');
         if (!data.length) { closeFsSearch(); return; }
         window._fsSearchData = data;
         box.innerHTML = data.map((p, i) => {
@@ -999,7 +1018,10 @@ async function fetchFsSuggestions(query) {
                     </div>`;
         }).join('');
         box.classList.add('show');
-    } catch { closeFsSearch(); }
+    } catch(e) {
+        console.error('fetchFsSuggestions error:', e);
+        closeFsSearch();
+    }
 }
 
 let fsSearchPin = null;
