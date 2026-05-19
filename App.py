@@ -988,6 +988,36 @@ def api_driver_data(username):
             return jsonify({'email': row[0], 'mobile': row[1]})
     return jsonify({'email': '', 'mobile': ''})
 
+@app.route('/api/driver-online', methods=['POST'])
+def api_driver_online():
+    data = request.get_json(force=True, silent=True) or {}
+    username  = data.get('username', '')
+    is_online = data.get('is_online', True)
+    lat = data.get('lat')
+    lng = data.get('lng')
+    conn = get_db()
+    if conn and username:
+        cur = conn.cursor()
+        if lat is not None and lng is not None:
+            cur.execute("UPDATE Driver_Details SET driver_lat=%s, driver_lng=%s WHERE username=%s", (lat, lng, username))
+        else:
+            cur.execute("UPDATE Driver_Details SET driver_lat=NULL, driver_lng=NULL WHERE username=%s", (username,))
+        conn.commit()
+        cur.close(); conn.close()
+    return jsonify({'ok': True})
+
+@app.route('/api/driver-location/<driver_name>')
+def api_driver_location(driver_name):
+    conn = get_db()
+    if conn:
+        cur = conn.cursor()
+        cur.execute("SELECT driver_lat, driver_lng FROM Driver_Details WHERE username=%s", (driver_name,))
+        row = cur.fetchone()
+        cur.close(); conn.close()
+        if row and row[0] is not None:
+            return jsonify({'lat': float(row[0]), 'lng': float(row[1])})
+    return jsonify({'lat': None, 'lng': None})
+
 @app.route('/api/latest-booking')
 def api_latest_booking():
     driver_name = request.args.get('driver', '')
@@ -1613,7 +1643,8 @@ def rider_bookings(username):
             b['booking_type'] = b.get('booking_type') or 'local'
             bookings.append(b)
         cur.close(); conn.close()
-    return render_template('rider_bookings.html', bookings=bookings, order_id=order_id, rider_name=username)
+    google_maps_key = os.environ.get('GOOGLE_MAPS_API_KEY', 'AIzaSyD30gHd12662NScMkTUshQYJm89qk9H4k8')
+    return render_template('rider_bookings.html', bookings=bookings, order_id=order_id, rider_name=username, google_maps_key=google_maps_key)
 
 
 # ════════════════════════════════════════════════════════════

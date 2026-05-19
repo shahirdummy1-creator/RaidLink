@@ -77,6 +77,8 @@ def init_db():
             ('payment_id',         'VARCHAR(100) DEFAULT NULL'),
             ('payment_date',       'DATETIME DEFAULT NULL'),
             ('subscription_plan',  "VARCHAR(10) NOT NULL DEFAULT 'monthly'"),
+            ('driver_lat',         'DECIMAL(10,7) DEFAULT NULL'),
+            ('driver_lng',         'DECIMAL(10,7) DEFAULT NULL'),
         ]:
             if col not in ALLOWED_COLS:
                 continue
