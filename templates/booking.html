@@ -462,7 +462,10 @@ window.initGoogleBookingMap = function () {
 };
 
 window.gm_authFailure = function () {
-    alert('Google Maps could not be loaded. Please check the API key configuration.');
+    console.warn('Google Maps API key error - maps disabled');
+    googleMapsLoaded = false;
+    document.getElementById('pickup').placeholder = 'Search pickup location...';
+    document.getElementById('drop').placeholder = 'Search drop location...';
 };
 
 function escapeHtml(value) {
@@ -972,10 +975,9 @@ function _initFsSearch() {
     if (_fsSearchReady) return;
     _fsSearchReady = true;
     const fsInput = document.getElementById('fs-search-input');
-    if (!fsInput) { console.error('[FS Search] input element not found'); return; }
-    console.log('[FS Search] init OK, autocompleteService:', !!autocompleteService);
+    const fsList  = document.getElementById('fs-suggestions');
+    if (!fsInput) return;
     fsInput.addEventListener('input', function () {
-        console.log('[FS Search] input event, val:', this.value, 'service:', !!autocompleteService);
         clearTimeout(_fsSuggestTimer);
         const val = this.value.trim();
         if (val.length < 2) { _closeFsSuggestions(); return; }
@@ -985,21 +987,17 @@ function _initFsSearch() {
         if (e.key === 'Escape') { _closeFsSuggestions(); fsInput.blur(); }
     });
     document.addEventListener('click', e => {
-        const wrap = document.querySelector('.fs-search-wrap');
-        if (wrap && !wrap.contains(e.target)) _closeFsSuggestions();
+        if (!fsInput.contains(e.target) && !fsList.contains(e.target)) {
+            _closeFsSuggestions();
+        }
     });
 }
 
 async function _fetchFsSuggestions(query) {
-    console.log('[FS Search] query:', query, 'service:', !!autocompleteService);
-    if (!autocompleteService) {
-        console.warn('[FS Search] autocompleteService not ready');
-        return;
-    }
+    if (!autocompleteService) return;
     autocompleteService.getPlacePredictions(
         { input: query, componentRestrictions: { country: 'in' } },
         (predictions, status) => {
-            console.log('[FS Search] status:', status, 'predictions:', predictions?.length);
             const list = document.getElementById('fs-suggestions');
             if (status !== google.maps.places.PlacesServiceStatus.OK || !predictions?.length) {
                 _closeFsSuggestions(); return;
