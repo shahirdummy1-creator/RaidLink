@@ -509,6 +509,7 @@ window.initGoogleBookingMap = function () {
         autocompleteService = new google.maps.places.AutocompleteService();
     }
     initPlaceAutocompleteWidgets();
+    _initFsSearch();
     if (window._pendingPickupLatLng) {
         const { lat, lng } = window._pendingPickupLatLng;
         window._pendingPickupLatLng = null;
@@ -972,7 +973,6 @@ document.addEventListener('click', e => {
 
 // ── Fullscreen Map ────────────────────────────────────────
 let _fsIdleListener = null;
-const _fsSuggestTimers = {};
 
 function openFullscreenMap(presetType) {
     if (!googleMapsLoaded) { alert('Google Maps is still loading. Please try again in a moment.'); return; }
@@ -1020,26 +1020,28 @@ function openFullscreenMap(presetType) {
 }
 
 // ── Fullscreen search with live suggestions + pin move ────────────
-document.addEventListener('DOMContentLoaded', () => {
+let _fsSuggestTimer = null;
+let _fsPredictions = [];
+let _fsSearchReady = false;
+
+function _initFsSearch() {
+    if (_fsSearchReady) return;
+    _fsSearchReady = true;
     const fsInput = document.getElementById('fs-search-input');
     fsInput.addEventListener('input', function () {
-        clearTimeout(_fsSuggestTimers.fs);
+        clearTimeout(_fsSuggestTimer);
         const val = this.value.trim();
         if (val.length < 2) { _closeFsSuggestions(); return; }
-        _fsSuggestTimers.fs = setTimeout(() => _fetchFsSuggestions(val), 350);
+        _fsSuggestTimer = setTimeout(() => _fetchFsSuggestions(val), 300);
     });
     fsInput.addEventListener('keydown', e => {
         if (e.key === 'Escape') { _closeFsSuggestions(); fsInput.blur(); }
     });
     document.addEventListener('click', e => {
-        if (!document.getElementById('fs-search-input').contains(e.target) &&
-            !document.getElementById('fs-suggestions').contains(e.target)) {
-            _closeFsSuggestions();
-        }
+        const wrap = document.querySelector('.fs-search-wrap');
+        if (wrap && !wrap.contains(e.target)) _closeFsSuggestions();
     });
-});
-
-let _fsPredictions = [];
+}
 
 async function _fetchFsSuggestions(query) {
     if (!autocompleteService) return;
