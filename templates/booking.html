@@ -1028,7 +1028,10 @@ function _initFsSearch() {
     if (_fsSearchReady) return;
     _fsSearchReady = true;
     const fsInput = document.getElementById('fs-search-input');
+    if (!fsInput) { console.error('[FS Search] input element not found'); return; }
+    console.log('[FS Search] init OK, autocompleteService:', !!autocompleteService);
     fsInput.addEventListener('input', function () {
+        console.log('[FS Search] input event, val:', this.value, 'service:', !!autocompleteService);
         clearTimeout(_fsSuggestTimer);
         const val = this.value.trim();
         if (val.length < 2) { _closeFsSuggestions(); return; }
@@ -1044,10 +1047,15 @@ function _initFsSearch() {
 }
 
 async function _fetchFsSuggestions(query) {
-    if (!autocompleteService) return;
+    console.log('[FS Search] query:', query, 'service:', !!autocompleteService);
+    if (!autocompleteService) {
+        console.warn('[FS Search] autocompleteService not ready');
+        return;
+    }
     autocompleteService.getPlacePredictions(
         { input: query, componentRestrictions: { country: 'in' } },
         (predictions, status) => {
+            console.log('[FS Search] status:', status, 'predictions:', predictions?.length);
             const list = document.getElementById('fs-suggestions');
             if (status !== google.maps.places.PlacesServiceStatus.OK || !predictions?.length) {
                 _closeFsSuggestions(); return;
@@ -1061,7 +1069,6 @@ async function _fetchFsSuggestions(query) {
                     `<div><div class="place-name">${escapeHtml(name)}</div><div class="place-addr">${escapeHtml(addr)}</div></div></div>`;
             }).join('');
             list.classList.add('show');
-            // attach click on each item
             list.querySelectorAll('.fs-suggestion-item').forEach(el => {
                 el.addEventListener('mousedown', e => {
                     e.preventDefault();
