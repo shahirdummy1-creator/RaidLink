@@ -1002,6 +1002,25 @@ async function fetchFsSuggestions(query) {
     } catch { closeFsSearch(); }
 }
 
+let fsSearchPin = null;
+
+function placeFsPin(location) {
+    if (fsSearchPin) fsSearchPin.setMap(null);
+    fsSearchPin = new google.maps.Marker({
+        position: location,
+        map: fsMap,
+        animation: google.maps.Animation.DROP,
+        icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 11,
+            fillColor: '#0d6efd',
+            fillOpacity: 1,
+            strokeColor: '#ffffff',
+            strokeWeight: 3
+        }
+    });
+}
+
 async function selectFsResult(idx) {
     const data = window._fsSearchData || [];
     const place = data[idx];
@@ -1013,12 +1032,14 @@ async function selectFsResult(idx) {
         const location = result.geometry.location;
         fsMap.setCenter(location);
         fsMap.setZoom(15);
+        placeFsPin(location);
     } catch {
         try {
             const result = await geocodeAddress(place.description);
             const location = result.geometry.location;
             fsMap.setCenter(location);
             fsMap.setZoom(15);
+            placeFsPin(location);
         } catch {}
     }
 }
