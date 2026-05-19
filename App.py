@@ -4,11 +4,13 @@ from werkzeug.utils import secure_filename
 import hashlib
 import os
 import random
+import re
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import timedelta, datetime
 import hmac
+from urllib.parse import quote
 
 try:
     from dotenv import load_dotenv
@@ -19,6 +21,32 @@ except ImportError:
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'PAYANUM_secret_2024')
 app.permanent_session_lifetime = timedelta(days=7)
+
+COORDINATE_PAIR_RE = re.compile(
+    r'^\s*(-?\d{1,3}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)(?:\s*,\s*india)?\s*$',
+    re.IGNORECASE
+)
+
+def normalize_coordinate_pair(value):
+    match = COORDINATE_PAIR_RE.match(value or '')
+    if not match:
+        return ''
+    lat = float(match.group(1))
+    lng = float(match.group(2))
+    if abs(lat) > 90 or abs(lng) > 180:
+        return ''
+    return f'{match.group(1)}, {match.group(2)}'
+
+def google_maps_dir_url(destination):
+    destination = (destination or '').strip()
+    coordinate_destination = normalize_coordinate_pair(destination)
+    if coordinate_destination:
+        destination = coordinate_destination
+    elif destination and not re.search(r'\bindia\b', destination, re.IGNORECASE):
+        destination = f'{destination}, India'
+    return f"https://www.google.com/maps/dir/?api=1&destination={quote(destination)}&travelmode=driving"
+
+app.jinja_env.globals['google_maps_dir_url'] = google_maps_dir_url
 
 UPLOAD_FOLDER = os.path.join('static', 'uploads', 'drivers')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)

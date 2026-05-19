@@ -91,7 +91,7 @@
                 <div class="info-box">
                     <div class="info-label">📍 Pickup</div>
                     <div class="info-value">{{ booking.pickup_location.split(',')[0] if booking else 'N/A' }}</div>
-                    <a href="https://www.google.com/maps/dir/?api=1&destination={{ booking.pickup_location | urlencode if booking else '' }}, India&travelmode=driving"
+                    <a href="{{ google_maps_dir_url(booking.pickup_location if booking else '') }}"
                        target="_blank" rel="noopener noreferrer"
                        style="display:inline-flex;align-items:center;gap:4px;margin-top:6px;font-size:.75rem;font-weight:700;color:#1a73e8;text-decoration:none;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="#1a73e8"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>
@@ -103,7 +103,7 @@
                 <div class="info-box">
                     <div class="info-label">🏁 Drop</div>
                     <div class="info-value">{{ booking.drop_location.split(',')[0] if booking else 'N/A' }}</div>
-                    <a href="https://www.google.com/maps/dir/?api=1&destination={{ booking.drop_location | urlencode if booking else '' }}, India&travelmode=driving"
+                    <a href="{{ google_maps_dir_url(booking.drop_location if booking else '') }}"
                        target="_blank" rel="noopener noreferrer"
                        style="display:inline-flex;align-items:center;gap:4px;margin-top:6px;font-size:.75rem;font-weight:700;color:#1a73e8;text-decoration:none;">
                         <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="#1a73e8"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/></svg>
@@ -178,11 +178,19 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-const DROP_ADDR = '{{ booking.drop_location if booking else "" }}';
+const DROP_ADDR = {{ (booking.drop_location if booking else "") | tojson }};
 
 // ── Build Google Maps navigation URL ─────────────────────
 function buildGoogleMapsUrl(destination) {
-    const encoded = encodeURIComponent(destination + ', India');
+    const clean = String(destination || '').trim();
+    const coordMatch = clean.match(/^(-?\d{1,3}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)(?:\s*,\s*india)?$/i);
+    const isCoords = coordMatch
+        && Math.abs(parseFloat(coordMatch[1])) <= 90
+        && Math.abs(parseFloat(coordMatch[2])) <= 180;
+    const destinationText = isCoords
+        ? `${coordMatch[1]}, ${coordMatch[2]}`
+        : (clean && !/\bindia\b/i.test(clean) ? `${clean}, India` : clean);
+    const encoded = encodeURIComponent(destinationText);
     // Use current location as origin if available, else just destination
     return `https://www.google.com/maps/dir/?api=1&destination=${encoded}&travelmode=driving`;
 }
