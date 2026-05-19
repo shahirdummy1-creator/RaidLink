@@ -423,13 +423,10 @@
     // ── Render booking card ────────────────────────────────
     function renderBookingCard(b) {
         // Calculate distance to pickup if driver location is available
-        let pickupDistHtml = '';
+        let pickupDistInline = '';
         if (b.pickup_lat && b.pickup_lng && driverLat !== null && driverLng !== null) {
             const d = haversineKm(driverLat, driverLng, parseFloat(b.pickup_lat), parseFloat(b.pickup_lng));
-            pickupDistHtml = `<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 12px;text-align:center;">
-                <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#6b7280;">To Pickup</div>
-                <div style="font-weight:700;color:#d97706;font-size:.95rem;">${d.toFixed(1)} km</div>
-            </div>`;
+            pickupDistInline = `<span style="font-size:.75rem;color:#d97706;font-weight:600;margin-left:6px;"><i class="bi bi-car-front-fill"></i> ${d.toFixed(1)} km away</span>`;
         } else if (b.pickup_lat && b.pickup_lng && navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(pos => {
                 driverLat = pos.coords.latitude;
@@ -486,7 +483,7 @@
                         <div style="flex:1;">
                             <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;margin-bottom:6px;">
                                 <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#6b7280;">Pickup</div>
-                                <div style="font-weight:600;color:#111827;font-size:.9rem;">${capitalize(b.pickup_location)}</div>
+                                <div style="font-weight:600;color:#111827;font-size:.9rem;">${capitalize(b.pickup_location)}${pickupDistInline}</div>
                             </div>
                             <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:8px 12px;">
                                 <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#6b7280;">Drop</div>
@@ -497,7 +494,7 @@
                 </div>
 
                 <!-- Stats row -->
-                <div style="display:grid;grid-template-columns:${pickupDistHtml ? '1fr 1fr 1fr' : '1fr 1fr'};gap:8px;margin-bottom:16px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
                     <div style="background:#f8faff;border:1px solid #e0e7ff;border-radius:8px;padding:8px 12px;text-align:center;">
                         <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#6b7280;">Distance</div>
                         <div style="font-weight:700;color:#1d4ed8;font-size:.95rem;">${b.distance_km} km</div>
@@ -506,8 +503,7 @@
                         <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#6b7280;">Scheduled</div>
                         <div style="font-weight:700;color:#1d4ed8;font-size:.85rem;">${b.ride_date}<br><span style="font-size:.8rem;">${b.ride_time}</span></div>
                     </div>
-                    ${pickupDistHtml}
-                </div>
+                                    </div>
 
                 <!-- Action Buttons -->
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
