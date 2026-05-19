@@ -1026,6 +1026,8 @@ def api_latest_booking():
             b['fare']      = format_fare(b['fare'])
             b['ride_date'] = str(b['ride_date'])
             b['ride_time'] = str(b['ride_time'])
+            b['pickup_lat'] = float(b['pickup_lat']) if b.get('pickup_lat') is not None else None
+            b['pickup_lng'] = float(b['pickup_lng']) if b.get('pickup_lng') is not None else None
             cur.close(); conn.close()
             return jsonify({'booking': b, 'picked': False})
         picked = False
