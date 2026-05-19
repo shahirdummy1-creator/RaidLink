@@ -68,29 +68,9 @@
             padding: 10px 14px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 10px;
+            justify-content: flex-end;
             z-index: 10000;
         }
-        .fs-topbar input {
-            flex: 1;
-            border-radius: 8px 0 0 8px;
-            border: none;
-            padding: 8px 12px;
-            font-size: .9rem;
-            outline: none;
-        }
-        .fs-search-btn {
-            background: #fff;
-            border: none;
-            border-radius: 0 8px 8px 0;
-            padding: 8px 14px;
-            color: #0d6efd;
-            font-size: 1rem;
-            cursor: pointer;
-            flex-shrink: 0;
-        }
-        .fs-search-btn:hover { background: #e9ecef; }
         .fs-exit-btn {
             background: rgba(255,255,255,.2);
             border: none;
@@ -103,8 +83,7 @@
             white-space: nowrap;
         }
         .fs-exit-btn:hover { background: rgba(255,255,255,.35); }
-
-        /* Fullscreen bottom bar */
+        .pac-container { z-index: 10020 !important; }
         .fs-bottombar {
             background: #fff;
             padding: 12px 14px;
@@ -146,19 +125,6 @@
         }
         .fs-map-wrap { position: relative; flex: 1; display: flex; flex-direction: column; }
 
-        /* Search results dropdown */
-        #fsSearchResults {
-            position: fixed;
-            top: 56px;
-            left: 0; right: 0;
-            background: #fff;
-            z-index: 10010;
-            max-height: 260px;
-            overflow-y: auto;
-            display: none;
-            box-shadow: 0 8px 24px rgba(0,0,0,.3);
-        }
-        #fsSearchResults.show { display: block; }
         .fs-search-item {
             padding: 12px 16px;
             cursor: pointer;
@@ -191,8 +157,6 @@
             flex-shrink: 0;
         }
         .fs-btn-locate:hover { background: #f4f4f4; }
-        .pac-container { z-index: 10020 !important; }
-        
         .autocomplete-wrap { position: relative; }
         .autocomplete-list {
             position: absolute; top: 100%; left: 0; right: 0; z-index: 9999;
@@ -236,8 +200,6 @@
             .form-control { min-height: 48px; font-size: 1rem; }
             .autocomplete-item { padding: 14px; }
             .fs-bottombar button { min-height: 52px; font-size: 1rem; }
-            .fs-topbar input { min-height: 44px; font-size: 1rem; }
-            .fs-search-btn { min-height: 44px; padding: 8px 16px; }
         }
     </style>
 </head>
@@ -393,34 +355,26 @@
 
 <!-- Fullscreen Map Overlay -->
 <div id="fullscreenMapOverlay">
-    <!-- Top bar: search + exit -->
-    <div class="fs-topbar">
-        <input type="text" id="fsSearchInput" placeholder="Search location..." autocomplete="off">
-        <button class="fs-search-btn" onmousedown="event.preventDefault(); triggerFsSearch();" aria-label="Search">
-            <i class="bi bi-search"></i>
-        </button>
+    <!-- Top bar: exit only -->
+    <div class="fs-topbar" style="justify-content:flex-end;">
         <button class="fs-exit-btn" onclick="closeFullscreenMap()" aria-label="Close map">
             <i class="bi bi-x-lg"></i> Exit
         </button>
     </div>
-    <!-- Search results: fixed below topbar -->
-    <div id="fsSearchResults"></div>
-    <!-- Map -->
     <div class="fs-map-wrap">
         <div id="fullscreenMap"></div>
-        <div class="fs-crosshair" id="fsCrosshair">📍</div>
+        <div class="fs-crosshair">📍</div>
         <button class="fs-btn-locate" onclick="locateMe()" title="My Location" aria-label="My Location">
             <i class="bi bi-crosshair"></i>
         </button>
-    </div>
-    <!-- Bottom bar: pickup + drop buttons -->
-    <div class="fs-bottombar">
-        <button class="fs-btn-pickup" onclick="setLocationFromFullscreen('pickup')">
-            <i class="bi bi-geo-alt-fill me-1"></i> Set as Pickup
-        </button>
-        <button class="fs-btn-drop" onclick="setLocationFromFullscreen('drop')">
-            <i class="bi bi-flag-fill me-1"></i> Set as Drop
-        </button>
+        <div class="fs-bottombar">
+            <button class="fs-btn-pickup" onclick="setLocationFromFullscreen('pickup')">
+                <i class="bi bi-geo-alt-fill me-1"></i> Set as Pickup
+            </button>
+            <button class="fs-btn-drop" onclick="setLocationFromFullscreen('drop')">
+                <i class="bi bi-flag-fill me-1"></i> Set as Drop
+            </button>
+        </div>
     </div>
 </div>
 
@@ -952,44 +906,39 @@ function openFullscreenMap(presetType) {
     }
     refreshFullscreenMarkers();
 
-    // Search input
-    const fsInput = document.getElementById('fsSearchInput');
-    fsInput.value = '';
+    // Google SearchBox inside the map (real Google UI)
+    if (!window._fsSearchBox) {
+        const sbInput = document.createElement('input');
+        sbInput.type = 'text';
+        sbInput.placeholder = 'Search location...';
+        sbInput.style.cssText = 'width:280px;max-width:80vw;padding:10px 14px;border:none;border-radius:8px;font-size:.95rem;box-shadow:0 2px 12px rgba(0,0,0,.3);outline:none;margin-top:10px;';
 
-    // Attach Google Places Autocomplete to fullscreen search input
-    if (!fsInput._autocomplete && google.maps.places?.Autocomplete) {
-        const fsAc = new google.maps.places.Autocomplete(fsInput, {
-            componentRestrictions: { country: 'in' },
-            fields: ['geometry', 'name', 'formatted_address']
+        const searchBox = new google.maps.places.SearchBox(sbInput);
+        fsMap.controls[google.maps.ControlPosition.TOP_CENTER].push(sbInput);
+
+        searchBox.addListener('places_changed', () => {
+            const places = searchBox.getPlaces();
+            if (!places || !places.length) return;
+            const place = places[0];
+            if (!place.geometry?.location) return;
+            fsMap.setCenter(place.geometry.location);
+            fsMap.setZoom(15);
+            placeFsPin(place.geometry.location);
         });
-        fsAc.addListener('place_changed', () => {
-            const place = fsAc.getPlace();
-            if (place?.geometry?.location) {
-                fsMap.setCenter(place.geometry.location);
-                fsMap.setZoom(15);
-                placeFsPin(place.geometry.location);
-                closeFsSearch();
-            }
+
+        fsMap.addListener('bounds_changed', () => {
+            searchBox.setBounds(fsMap.getBounds());
         });
-        fsInput._autocomplete = fsAc;
+
+        window._fsSearchBox = searchBox;
+        window._fsSearchInput = sbInput;
     }
-
-    let fsTimer;
-    fsInput.oninput = function() {
-        clearTimeout(fsTimer);
-        const q = this.value.trim();
-        if (q.length < 3) { closeFsSearch(); return; }
-        fsTimer = setTimeout(() => fetchFsSuggestions(q), 400);
-    };
-    fsInput.onkeydown = function(e) {
-        if (e.key === 'Enter') { e.preventDefault(); triggerFsSearch(); }
-    };
 }
 
 function closeFullscreenMap() {
     document.getElementById('fullscreenMapOverlay').classList.remove('show');
     document.body.classList.remove('map-fullscreen');
-    closeFsSearch();
+    if (window._fsSearchInput) window._fsSearchInput.value = '';
     fsActiveType = null;
 }
 
@@ -1000,29 +949,6 @@ async function setLocationFromFullscreen(type) {
     await setLocationFromLatLng(type, lat, lng);
 }
 
-async function fetchFsSuggestions(query) {
-    const box = document.getElementById('fsSearchResults');
-    try {
-        const data = await getPlacePredictions(query, 5);
-        if (!data.length) { closeFsSearch(); return; }
-        window._fsSearchData = data;
-        box.innerHTML = data.map((p, i) => {
-            const name = p.structured_formatting?.main_text || p.description.split(',')[0];
-            const addr = p.structured_formatting?.secondary_text || p.description.split(',').slice(1, 3).join(',').trim();
-            return `<div class="fs-search-item" onmousedown="selectFsResult(${i})">
-                        <i class="bi bi-geo-alt-fill text-primary" style="font-size:1.1rem;"></i>
-                        <div style="flex:1;">
-                            <div style="font-weight:600;color:#111827;">${escapeHtml(name)}</div>
-                            <div style="font-size:.75rem;color:#6b7280;margin-top:2px;">${escapeHtml(addr)}</div>
-                        </div>
-                    </div>`;
-        }).join('');
-        box.classList.add('show');
-    } catch(e) {
-        console.error('fetchFsSuggestions error:', e);
-        closeFsSearch();
-    }
-}
 
 let fsSearchPin = null;
 
@@ -1047,8 +973,6 @@ async function selectFsResult(idx) {
     const data = window._fsSearchData || [];
     const place = data[idx];
     if (!place) return;
-    document.getElementById('fsSearchInput').value = place.description.split(',')[0];
-    closeFsSearch();
     try {
         const result = await geocodePlaceId(place.place_id);
         const location = result.geometry.location;
@@ -1066,36 +990,7 @@ async function selectFsResult(idx) {
     }
 }
 
-async function triggerFsSearch() {
-    const q = document.getElementById('fsSearchInput').value.trim();
-    if (q.length < 1) return;
-    const box = document.getElementById('fsSearchResults');
-    if (box._data && box._data.length) {
-        selectFsResult(0);
-        return;
-    }
-    const predictions = await getPlacePredictions(q, 1);
-    if (predictions.length) {
-        box._data = predictions;
-        await selectFsResult(0);
-        return;
-    }
-    try {
-        const result = await geocodeAddress(q);
-        const location = result.geometry.location;
-        fsMap.setCenter(location);
-        fsMap.setZoom(15);
-    } catch {
-        closeFsSearch();
-    }
-}
 
-function closeFsSearch() {
-    const box = document.getElementById('fsSearchResults');
-    box.classList.remove('show');
-    box.innerHTML = '';
-    window._fsSearchData = [];
-}
 
 // ── Locate current position on fullscreen map ────────────────
 
