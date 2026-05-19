@@ -632,6 +632,16 @@ async function geocodeInputIfNeeded(type) {
     }
 }
 
+function getShortName(components, fallback) {
+    const get = (type) => (components || []).find(c => c.types.includes(type))?.long_name || '';
+    const sub = get('sublocality_level_1') || get('sublocality') || get('neighborhood');
+    const locality = get('locality') || get('administrative_area_level_2');
+    if (sub && locality) return sub + ', ' + locality;
+    if (sub) return sub;
+    if (locality) return locality;
+    return (fallback || '').split(',')[0].trim();
+}
+
 async function setLocationFromLatLng(type, lat, lng) {
     if (!geocoder) {
         setLocationFields(type, lat, lng, `${lat.toFixed(6)}, ${lng.toFixed(6)}`, '');
@@ -644,11 +654,12 @@ async function setLocationFromLatLng(type, lat, lng) {
                 else reject(new Error(status || 'No results'));
             });
         });
+        const shortName = getShortName(result.address_components, result.formatted_address);
         setLocationFields(
             type,
             lat,
             lng,
-            result.formatted_address,
+            shortName,
             getPostalCode(result.address_components)
         );
     } catch {
