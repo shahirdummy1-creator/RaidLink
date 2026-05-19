@@ -1006,7 +1006,7 @@ def api_latest_booking():
         cur.execute(
             """SELECT t.id, t.rider_id, t.pickup_location, t.drop_location,
                       t.distance_km, t.fare, t.ride_date, t.ride_time,
-                      t.accepted_by, t.otp, t.status,
+                      t.accepted_by, t.otp, t.status, t.pickup_lat, t.pickup_lng,
                       r.username AS rider_name, r.mobile AS rider_mobile
                FROM Trip_Details t
                LEFT JOIN Rider_Details r ON r.id = t.rider_id
