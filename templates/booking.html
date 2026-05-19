@@ -257,7 +257,7 @@
                     <input type="hidden" id="drop_lng"   name="drop_lng">
 
                     <!-- Pickup -->
-                    <div class="mb-3">
+                    <div class="mb-1">
                         <div class="section-label"><i class="bi bi-geo-alt-fill text-success me-1"></i>Pickup Location</div>
                         <div class="autocomplete-wrap">
                             <div class="input-group">
@@ -270,6 +270,13 @@
                             <div class="autocomplete-list" id="pickup-list"></div>
                         </div>
                         <div id="pickup-badge"></div>
+                    </div>
+
+                    <!-- Swap button -->
+                    <div class="text-center my-1">
+                        <button type="button" onclick="swapLocations()" class="btn btn-sm btn-outline-secondary px-3" title="Swap pickup and drop">
+                            <i class="bi bi-arrow-down-up"></i> Swap
+                        </button>
                     </div>
 
                     <!-- Drop -->
@@ -1163,6 +1170,42 @@ async function confirmWhereTo() {
         `Pickup & drop set from Google Maps link.`;
     banner.classList.remove('d-none');
     setTimeout(() => banner.classList.add('d-none'), 5000);
+}
+
+// ── Swap pickup and drop ─────────────────────────────────────
+function swapLocations() {
+    const pVal = document.getElementById('pickup').value;
+    const dVal = document.getElementById('drop').value;
+    const pCoord = coords.pickup ? [...coords.pickup] : null;
+    const dCoord = coords.drop   ? [...coords.drop]   : null;
+    const pPin  = document.getElementById('pickup_pincode').value;
+    const dPin  = document.getElementById('drop_pincode').value;
+    const pLat  = document.getElementById('pickup_lat').value;
+    const pLng  = document.getElementById('pickup_lng').value;
+    const dLat  = document.getElementById('drop_lat').value;
+    const dLng  = document.getElementById('drop_lng').value;
+
+    // Swap text
+    document.getElementById('pickup').value = dVal;
+    document.getElementById('drop').value   = pVal;
+    // Swap coords
+    coords.pickup = dCoord;
+    coords.drop   = pCoord;
+    // Swap hidden fields
+    document.getElementById('pickup_pincode').value = dPin;
+    document.getElementById('drop_pincode').value   = pPin;
+    document.getElementById('pickup_lat').value = dLat;
+    document.getElementById('pickup_lng').value = dLng;
+    document.getElementById('drop_lat').value   = pLat;
+    document.getElementById('drop_lng').value   = pLng;
+    // Swap badges
+    const pBadge = document.getElementById('pickup-badge').innerHTML;
+    document.getElementById('pickup-badge').innerHTML = document.getElementById('drop-badge').innerHTML;
+    document.getElementById('drop-badge').innerHTML   = pBadge;
+
+    refreshFullscreenMarkers();
+    updateDistanceFare();
+    updateGuestBtn();
 }
 
 // ── Guest booking ─────────────────────────────────────────
