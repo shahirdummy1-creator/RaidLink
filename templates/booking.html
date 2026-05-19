@@ -164,7 +164,7 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .autocomplete-list {
+        .autocomplete-wrap { position: relative; }
             position: absolute; top: 100%; left: 0; right: 0; z-index: 9999;
             background: #fff; border: 1px solid #e5e7eb;
             border-radius: 0 0 10px 10px;
@@ -534,34 +534,7 @@ function clearLocation(type) {
 }
 
 function initPlaceAutocompleteWidgets() {
-    if (!googleMapsLoaded || !bookingDomReady || autocompleteWidgetsReady || !google.maps.places?.Autocomplete) return;
-
-    ['pickup', 'drop'].forEach(type => {
-        const input = document.getElementById(type);
-        if (!input) return;
-        const autocomplete = new google.maps.places.Autocomplete(input, {
-            componentRestrictions: { country: 'in' },
-            fields: ['address_components', 'formatted_address', 'geometry', 'name']
-        });
-
-        autocomplete.addListener('place_changed', () => {
-            const place = autocomplete.getPlace();
-            closeList(type);
-            if (place?.geometry?.location) {
-                setLocationFields(
-                    type,
-                    place.geometry.location.lat(),
-                    place.geometry.location.lng(),
-                    place.formatted_address || input.value,
-                    getPostalCode(place.address_components)
-                );
-                return;
-            }
-            geocodeInputIfNeeded(type);
-        });
-    });
-
-    autocompleteWidgetsReady = true;
+    // Disabled - using custom autocomplete list instead
 }
 
 function getPlacePredictions(query, limit = 6) {
@@ -854,28 +827,34 @@ const timers = {};
     });
 });
 
+const _listData = { pickup: [], drop: [] };
+
 async function fetchSuggestions(query, type) {
     try {
         const data = await getPlacePredictions(query, 6);
         if (!data.length) { closeList(type); return; }
-
+        _listData[type] = data;
         const list = document.getElementById(type + '-list');
-        list._data = data;
         list.innerHTML = data.map((p, i) => {
             const name = p.structured_formatting?.main_text || p.description.split(',')[0];
             const addr = p.structured_formatting?.secondary_text || p.description.split(',').slice(1, 3).join(',').trim();
-            return `<div class="autocomplete-item" onmousedown="selectPlace(${i},'${type}')">
-                        <i class="bi bi-geo-alt text-primary mt-1"></i>
+            return `<div class="autocomplete-item" data-idx="${i}">
+                        <i class="bi bi-geo-alt text-primary mt-1" style="flex-shrink:0"></i>
                         <div><div class="place-name">${escapeHtml(name)}</div><div class="place-addr">${escapeHtml(addr)}</div></div>
                     </div>`;
         }).join('');
+        list.querySelectorAll('.autocomplete-item').forEach(el => {
+            el.addEventListener('mousedown', e => {
+                e.preventDefault();
+                selectPlace(parseInt(el.dataset.idx), type);
+            });
+        });
         list.classList.add('show');
     } catch { closeList(type); }
 }
 
 async function selectPlace(idx, type) {
-    const list  = document.getElementById(type + '-list');
-    const place = list._data[idx];
+    const place = _listData[type][idx];
     closeList(type);
     if (!place) return;
     document.getElementById(type).value = place.description;
