@@ -220,6 +220,16 @@
             <span id="map-distance-label" class="d-none"></span>
             <small id="map-mode-hint" class="d-none"></small>
             <div class="booking-card">
+                <!-- Tab buttons -->
+                <div class="d-flex gap-2 mb-4">
+                    <button type="button" class="btn btn-primary fw-bold flex-fill" id="tab-book" onclick="switchTab('book')">
+                        <i class="bi bi-calendar-check me-1"></i> Book Ride
+                    </button>
+                    <button type="button" class="btn btn-outline-primary fw-bold flex-fill" id="tab-whereto" onclick="openWhereToModal()">
+                        <i class="bi bi-send-fill me-1"></i> Where to Go?
+                    </button>
+                </div>
+
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <h4 class="fw-bold mb-0">Book Your Ride</h4>
                     {% if username == 'guest' %}
@@ -337,6 +347,12 @@
                         </a>
                         {% endif %}
                     </div>
+                    <!-- Where to Go result banner -->
+                    <div id="whereto-banner" class="d-none alert alert-success py-2 mb-3" style="font-size:.85rem;">
+                        <i class="bi bi-check-circle-fill me-1"></i>
+                        <span id="whereto-banner-text"></span>
+                    </div>
+
                     <div class="d-flex gap-2 mt-4">
                         <a href="tel:+919003666080" class="btn btn-primary w-50 fw-bold py-2" style="min-height:48px;display:flex;align-items:center;justify-content:center;gap:8px;">
                             <i class="bi bi-telephone-fill"></i> Call to Book
@@ -374,6 +390,37 @@
             <button class="fs-btn-drop" onclick="setLocationFromFullscreen('drop')">
                 <i class="bi bi-flag-fill me-1"></i> Set as Drop
             </button>
+        </div>
+    </div>
+</div>
+
+<!-- Where to Go Modal -->
+<div class="modal fade" id="whereToModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius:16px;">
+            <div class="modal-header border-0 pb-0">
+                <h6 class="modal-title fw-bold"><i class="bi bi-send-fill text-primary me-2"></i>Where to Go?</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-2">
+                <p class="text-muted mb-3" style="font-size:.83rem;">Paste a Google Maps link of your destination. Your current location will be used as pickup.</p>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" style="font-size:.85rem;">Google Maps Link</label>
+                    <input type="url" class="form-control" id="whereto-url-input"
+                           placeholder="https://maps.google.com/..." autocomplete="off">
+                    <div id="whereto-url-error" class="text-danger mt-1" style="font-size:.78rem;display:none;"></div>
+                </div>
+                <div id="whereto-preview" class="d-none p-3 rounded" style="background:#f0fdf4;border:1px solid #bbf7d0;font-size:.82rem;">
+                    <div><i class="bi bi-geo-alt-fill text-success me-1"></i><strong>Pickup:</strong> <span id="wt-pickup-text">Detecting...</span></div>
+                    <div class="mt-1"><i class="bi bi-flag-fill text-danger me-1"></i><strong>Drop:</strong> <span id="wt-drop-text">—</span></div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-primary fw-bold px-4" id="whereto-confirm-btn" onclick="confirmWhereTo()" disabled>
+                    <i class="bi bi-check-circle me-1"></i> Set Locations
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            </div>
         </div>
     </div>
 </div>
@@ -1028,6 +1075,101 @@ function locateMe() {
         },
         { enableHighAccuracy: true, timeout: 8000 }
     );
+}
+
+// ── Where to Go ──────────────────────────────────────────
+let _wtPickupCoords = null;
+let _wtDropCoords   = null;
+
+function openWhereToModal() {
+    _wtPickupCoords = null;
+    _wtDropCoords   = null;
+    document.getElementById('whereto-url-input').value = '';
+    document.getElementById('whereto-url-error').style.display = 'none';
+    document.getElementById('whereto-preview').classList.add('d-none');
+    document.getElementById('whereto-confirm-btn').disabled = true;
+    document.getElementById('wt-pickup-text').textContent = 'Detecting...';
+    document.getElementById('wt-drop-text').textContent = '—';
+    new bootstrap.Modal(document.getElementById('whereToModal')).show();
+
+    // Start getting current location immediately
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            pos => { _wtPickupCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude }; tryResolveWhereTo(); },
+            ()  => { document.getElementById('wt-pickup-text').textContent = 'Could not detect location'; },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    } else {
+        document.getElementById('wt-pickup-text').textContent = 'GPS not supported';
+    }
+}
+
+function parseGoogleMapsCoords(url) {
+    // Handles: @lat,lng  |  ?q=lat,lng  |  /place/.../lat,lng  |  ll=lat,lng  |  daddr=lat,lng
+    const patterns = [
+        /@(-?\d+\.\d+),(-?\d+\.\d+)/,
+        /[?&]q=(-?\d+\.\d+),(-?\d+\.\d+)/,
+        /[?&]ll=(-?\d+\.\d+),(-?\d+\.\d+)/,
+        /[?&]daddr=(-?\d+\.\d+),(-?\d+\.\d+)/,
+        /\/(-?\d+\.\d+),(-?\d+\.\d+)/
+    ];
+    for (const re of patterns) {
+        const m = url.match(re);
+        if (m) return { lat: parseFloat(m[1]), lng: parseFloat(m[2]) };
+    }
+    return null;
+}
+
+document.getElementById('whereto-url-input').addEventListener('input', function() {
+    const errEl = document.getElementById('whereto-url-error');
+    errEl.style.display = 'none';
+    const url = this.value.trim();
+    if (!url) { _wtDropCoords = null; tryResolveWhereTo(); return; }
+    const coords_parsed = parseGoogleMapsCoords(url);
+    if (coords_parsed) {
+        _wtDropCoords = coords_parsed;
+        tryResolveWhereTo();
+    } else {
+        _wtDropCoords = null;
+        errEl.textContent = 'Could not extract coordinates from this link. Make sure it\'s a valid Google Maps URL.';
+        errEl.style.display = 'block';
+        document.getElementById('whereto-preview').classList.add('d-none');
+        document.getElementById('whereto-confirm-btn').disabled = true;
+    }
+});
+
+async function tryResolveWhereTo() {
+    if (!_wtPickupCoords && !_wtDropCoords) return;
+    const preview = document.getElementById('whereto-preview');
+    preview.classList.remove('d-none');
+
+    if (_wtPickupCoords && googleMapsLoaded) {
+        try {
+            const r = await new Promise((res, rej) => geocoder.geocode({ location: _wtPickupCoords }, (results, status) => status === 'OK' && results[0] ? res(results[0]) : rej()));
+            document.getElementById('wt-pickup-text').textContent = getShortName(r.address_components, r.formatted_address);
+        } catch { document.getElementById('wt-pickup-text').textContent = `${_wtPickupCoords.lat.toFixed(5)}, ${_wtPickupCoords.lng.toFixed(5)}`; }
+    }
+
+    if (_wtDropCoords && googleMapsLoaded) {
+        try {
+            const r = await new Promise((res, rej) => geocoder.geocode({ location: _wtDropCoords }, (results, status) => status === 'OK' && results[0] ? res(results[0]) : rej()));
+            document.getElementById('wt-drop-text').textContent = getShortName(r.address_components, r.formatted_address);
+        } catch { document.getElementById('wt-drop-text').textContent = `${_wtDropCoords.lat.toFixed(5)}, ${_wtDropCoords.lng.toFixed(5)}`; }
+    }
+
+    document.getElementById('whereto-confirm-btn').disabled = !(_wtPickupCoords && _wtDropCoords);
+}
+
+async function confirmWhereTo() {
+    if (!_wtPickupCoords || !_wtDropCoords) return;
+    bootstrap.Modal.getInstance(document.getElementById('whereToModal')).hide();
+    await setLocationFromLatLng('pickup', _wtPickupCoords.lat, _wtPickupCoords.lng);
+    await setLocationFromLatLng('drop',   _wtDropCoords.lat,   _wtDropCoords.lng);
+    const banner = document.getElementById('whereto-banner');
+    document.getElementById('whereto-banner-text').textContent =
+        `Pickup & drop set from Google Maps link.`;
+    banner.classList.remove('d-none');
+    setTimeout(() => banner.classList.add('d-none'), 5000);
 }
 
 // ── Guest booking ─────────────────────────────────────────
