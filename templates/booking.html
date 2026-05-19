@@ -440,15 +440,14 @@ let fsLocationMarker = null;
 let fsActiveType = null;
 const fsMarkers = { pickup: null, drop: null };
 
-window.initGoogleBookingMap = async function () {
-    const { Map } = await google.maps.importLibrary('maps');
-    const { Geocoder, DirectionsService } = await google.maps.importLibrary('routes');
-    const { AutocompleteService, Autocomplete, SearchBox, PlacesServiceStatus } = await google.maps.importLibrary('places');
+window.initGoogleBookingMap = function () {
+    if (!window.google || !google.maps) return;
     googleMapsLoaded = true;
-    geocoder = new Geocoder();
-    directionsService = new DirectionsService();
-    autocompleteService = new AutocompleteService();
-    window._MapsLib = { Map, Geocoder, DirectionsService, AutocompleteService, Autocomplete, SearchBox, PlacesServiceStatus };
+    geocoder = new google.maps.Geocoder();
+    directionsService = new google.maps.DirectionsService();
+    if (google.maps.places?.AutocompleteService) {
+        autocompleteService = new google.maps.places.AutocompleteService();
+    }
     initPlaceAutocompleteWidgets();
     if (window._pendingPickupLatLng) {
         const { lat, lng } = window._pendingPickupLatLng;
@@ -456,8 +455,6 @@ window.initGoogleBookingMap = async function () {
         setLocationFromLatLng('pickup', lat, lng);
     }
 };
-
-window.initGoogleBookingMap();
 
 window.gm_authFailure = function () {
     alert('Google Maps could not be loaded. Please check the API key configuration.');
@@ -539,12 +536,12 @@ function clearLocation(type) {
 }
 
 function initPlaceAutocompleteWidgets() {
-    if (!googleMapsLoaded || !bookingDomReady || autocompleteWidgetsReady || !window._MapsLib?.Autocomplete) return;
+    if (!googleMapsLoaded || !bookingDomReady || autocompleteWidgetsReady || !google.maps.places?.Autocomplete) return;
 
     ['pickup', 'drop'].forEach(type => {
         const input = document.getElementById(type);
         if (!input) return;
-        const autocomplete = new window._MapsLib.Autocomplete(input, {
+        const autocomplete = new google.maps.places.Autocomplete(input, {
             componentRestrictions: { country: 'in' },
             fields: ['address_components', 'formatted_address', 'geometry', 'name']
         });
@@ -571,12 +568,18 @@ function initPlaceAutocompleteWidgets() {
 
 function getPlacePredictions(query, limit = 6) {
     return new Promise(resolve => {
-        if (!autocompleteService || !query) { resolve([]); return; }
+        if (!autocompleteService || !query) {
+            resolve([]);
+            return;
+        }
         autocompleteService.getPlacePredictions({
             input: query,
             componentRestrictions: { country: 'in' }
         }, (predictions, status) => {
-            if (status !== window._MapsLib?.PlacesServiceStatus?.OK || !predictions) { resolve([]); return; }
+            if (status !== google.maps.places.PlacesServiceStatus.OK || !predictions) {
+                resolve([]);
+                return;
+            }
             resolve(predictions.slice(0, limit));
         });
     });
@@ -665,7 +668,7 @@ async function setLocationFromLatLng(type, lat, lng) {
     }
 }
 
-function markerIcon(color) {
+function markerIcon(color, label) {
     return {
         path: google.maps.SymbolPath.CIRCLE,
         scale: 12,
@@ -936,7 +939,7 @@ function openFullscreenMap(presetType) {
     const center = coords[presetType] || coords.pickup || coords.drop || [20.5937, 78.9629];
     const centerLiteral = toLatLngLiteral(center);
     if (!fsMap) {
-        fsMap = new window._MapsLib.Map(document.getElementById('fullscreenMap'), {
+        fsMap = new google.maps.Map(document.getElementById('fullscreenMap'), {
             center: centerLiteral,
             zoom: coords.pickup || coords.drop ? 14 : 5,
             mapTypeControl: false,
@@ -957,7 +960,7 @@ function openFullscreenMap(presetType) {
         sbInput.placeholder = 'Search location...';
         sbInput.style.cssText = 'width:280px;max-width:80vw;padding:10px 14px;border:none;border-radius:8px;font-size:.95rem;box-shadow:0 2px 12px rgba(0,0,0,.3);outline:none;margin-top:10px;';
 
-        const searchBox = new window._MapsLib.SearchBox(sbInput);
+        const searchBox = new google.maps.places.SearchBox(sbInput);
         fsMap.controls[google.maps.ControlPosition.TOP_CENTER].push(sbInput);
 
         searchBox.addListener('places_changed', () => {
@@ -970,7 +973,9 @@ function openFullscreenMap(presetType) {
             placeFsPin(place.geometry.location);
         });
 
-        fsMap.addListener('bounds_changed', () => { searchBox.setBounds(fsMap.getBounds()); });
+        fsMap.addListener('bounds_changed', () => {
+            searchBox.setBounds(fsMap.getBounds());
+        });
 
         window._fsSearchBox = searchBox;
         window._fsSearchInput = sbInput;
@@ -1185,9 +1190,7 @@ function guestConfirm() {
     f.submit();
 }
 </script>
-<script>
-(g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({key:"{{ google_maps_key }}",v:"weekly"});
-</script>
+<script defer src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_key|urlencode }}&libraries=places&callback=initGoogleBookingMap"></script>
 
 <form id="guest-booking-form" method="POST" action="/guest-booking" style="display:none;">
     <input type="hidden" name="pickup">
