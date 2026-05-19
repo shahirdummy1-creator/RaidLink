@@ -1490,7 +1490,7 @@ def guest_booking():
 def book(username):
     if username != 'guest' and not get_rider_id(username):
         return redirect(url_for('rider_login'))
-    google_maps_key = os.environ.get('GOOGLE_MAPS_API_KEY', 'AIzaSyCMMbfn8x_pmH3r1_AhFUeXuR66sYfuAJ4')
+    google_maps_key = os.environ.get('GOOGLE_MAPS_API_KEY', 'AIzaSyD30gHd12662NScMkTUshQYJm89qk9H4k8')
     return render_template('booking.html', username=username, google_maps_key=google_maps_key)
 
 @app.route('/outstation/<username>')
