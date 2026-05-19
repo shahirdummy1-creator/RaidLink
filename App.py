@@ -1007,7 +1007,8 @@ def api_latest_booking():
             """SELECT t.id, t.rider_id, t.pickup_location, t.drop_location,
                       t.distance_km, t.fare, t.ride_date, t.ride_time,
                       t.accepted_by, t.otp, t.status,
-                      r.username AS rider_name, r.mobile AS rider_mobile
+                      r.username AS rider_name, r.mobile AS rider_mobile,
+                      t.pickup_lat, t.pickup_lng
                FROM Trip_Details t
                LEFT JOIN Rider_Details r ON r.id = t.rider_id
                WHERE t.status='Confirmed'
@@ -1526,9 +1527,11 @@ def submit():
     order_id = None
     if conn:
         cur = conn.cursor()
+        pickup_lat = request.form.get('pickup_lat') or None
+        pickup_lng = request.form.get('pickup_lng') or None
         cur.execute(
-            "INSERT INTO Trip_Details (rider_id, pickup_location, drop_location, distance_km, fare, ride_date, ride_time, otp, booking_type) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
-            (rider_id, pickup, drop, dist_val, fare_val, ride_date, ride_time, otp, booking_type)
+            "INSERT INTO Trip_Details (rider_id, pickup_location, drop_location, distance_km, fare, ride_date, ride_time, otp, booking_type, pickup_lat, pickup_lng) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            (rider_id, pickup, drop, dist_val, fare_val, ride_date, ride_time, otp, booking_type, pickup_lat, pickup_lng)
         )
         conn.commit()
         order_id = cur.lastrowid
