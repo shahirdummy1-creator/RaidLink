@@ -229,16 +229,6 @@
     let currentBookingId  = null;
     let countdownVal      = AUTO_REFRESH_SEC;
     let countdownInterval = null;
-    let driverLat = null, driverLng = null;
-
-    // Get driver location on load
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            p => { driverLat = p.coords.latitude; driverLng = p.coords.longitude; },
-            () => {},
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
-        );
-    }
 
     // ── Check & restore active trip session ──────────────────
     function checkActiveTrip() {
@@ -476,14 +466,10 @@
                 </div>
 
                 <!-- Stats row -->
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px;">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
                     <div style="background:#f8faff;border:1px solid #e0e7ff;border-radius:8px;padding:8px 12px;text-align:center;">
-                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#6b7280;">Trip Dist.</div>
+                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#6b7280;">Distance</div>
                         <div style="font-weight:700;color:#1d4ed8;font-size:.95rem;">${b.distance_km} km</div>
-                    </div>
-                    <div style="background:#f8faff;border:1px solid #e0e7ff;border-radius:8px;padding:8px 12px;text-align:center;">
-                        <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#6b7280;">To Pickup</div>
-                        <div style="font-weight:700;color:#d97706;font-size:.95rem;" id="distToPickup">${getDistToPickup(b)}</div>
                     </div>
                     <div style="background:#f8faff;border:1px solid #e0e7ff;border-radius:8px;padding:8px 12px;text-align:center;">
                         <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#6b7280;">Scheduled</div>
@@ -556,21 +542,8 @@
         }
     }
 
-    function getDistToPickup(b) {
-        if (driverLat === null || !b.pickup_lat || !b.pickup_lng) return '—';
-        const d = haversineKm(driverLat, driverLng, parseFloat(b.pickup_lat), parseFloat(b.pickup_lng));
-        return d < 1 ? (d * 1000).toFixed(0) + ' m' : d.toFixed(1) + ' km';
-    }
-
     function capitalize(str) {
         return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
-    }
-
-    function haversineKm(lat1, lon1, lat2, lon2) {
-        const R = 6371, r = x => x * Math.PI / 180;
-        const dLat = r(lat2-lat1), dLon = r(lon2-lon1);
-        const a = Math.sin(dLat/2)**2 + Math.cos(r(lat1))*Math.cos(r(lat2))*Math.sin(dLon/2)**2;
-        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
     let buzzerInterval = null;
