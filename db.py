@@ -3,24 +3,29 @@ from mysql.connector import Error
 import os
 
 def _build_config():
+    host     = os.environ.get('MYSQLHOST',     os.environ.get('DB_HOST',     '127.0.0.1'))
+    port     = int(os.environ.get('MYSQLPORT', os.environ.get('DB_PORT',     '3306')))
+    user     = os.environ.get('MYSQLUSER',     os.environ.get('DB_USER',     'root'))
+    password = os.environ.get('MYSQLPASSWORD', os.environ.get('DB_PASSWORD', 'sqlbook123'))
+    database = os.environ.get('MYSQLDATABASE', os.environ.get('DB_NAME',     'PAYANUM_db'))
+
     cfg = {
-        'host':     os.environ.get('MYSQLHOST',     os.environ.get('DB_HOST',     '127.0.0.1')),
-        'port': int(os.environ.get('MYSQLPORT',     os.environ.get('DB_PORT',     '3306'))),
-        'user':     os.environ.get('MYSQLUSER',     os.environ.get('DB_USER',     'root')),
-        'password': os.environ.get('MYSQLPASSWORD', os.environ.get('DB_PASSWORD', 'sqlbook123')),
-        'database': os.environ.get('MYSQLDATABASE', os.environ.get('DB_NAME',     'PAYANUM_db')),
+        'host':               host,
+        'port':               port,
+        'user':               user,
+        'password':           password,
+        'database':           database,
         'connection_timeout': 10,
     }
-    # TiDB / PlanetScale / any host that requires SSL
-    ssl_ca   = os.environ.get('MYSQL_SSL_CA')
+
+    # TiDB Cloud always requires SSL
+    is_tidb = 'tidb' in host.lower() or 'pingcap' in host.lower()
     ssl_mode = os.environ.get('MYSQL_SSL_MODE', '').upper()
-    if ssl_ca:
-        cfg['ssl_ca'] = ssl_ca
-        cfg['ssl_verify_cert'] = True
-    elif ssl_mode == 'REQUIRED' or 'tidb' in cfg['host'].lower() or 'tidbcloud' in cfg['host'].lower():
-        cfg['ssl_disabled'] = False
-        cfg['ssl_verify_cert'] = False
+    if is_tidb or ssl_mode == 'REQUIRED':
+        cfg['ssl_disabled']        = False
+        cfg['ssl_verify_cert']     = False
         cfg['ssl_verify_identity'] = False
+
     return cfg
 
 DB_CONFIG = _build_config()

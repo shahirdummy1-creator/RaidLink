@@ -418,19 +418,18 @@ def debug_session():
 
 @app.route('/debug-db')
 def debug_db():
-    import mysql.connector
     cfg = {
-        'host':     os.environ.get('MYSQLHOST',     os.environ.get('DB_HOST',     'NOT_SET')),
-        'port':     os.environ.get('MYSQLPORT',     os.environ.get('DB_PORT',     'NOT_SET')),
-        'user':     os.environ.get('MYSQLUSER',     os.environ.get('DB_USER',     'NOT_SET')),
-        'database': os.environ.get('MYSQLDATABASE', os.environ.get('DB_NAME',     'NOT_SET')),
+        'host':         os.environ.get('MYSQLHOST',     os.environ.get('DB_HOST',     'NOT_SET')),
+        'port':         os.environ.get('MYSQLPORT',     os.environ.get('DB_PORT',     'NOT_SET')),
+        'user':         os.environ.get('MYSQLUSER',     os.environ.get('DB_USER',     'NOT_SET')),
+        'database':     os.environ.get('MYSQLDATABASE', os.environ.get('DB_NAME',     'NOT_SET')),
         'password_set': bool(os.environ.get('MYSQLPASSWORD') or os.environ.get('DB_PASSWORD')),
-        'ssl_mode': os.environ.get('MYSQL_SSL_MODE', 'NOT_SET'),
-        'ssl_ca':   os.environ.get('MYSQL_SSL_CA',   'NOT_SET'),
+        'ssl_mode':     os.environ.get('MYSQL_SSL_MODE', 'NOT_SET'),
     }
     error = None
+    status = 'unknown'
     try:
-        from db import _build_config, get_db
+        from db import get_db
         conn = get_db()
         if conn:
             cur = conn.cursor()
