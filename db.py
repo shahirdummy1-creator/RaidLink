@@ -2,17 +2,32 @@
 from mysql.connector import Error
 import os
 
-DB_CONFIG = {
-    'host':     os.environ.get('MYSQLHOST',     os.environ.get('DB_HOST',     '127.0.0.1')),
-    'port': int(os.environ.get('MYSQLPORT',     os.environ.get('DB_PORT',     '3306'))),
-    'user':     os.environ.get('MYSQLUSER',     os.environ.get('DB_USER',     'root')),
-    'password': os.environ.get('MYSQLPASSWORD', os.environ.get('DB_PASSWORD', 'sqlbook123')),
-    'database': os.environ.get('MYSQLDATABASE', os.environ.get('DB_NAME',     'PAYANUM_db'))
-}
+def _build_config():
+    cfg = {
+        'host':     os.environ.get('MYSQLHOST',     os.environ.get('DB_HOST',     '127.0.0.1')),
+        'port': int(os.environ.get('MYSQLPORT',     os.environ.get('DB_PORT',     '3306'))),
+        'user':     os.environ.get('MYSQLUSER',     os.environ.get('DB_USER',     'root')),
+        'password': os.environ.get('MYSQLPASSWORD', os.environ.get('DB_PASSWORD', 'sqlbook123')),
+        'database': os.environ.get('MYSQLDATABASE', os.environ.get('DB_NAME',     'PAYANUM_db')),
+        'connection_timeout': 10,
+    }
+    # TiDB / PlanetScale / any host that requires SSL
+    ssl_ca   = os.environ.get('MYSQL_SSL_CA')
+    ssl_mode = os.environ.get('MYSQL_SSL_MODE', '').upper()
+    if ssl_ca:
+        cfg['ssl_ca'] = ssl_ca
+        cfg['ssl_verify_cert'] = True
+    elif ssl_mode == 'REQUIRED' or 'tidb' in cfg['host'].lower() or 'tidbcloud' in cfg['host'].lower():
+        cfg['ssl_disabled'] = False
+        cfg['ssl_verify_cert'] = False
+        cfg['ssl_verify_identity'] = False
+    return cfg
+
+DB_CONFIG = _build_config()
 
 def get_db():
     try:
-        conn = mysql.connector.connect(**DB_CONFIG)
+        conn = mysql.connector.connect(**_build_config())
         return conn
     except Error as e:
         print(f"[DB ERROR] {e}")
