@@ -426,7 +426,7 @@
         let pickupDistInline = '';
         if (b.pickup_lat && b.pickup_lng && driverLat !== null && driverLng !== null) {
             const d = haversineKm(driverLat, driverLng, parseFloat(b.pickup_lat), parseFloat(b.pickup_lng));
-            pickupDistInline = `<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#6b7280;"><i class="bi bi-car-front-fill"></i> ${d.toFixed(1)} km away</div>`;
+            pickupDistInline = `<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#6b7280;">${d.toFixed(1)} km away</div>`;
         } else if (b.pickup_lat && b.pickup_lng && navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(pos => {
                 driverLat = pos.coords.latitude;
