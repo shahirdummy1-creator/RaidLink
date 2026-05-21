@@ -851,7 +851,9 @@ def driver_signup_step1():
                     
                     # Redirect to payment based on plan
                     plan = request.form.get('subscription_plan', 'monthly')
-                    payment_url = 'https://rzp.io/rzp/TZPCMrau' if plan == 'yearly' else 'https://rzp.io/rzp/iZvG09vT'
+                    base = request.host_url.rstrip('/')
+                    callback = f"{base}/driver-signup/step2?username={username}"
+                    payment_url = f'https://rzp.io/rzp/TZPCMrau?callback_url={callback}' if plan == 'yearly' else f'https://rzp.io/rzp/iZvG09vT?callback_url={callback}'
                     return redirect(payment_url)
             else:
                 error = 'Database connection failed.'
@@ -862,16 +864,12 @@ def driver_signup_step1():
 
 @app.route('/driver-signup/step2', methods=['GET', 'POST'])
 def driver_signup_step2_redirect():
-    # Handle case where user accesses step2 without username
-    if 'signup_step1' not in session:
-        return redirect(url_for('driver_signup_step1'))
-    
-    # Get username from session and redirect to proper URL
-    username = session['signup_step1'].get('username')
+    username = request.args.get('username') or (
+        session['signup_step1'].get('username') if 'signup_step1' in session else None
+    )
     if username:
         return redirect(url_for('driver_signup_step2', username=username))
-    else:
-        return redirect(url_for('driver_signup_step1'))
+    return redirect(url_for('driver_signup_step1'))
 
 @app.route('/driver-signup/step2/<username>', methods=['GET', 'POST'])
 def driver_signup_step2(username):
