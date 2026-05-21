@@ -426,7 +426,7 @@
         let pickupDistInline = '';
         if (b.pickup_lat && b.pickup_lng && driverLat !== null && driverLng !== null) {
             const d = haversineKm(driverLat, driverLng, parseFloat(b.pickup_lat), parseFloat(b.pickup_lng));
-            pickupDistInline = `<span style="font-size:.75rem;color:#d97706;font-weight:600;margin-left:6px;"><i class="bi bi-car-front-fill"></i> ${d.toFixed(1)} km away</span>`;
+            pickupDistInline = `<div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#6b7280;"><i class="bi bi-car-front-fill"></i> ${d.toFixed(1)} km away</div>`;
         } else if (b.pickup_lat && b.pickup_lng && navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(pos => {
                 driverLat = pos.coords.latitude;
@@ -483,7 +483,8 @@
                         <div style="flex:1;">
                             <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;margin-bottom:6px;">
                                 <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#6b7280;">Pickup</div>
-                                <div style="font-weight:600;color:#111827;font-size:.9rem;">${capitalize(b.pickup_location)}${pickupDistInline}</div>
+                                ${pickupDistInline}
+                                <div style="font-weight:600;color:#111827;font-size:.9rem;">${capitalize(b.pickup_location)}</div>
                             </div>
                             <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:8px 12px;">
                                 <div style="font-size:.65rem;font-weight:700;text-transform:uppercase;color:#6b7280;">Drop &nbsp;<span style="font-size:.65rem;color:#6b7280;font-weight:600;">${b.distance_km} km total</span></div>
