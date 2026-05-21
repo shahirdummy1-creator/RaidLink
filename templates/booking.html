@@ -180,12 +180,6 @@
         .autocomplete-item:hover { background: #eff6ff; }
         .place-name { font-weight: 600; color: #111827; }
         .place-addr { font-size: .75rem; color: #6b7280; margin-top: 2px; }
-        .loc-badge {
-            display: inline-flex; align-items: center; gap: 6px;
-            background: #f0fdf4; border: 1px solid #bbf7d0;
-            color: #166534; font-size: .78rem; font-weight: 600;
-            padding: 4px 10px; border-radius: 20px; margin-top: 4px;
-        }
         .map-legend { display: flex; gap: 16px; margin-top: 8px; font-size: .8rem; color: #374151; }
         .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 4px; }
         body.map-fullscreen .hide-on-map {
@@ -507,12 +501,6 @@ function showSuggestionMessage(type, message) {
 function setBadge(type, text) {
     const badge = document.getElementById(type + '-badge');
     badge.innerHTML = '';
-    if (!text) return;
-    const span = document.createElement('span');
-    span.className = 'loc-badge';
-    span.innerHTML = '<i class="bi bi-check-circle-fill"></i>';
-    span.appendChild(document.createTextNode(text));
-    badge.appendChild(span);
 }
 
 function setLocationFields(type, lat, lng, address, pincode) {
