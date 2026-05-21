@@ -35,17 +35,25 @@
         .nav-btn:hover { background: #1558b0; color: #fff; }
         .nav-btn img { width: 22px; height: 22px; }
 
-        /* Success overlay */
+        /* Completion overlays */
+        #fareOverlay,
         #successOverlay {
             display:none; position:fixed; inset:0;
             background:rgba(0,0,0,.55); z-index:2000;
             align-items:center; justify-content:center;
         }
+        #fareOverlay.show,
         #successOverlay.show { display:flex; }
+        .fare-card,
         .success-card {
             background:#fff; border-radius:20px; padding:40px 50px;
             text-align:center;
             animation: pop-in .4s cubic-bezier(.175,.885,.32,1.275);
+        }
+        .fare-card { width:min(92vw, 420px); padding:32px 28px; }
+        .fare-amount {
+            font-size:2.4rem; font-weight:800; color:#059669;
+            margin:10px 0 18px;
         }
         @keyframes pop-in { from{transform:scale(.5);opacity:0} to{transform:scale(1);opacity:1} }
         .checkmark-circle {
@@ -159,6 +167,21 @@
     </div>
 </div>
 
+<!-- Fare Collection Overlay -->
+<div id="fareOverlay">
+    <div class="fare-card">
+        <div class="info-label mb-2">Collect Fare Amount</div>
+        <div class="fare-amount">{{ booking.fare if booking else 'N/A' }}</div>
+        <p class="text-muted mb-4" style="font-size:.9rem;">Collect the cash from the rider, then confirm to complete the trip.</p>
+        <button type="button" class="btn btn-success w-100 fw-bold py-2 mb-2" onclick="confirmFareCollected()">
+            <i class="bi bi-cash-coin me-2"></i>Money Collected
+        </button>
+        <button type="button" class="btn btn-outline-secondary w-100 fw-bold py-2" onclick="resumeTrip()">
+            Back to Trip
+        </button>
+    </div>
+</div>
+
 <!-- Success Overlay -->
 <div id="successOverlay">
     <div class="success-card">
@@ -200,6 +223,7 @@ document.getElementById('googleMapsBtn').href = buildGoogleMapsUrl(DROP_ADDR);
 // ── Timer ─────────────────────────────────────────────────
 let timerInterval = null, seconds = 0;
 function startTimer() {
+    if (timerInterval) return;
     timerInterval = setInterval(() => {
         seconds++;
         const m = String(Math.floor(seconds/60)).padStart(2,'0');
@@ -210,10 +234,24 @@ function startTimer() {
 
 // ── Complete trip ─────────────────────────────────────────
 function onCompleteTrip() {
-    if (timerInterval) clearInterval(timerInterval);
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
     document.getElementById('completeTripBtn').disabled = true;
+    document.getElementById('fareOverlay').classList.add('show');
+}
+
+function resumeTrip() {
+    document.getElementById('fareOverlay').classList.remove('show');
+    document.getElementById('completeTripBtn').disabled = false;
+    startTimer();
+}
+
+function confirmFareCollected() {
+    document.getElementById('fareOverlay').classList.remove('show');
     document.getElementById('successOverlay').classList.add('show');
-    setTimeout(() => document.getElementById('completeTripForm').submit(), 2500);
+    setTimeout(() => document.getElementById('completeTripForm').submit(), 900);
 }
 
 startTimer();
