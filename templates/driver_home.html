@@ -796,11 +796,9 @@
 <div class="modal fade" id="editProfileModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="POST" action="{{ url_for('update_driver_profile') }}" enctype="multipart/form-data">
             <div class="modal-header">
                 <h5 class="modal-title">Edit Profile</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> method="POST" enctype="multipart/form-data">
                 <div class="modal-body">
                     <input type="hidden" name="username" value="{{ driver_name }}">
                     
