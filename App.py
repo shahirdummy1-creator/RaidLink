@@ -20,7 +20,54 @@ except ImportError:
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'PAYANUM_secret_2024')
-app.permanent_session_lifetime = timedelta(days=7)
+app.permanent_session_lifetime = timedelta(days=30)
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+
+REMEMBER_COOKIE_DAYS = 30
+
+
+def make_remember_token(user_type, username):
+    raw = f"{user_type}:{username}:{app.secret_key}"
+    return hashlib.sha256(raw.encode()).hexdigest()[:32]
+
+
+@app.before_request
+def restore_session_from_cookie():
+    """Restore session from remember-me cookie if session is empty."""
+    # Rider
+    if 'riders' not in session:
+        rc = request.cookies.get('remember_rider')
+        if rc:
+            parts = rc.split(':', 1)
+            if len(parts) == 2:
+                username, token = parts
+                if token == make_remember_token('rider', username):
+                    conn = get_db()
+                    if conn:
+                        cur = conn.cursor()
+                        cur.execute(
+                            "SELECT id FROM Rider_Details WHERE username=%s AND account_status='Active'",
+                            (username,)
+                        )
+                        row = cur.fetchone()
+                        cur.close(); conn.close()
+                        if row:
+                            session.permanent = True
+                            session.setdefault('riders', {})[username] = row[0]
+                            session.modified = True
+    # Driver
+    if 'drivers' not in session:
+        dc = request.cookies.get('remember_driver')
+        if dc:
+            parts = dc.split(':', 1)
+            if len(parts) == 2:
+                username, token = parts
+                if token == make_remember_token('driver', username):
+                    d = get_driver(username)
+                    if d:
+                        session.permanent = True
+                        session.modified = True
 
 COORDINATE_PAIR_RE = re.compile(
     r'^\s*(-?\d{1,3}(?:\.\d+)?)\s*,\s*(-?\d{1,3}(?:\.\d+)?)(?:\s*,\s*india)?\s*$',
@@ -540,6 +587,7 @@ def rider_login():
     success = request.args.get('registered')
     if request.method == 'POST':
         mobile = request.form.get('mobile', '').strip()
+        remember = request.form.get('remember_me') == '1'
         conn = get_db()
         if conn:
             cur = conn.cursor()
@@ -578,7 +626,13 @@ def rider_login():
                     except (ValueError, TypeError):
                         pass
                     session.modified = True
-                return redirect(url_for('rider_bookings', username=rider[1]))
+                resp = redirect(url_for('rider_bookings', username=rider[1]))
+                if remember:
+                    token = make_remember_token('rider', rider[1])
+                    resp.set_cookie('remember_rider', f"{rider[1]}:{token}",
+                                    max_age=REMEMBER_COOKIE_DAYS * 86400,
+                                    httponly=True, samesite='Lax')
+                return resp
             error = 'No active account found with this phone number.'
         else:
             error = 'Database connection failed.'
@@ -772,6 +826,7 @@ def driver_login():
     if request.method == 'POST':
         username = request.form.get('user_id').strip()
         password = request.form.get('password')
+        remember = request.form.get('remember_me') == '1'
         
         conn = get_db()
         if conn:
@@ -787,7 +842,6 @@ def driver_login():
                 if driver[6] == 'Suspended':
                     error = 'Your account has been suspended. Please contact support.'
                 else:
-                    # Active driver - proceed with login
                     session.permanent = True
                     drivers = session.setdefault('drivers', {})
                     drivers[driver[1]] = {
@@ -798,7 +852,13 @@ def driver_login():
                         'photo': driver[5] or ''
                     }
                     session.modified = True
-                    return redirect(url_for('driver_home', username=driver[1]))
+                    resp = redirect(url_for('driver_home', username=driver[1]))
+                    if remember:
+                        token = make_remember_token('driver', driver[1])
+                        resp.set_cookie('remember_driver', f"{driver[1]}:{token}",
+                                        max_age=REMEMBER_COOKIE_DAYS * 86400,
+                                        httponly=True, samesite='Lax')
+                    return resp
             else:
                 error = 'Invalid username or password.'
         else:
@@ -1102,7 +1162,9 @@ def driver_logout(username):
     drivers = session.get('drivers', {})
     drivers.pop(username, None)
     session.modified = True
-    return redirect(url_for('driver_login'))
+    resp = redirect(url_for('driver_login'))
+    resp.delete_cookie('remember_driver')
+    return resp
 
 @app.route('/driver-home/<username>')
 def driver_home(username):
@@ -1530,7 +1592,9 @@ def rider_logout(username):
     riders = session.get('riders', {})
     riders.pop(username, None)
     session.modified = True
-    return redirect(url_for('rider_login'))
+    resp = redirect(url_for('rider_login'))
+    resp.delete_cookie('remember_rider')
+    return resp
 
 @app.route('/guest-booking', methods=['POST'])
 def guest_booking():
