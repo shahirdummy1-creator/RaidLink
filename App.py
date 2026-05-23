@@ -270,6 +270,22 @@ def get_driver(username):
 @app.route('/welcome')
 @app.route('/index')
 def welcome():
+    # Rider remember cookie
+    rc = request.cookies.get('remember_rider')
+    if rc:
+        parts = rc.split(':', 1)
+        if len(parts) == 2:
+            username, token = parts
+            if token == make_remember_token('rider', username):
+                return redirect(url_for('rider_bookings', username=username))
+    # Driver remember cookie
+    dc = request.cookies.get('remember_driver')
+    if dc:
+        parts = dc.split(':', 1)
+        if len(parts) == 2:
+            username, token = parts
+            if token == make_remember_token('driver', username):
+                return redirect(url_for('driver_home', username=username))
     return redirect(url_for('book', username='guest'))
 
 @app.route('/googlec9d557a3d16bb541.html')
