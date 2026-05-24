@@ -13,7 +13,7 @@
     const SKIP = ['btn-close', 'btn-refresh', 'dropdown-toggle', 'navbar-toggler'];
 
     document.addEventListener('click', function (e) {
-        const btn = e.target.closest('button, a.btn, input[type=submit], input[type=button]');
+        const btn = e.target.closest('button, a.btn, a.dropdown-item, input[type=submit], input[type=button]');
         if (!btn) return;
 
         // Skip if any exclusion class present
