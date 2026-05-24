@@ -574,7 +574,17 @@
     </div>
 
     <!-- Bottom bar -->
-    <div class="bottom-bar"></div>
+    <div class="bottom-bar">
+        {% if completed %}
+        <form id="clear-all-form" method="POST" action="{{ url_for('clear_bookings') }}"
+              onsubmit="return confirm('Clear all completed bookings? This cannot be undone.');" style="display:none;">
+            <input type="hidden" name="username" value="{{ rider_name }}">
+            <button type="submit" class="btn-clear">
+                <i class="bi bi-trash"></i> Clear All
+            </button>
+        </form>
+        {% endif %}
+    </div>
 
 </div>
 
@@ -584,6 +594,8 @@ function switchTab(name, label, count) {
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
     document.getElementById('tab-' + name).classList.add('active');
     document.getElementById('activeTabLabel').innerHTML = label + ' <span class="badge bg-primary ms-1">' + count + '</span>';
+    const clearForm = document.getElementById('clear-all-form');
+    if (clearForm) clearForm.style.display = name === 'completed' ? 'block' : 'none';
 }
 setInterval(() => {
     const label = document.getElementById('activeTabLabel');
