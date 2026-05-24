@@ -19,8 +19,15 @@
         // Skip if any exclusion class present
         if (SKIP.some(c => btn.classList.contains(c))) return;
 
-        // Skip toggle-password buttons (type=button with bi-eye icon)
-        if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes('togglePassword')) return;
+        // Skip toggle-password, map, swap buttons
+        if (btn.getAttribute('onclick') && (
+            btn.getAttribute('onclick').includes('togglePassword') ||
+            btn.getAttribute('onclick').includes('openFullscreenMap') ||
+            btn.getAttribute('onclick').includes('swapLocations') ||
+            btn.getAttribute('onclick').includes('locateMe') ||
+            btn.getAttribute('onclick').includes('closeFullscreenMap') ||
+            btn.getAttribute('onclick').includes('setLocationFromFullscreen')
+        )) return;
 
         // Skip anchor buttons that open modals or have no real navigation
         if (btn.getAttribute('data-bs-toggle')) return;
