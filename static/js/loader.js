@@ -26,7 +26,8 @@
             btn.getAttribute('onclick').includes('swapLocations') ||
             btn.getAttribute('onclick').includes('locateMe') ||
             btn.getAttribute('onclick').includes('closeFullscreenMap') ||
-            btn.getAttribute('onclick').includes('setLocationFromFullscreen')
+            btn.getAttribute('onclick').includes('setLocationFromFullscreen') ||
+            btn.getAttribute('onclick').includes('confirmFsLocation')
         )) return;
 
         // Skip anchor buttons that open modals or have no real navigation

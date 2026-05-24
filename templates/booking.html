@@ -97,18 +97,7 @@
         /* Hide Google Maps auth error banner */
         .gm-err-container, .gm-err-content, .gm-style-cc { display: none !important; }
         div[style*="background-color: rgb(229, 229, 229)"] .gm-err-container { display: none !important; }
-        .fs-bottombar {
-            background: transparent;
-            padding: 0 16px;
-            display: flex;
-            gap: 10px;
-            z-index: 10000;
-            position: absolute;
-            bottom: calc(50% + 52px);
-            left: 0;
-            right: 0;
-            border-radius: 14px;
-        }
+        .fs-bottombar { display: none; }
         .fs-bottombar button {
             flex: 1;
             padding: 12px;
@@ -132,9 +121,11 @@
             transform: translate(-50%, -100%);
             font-size: 2.2rem;
             z-index: 10000;
-            pointer-events: none;
+            cursor: pointer;
             filter: drop-shadow(0 2px 6px rgba(0,0,0,.5));
+            transition: transform .15s;
         }
+        .fs-crosshair:active { transform: translate(-50%, -100%) scale(1.25); }
         .fs-map-wrap { position: relative; flex: 1; display: flex; flex-direction: column; }
         /* My Location button */
         .fs-btn-locate {
@@ -395,8 +386,8 @@
     </div>
     <div class="fs-map-wrap">
         <div id="fullscreenMap"></div>
-        <div class="fs-crosshair">📍</div>
-        <div class="fs-addr-bar" id="fs-addr-bar"><i class="bi bi-hourglass-split me-1 text-muted"></i>Move map to select location</div>
+        <div class="fs-crosshair" id="fs-crosshair" onclick="confirmFsLocation()">📍</div>
+        <div class="fs-addr-bar" id="fs-addr-bar"><i class="bi bi-hourglass-split me-1 text-muted"></i>Move map then tap 📍 to confirm</div>
         <button class="fs-btn-locate" onclick="locateMe()" title="My Location"><i class="bi bi-crosshair"></i></button>
         <div class="fs-bottombar">
             <button class="fs-btn-pickup" onclick="setLocationFromFullscreen('pickup')"><i class="bi bi-geo-alt-fill me-1"></i> Set as Pickup</button>
@@ -936,7 +927,7 @@ function openFullscreenMap(presetType) {
     }
 
     refreshFullscreenMarkers();
-    document.getElementById('fs-addr-bar').innerHTML = '<i class="bi bi-hourglass-split me-1 text-muted"></i>Move map to select location';
+    document.getElementById('fs-addr-bar').innerHTML = '<i class="bi bi-hourglass-split me-1 text-muted"></i>Move map then tap 📍 to confirm';
     document.getElementById('fs-search-input').value = '';
     _closeFsSuggestions();
 }
@@ -1035,7 +1026,18 @@ function _onFsMapIdle() {
         } catch {
             addrBar.innerHTML = `<i class="bi bi-geo-alt me-1"></i>${lat.toFixed(5)}, ${lng.toFixed(5)}`;
         }
+        // Update hint after address resolves
+        addrBar.innerHTML += ' &nbsp;<span style="color:#0d6efd;font-weight:700;">↑ Tap pin</span>';
     }, 400);
+}
+
+function confirmFsLocation() {
+    if (!fsMap) return;
+    const type = fsActiveType || 'pickup';
+    const center = fsMap.getCenter();
+    const lat = center.lat(), lng = center.lng();
+    closeFullscreenMap();
+    setLocationFromLatLng(type, lat, lng);
 }
 
 function closeFullscreenMap() {
