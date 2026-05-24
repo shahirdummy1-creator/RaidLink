@@ -201,9 +201,20 @@
             .autocomplete-item { padding: 14px; }
             .fs-bottombar button { min-height: 52px; font-size: 1rem; }
         }
-    </style>
+</style>
 </head>
 <body>
+<script>
+// Show loader immediately while page initializes
+document.addEventListener('DOMContentLoaded', function() {
+    var ol = document.getElementById('payanum-loader');
+    if (ol) ol.classList.add('active');
+});
+window.addEventListener('load', function() {
+    var ol = document.getElementById('payanum-loader');
+    if (ol) setTimeout(function(){ ol.classList.remove('active'); }, 400);
+});
+</script>
 
 <nav class="navbar navbar-dark bg-primary hide-on-map">
     <div class="container justify-content-center">
