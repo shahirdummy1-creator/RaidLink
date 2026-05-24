@@ -200,13 +200,13 @@
         .btn-view-driver:hover { background: #047857; color: #fff; }
         .btn-cancel {
             display: inline-flex; align-items: center; gap: 6px;
-            background: transparent; color: #dc2626;
-            border: 1.5px solid #dc2626;
+            background: #dc2626; color: #fff;
+            border: none;
             padding: 6px 16px; border-radius: 8px;
             font-size: .8rem; font-weight: 600;
             cursor: pointer; transition: all .18s;
         }
-        .btn-cancel:hover { background: #dc2626; color: #fff; }
+        .btn-cancel:hover { background: #b91c1c; color: #fff; }
 
         /* Empty state */
         .empty-state {
@@ -574,17 +574,7 @@
     </div>
 
     <!-- Bottom bar -->
-    <div class="bottom-bar">
-        {% if bookings %}
-        <form method="POST" action="{{ url_for('clear_bookings') }}"
-              onsubmit="return confirm('Clear all bookings? This cannot be undone.');">
-            <input type="hidden" name="username" value="{{ rider_name }}">
-            <button type="submit" class="btn-clear">
-                <i class="bi bi-trash"></i> Clear All
-            </button>
-        </form>
-        {% endif %}
-    </div>
+    <div class="bottom-bar"></div>
 
 </div>
 
