@@ -12,6 +12,32 @@
         body { background: #fbbf24 !important; font-family: 'Segoe UI', sans-serif; margin: 0; }
         *, *::before, *::after { box-sizing: border-box; }
 
+        .pull-refresh {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translate(-50%, -140%);
+            z-index: 3000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #fff;
+            color: #374151;
+            border: 1px solid #e5e7eb;
+            border-radius: 999px;
+            padding: 8px 14px;
+            font-size: .82rem;
+            font-weight: 700;
+            box-shadow: 0 8px 24px rgba(0,0,0,.16);
+            opacity: 0;
+            pointer-events: none;
+            transition: transform .18s ease, opacity .18s ease, background .18s ease, color .18s ease;
+        }
+        .pull-refresh.show { opacity: 1; transform: translate(-50%, 0); }
+        .pull-refresh.ready { background: #0d6efd; color: #fff; border-color: #0d6efd; }
+        .pull-refresh.refreshing .bi-arrow-clockwise { animation: pull-spin .7s linear infinite; }
+        @keyframes pull-spin { to { transform: rotate(360deg); } }
+
         /* ── Navbar ── */
         .topnav {
             background: linear-gradient(135deg, #0d6efd, #0a58ca);
@@ -214,6 +240,10 @@
     </style>
 </head>
 <body>
+<div id="pullRefresh" class="pull-refresh">
+    <i class="bi bi-arrow-clockwise"></i>
+    <span id="pullRefreshText">Swipe down to reload</span>
+</div>
 
 <!-- Navbar -->
 <nav class="topnav">
@@ -570,6 +600,69 @@ setInterval(() => {
     if (label && label.textContent.trim().startsWith('Active')) location.reload();
 }, 10000);
 
+// ── Swipe down to reload ────────────────────────────────────────────────
+const pullRefreshEl = document.getElementById('pullRefresh');
+const pullRefreshText = document.getElementById('pullRefreshText');
+let pullStartY = 0;
+let pullStartX = 0;
+let isPulling = false;
+let isRefreshing = false;
+const pullThreshold = 85;
+
+document.addEventListener('touchstart', event => {
+    if (isRefreshing || event.touches.length !== 1 || window.scrollY > 0) return;
+    pullStartY = event.touches[0].clientY;
+    pullStartX = event.touches[0].clientX;
+    isPulling = true;
+}, { passive: true });
+
+document.addEventListener('touchmove', event => {
+    if (!isPulling || isRefreshing || event.touches.length !== 1) return;
+    const deltaY = event.touches[0].clientY - pullStartY;
+    const deltaX = Math.abs(event.touches[0].clientX - pullStartX);
+    if (deltaY <= 0 || deltaX > deltaY) return;
+    if (window.scrollY > 0) {
+        isPulling = false;
+        return;
+    }
+
+    const pullDistance = Math.min(deltaY, 120);
+    pullRefreshEl.classList.add('show');
+    pullRefreshEl.style.transform = `translate(-50%, ${Math.min(pullDistance * 0.35, 42)}px)`;
+    if (pullDistance >= pullThreshold) {
+        pullRefreshEl.classList.add('ready');
+        pullRefreshText.textContent = 'Release to reload';
+    } else {
+        pullRefreshEl.classList.remove('ready');
+        pullRefreshText.textContent = 'Swipe down to reload';
+    }
+}, { passive: true });
+
+document.addEventListener('touchend', event => {
+    if (!isPulling || isRefreshing) return;
+    const deltaY = event.changedTouches[0].clientY - pullStartY;
+    isPulling = false;
+
+    if (deltaY >= pullThreshold && window.scrollY === 0) {
+        isRefreshing = true;
+        pullRefreshEl.classList.add('show', 'ready', 'refreshing');
+        pullRefreshEl.style.transform = 'translate(-50%, 42px)';
+        pullRefreshText.textContent = 'Reloading...';
+        window.location.reload();
+        return;
+    }
+
+    pullRefreshEl.classList.remove('show', 'ready');
+    pullRefreshEl.style.transform = '';
+}, { passive: true });
+
+document.addEventListener('touchcancel', () => {
+    isPulling = false;
+    if (isRefreshing) return;
+    pullRefreshEl.classList.remove('show', 'ready');
+    pullRefreshEl.style.transform = '';
+}, { passive: true });
+
 // ── Driver location tracking ──────────────────────────────────────────────
 const DRIVER_BOOKINGS = [
     {% for b in confirmed %}{% if b.accepted_by %}
@@ -633,5 +726,6 @@ function initDriverTracking() {
 </script>
 
 <script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_key }}&libraries=places&callback=initDriverTracking" async defer></script>
+<script src="{{ url_for('static', filename='js/loader.js') }}"></script>
 </body>
 </html>

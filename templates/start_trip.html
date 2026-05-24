@@ -199,6 +199,7 @@
 </form>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/loader.js') }}"></script>
 <script>
 const DROP_ADDR = {{ (booking.drop_location if booking else "") | tojson }};
 

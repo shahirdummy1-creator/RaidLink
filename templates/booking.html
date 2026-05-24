@@ -71,6 +71,14 @@
             justify-content: flex-end;
             z-index: 10000;
         }
+        .fs-exit-row {
+            background: #fff;
+            padding: 8px 14px;
+            display: flex;
+            justify-content: flex-end;
+            z-index: 10000;
+            box-shadow: 0 2px 10px rgba(0,0,0,.12);
+        }
         .fs-exit-btn {
             background: rgba(255,255,255,.2);
             border: none;
@@ -83,6 +91,8 @@
             white-space: nowrap;
         }
         .fs-exit-btn:hover { background: rgba(255,255,255,.35); }
+        .fs-exit-row .fs-exit-btn { background: #0d6efd; color: #fff; }
+        .fs-exit-row .fs-exit-btn:hover { background: #0a58ca; }
         .pac-container { z-index: 10020 !important; }
         /* Hide Google Maps auth error banner */
         .gm-err-container, .gm-err-content, .gm-style-cc { display: none !important; }
@@ -371,9 +381,8 @@
 <!-- Fullscreen Map Overlay -->
 <div id="fullscreenMapOverlay">
     <div class="fs-topbar" style="flex-direction:column;align-items:stretch;gap:8px;padding:10px 14px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div style="display:flex;justify-content:center;align-items:center;">
             <span class="text-white fw-bold" id="fs-mode-label" style="font-size:.95rem;"></span>
-            <button class="fs-exit-btn" onclick="closeFullscreenMap()"><i class="bi bi-x-lg"></i> Exit</button>
         </div>
         <div style="position:relative;">
             <i class="bi bi-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#6b7280;pointer-events:none;"></i>
@@ -381,6 +390,9 @@
                    style="width:100%;padding:9px 12px 9px 34px;border:none;border-radius:8px;font-size:.95rem;outline:none;box-sizing:border-box;">
             <div id="fs-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border-radius:0 0 10px 10px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-height:240px;overflow-y:auto;z-index:10010;"></div>
         </div>
+    </div>
+    <div class="fs-exit-row">
+        <button class="fs-exit-btn" onclick="closeFullscreenMap()"><i class="bi bi-x-lg"></i> Exit</button>
     </div>
     <div class="fs-map-wrap">
         <div id="fullscreenMap"></div>
@@ -1217,6 +1229,7 @@ function guestConfirm() {
 <script async
     src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_key|urlencode }}&loading=async&libraries=places&callback=initGoogleBookingMap">
 </script>
+<script src="{{ url_for('static', filename='js/loader.js') }}"></script>
 
 <form id="guest-booking-form" method="POST" action="/guest-booking" style="display:none;">
     <input type="hidden" name="pickup">
