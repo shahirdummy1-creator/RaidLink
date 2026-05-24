@@ -545,7 +545,13 @@
     }
 
     // ── Booking actions ────────────────────────────────────
+    function showLoader() {
+        const ol = document.getElementById('payanum-loader');
+        if (ol) ol.classList.add('active');
+    }
+
     function acceptBooking() {
+        showLoader();
         stopBuzzer();
         stopPolling();
         document.getElementById('acceptTripForm').submit();
@@ -553,6 +559,7 @@
 
     function cancelBooking() {
         if (confirm('Are you sure you want to cancel this booking request?')) {
+            showLoader();
             stopBuzzer();
             const tripId = document.getElementById('formTripId').value;
             fetch('/api/skip-booking', {
@@ -560,6 +567,8 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ trip_id: tripId, driver_name: DRIVER_USERNAME })
             }).finally(() => {
+                const ol = document.getElementById('payanum-loader');
+                if (ol) ol.classList.remove('active');
                 currentBookingId = null;
                 fetchBooking();
             });
