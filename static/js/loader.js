@@ -13,13 +13,13 @@
     const SKIP = ['btn-close', 'btn-refresh', 'dropdown-toggle', 'navbar-toggler'];
 
     document.addEventListener('click', function (e) {
-        const btn = e.target.closest('button, a.btn, a.dropdown-item, input[type=submit], input[type=button]');
+        const btn = e.target.closest('button, a.btn, a.dropdown-item, .btn-cancel, input[type=submit], input[type=button]');
         if (!btn) return;
 
         // Skip if any exclusion class present
         if (SKIP.some(c => btn.classList.contains(c))) return;
 
-        // Skip toggle-password, map, swap buttons
+        // Skip toggle-password, map, swap, and other pure-UI buttons
         if (btn.getAttribute('onclick') && (
             btn.getAttribute('onclick').includes('togglePassword') ||
             btn.getAttribute('onclick').includes('openFullscreenMap') ||
@@ -27,14 +27,24 @@
             btn.getAttribute('onclick').includes('locateMe') ||
             btn.getAttribute('onclick').includes('closeFullscreenMap') ||
             btn.getAttribute('onclick').includes('setLocationFromFullscreen') ||
-            btn.getAttribute('onclick').includes('confirmFsLocation')
+            btn.getAttribute('onclick').includes('confirmFsLocation') ||
+            btn.getAttribute('onclick').includes('togglePw') ||
+            btn.getAttribute('onclick').includes('openCamera') ||
+            btn.getAttribute('onclick').includes('stopCamera') ||
+            btn.getAttribute('onclick').includes('capturePhoto') ||
+            btn.getAttribute('onclick').includes('selectUserType') ||
+            btn.getAttribute('onclick').includes('previewPhoto')
         )) return;
 
         // Skip anchor buttons that open modals or have no real navigation
         if (btn.getAttribute('data-bs-toggle')) return;
 
-        // Skip pure JS onclick buttons that don't navigate (driver home accept/decline handled in their own flow)
-        if (btn.type === 'button' && !btn.form && !btn.getAttribute('href')) return;
+        // Skip type=button with no form and no href UNLESS it has a known action onclick
+        if (btn.type === 'button' && !btn.form && !btn.getAttribute('href')) {
+            const oc = btn.getAttribute('onclick') || '';
+            // Allow accept/cancel booking actions
+            if (!oc.includes('acceptBooking') && !oc.includes('cancelBooking') && !oc.includes('verifyOtp') && !oc.includes('verifyOTP') && !oc.includes('sendOtp') && !oc.includes('resendOtp') && !oc.includes('verifyOtp') && !oc.includes('confirmFareCollected')) return;
+        }
 
         // For anchor buttons — only show loader if href is a real page (not # or javascript:)
         if (btn.tagName === 'A') {
