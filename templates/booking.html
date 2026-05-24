@@ -1281,6 +1281,7 @@ function swapLocations() {
             el.classList.add('show', 'ready', 'refreshing');
             el.style.transform = 'translate(-50%, 42px)';
             txt.textContent = 'Reloading...';
+            var ol = document.getElementById('payanum-loader'); if (ol) ol.classList.add('active');
             window.location.reload();
             return;
         }

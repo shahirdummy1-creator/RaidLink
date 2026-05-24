@@ -650,6 +650,7 @@ document.addEventListener('touchend', event => {
         pullRefreshEl.classList.add('show', 'ready', 'refreshing');
         pullRefreshEl.style.transform = 'translate(-50%, 42px)';
         pullRefreshText.textContent = 'Reloading...';
+        var ol = document.getElementById('payanum-loader'); if (ol) ol.classList.add('active');
         window.location.reload();
         return;
     }
