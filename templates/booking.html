@@ -192,6 +192,25 @@
             display: flex; align-items: center; justify-content: space-between;
         }
 
+        /* ── Pull to refresh ── */
+        .pull-refresh {
+            position: fixed;
+            top: 10px; left: 50%;
+            transform: translate(-50%, -140%);
+            z-index: 9998;
+            display: flex; align-items: center; gap: 8px;
+            background: #fff; color: #374151;
+            border: 1px solid #e5e7eb; border-radius: 999px;
+            padding: 8px 14px; font-size: .82rem; font-weight: 700;
+            box-shadow: 0 8px 24px rgba(0,0,0,.16);
+            opacity: 0; pointer-events: none;
+            transition: transform .18s ease, opacity .18s ease, background .18s ease, color .18s ease;
+        }
+        .pull-refresh.show { opacity: 1; transform: translate(-50%, 0); }
+        .pull-refresh.ready { background: #0d6efd; color: #fff; border-color: #0d6efd; }
+        .pull-refresh.refreshing .bi-arrow-clockwise { animation: ptr-spin .7s linear infinite; }
+        @keyframes ptr-spin { to { transform: rotate(360deg); } }
+
         /* ── Mobile friendliness ── */
         @media (max-width: 576px) {
             .booking-card { padding: 16px !important; }
@@ -215,6 +234,11 @@ window.addEventListener('load', function() {
     if (ol) setTimeout(function(){ ol.classList.remove('active'); }, 400);
 });
 </script>
+
+<div id="pullRefresh" class="pull-refresh">
+    <i class="bi bi-arrow-clockwise"></i>
+    <span id="pullRefreshText">Swipe down to reload</span>
+</div>
 
 <nav class="navbar navbar-dark bg-primary hide-on-map">
     <div class="container justify-content-center">
@@ -1219,6 +1243,56 @@ function swapLocations() {
     updateDistanceFare();
     updateGuestBtn();
 }
+
+// ── Pull to refresh (skip when fullscreen map is open) ──────────
+(function () {
+    const el = document.getElementById('pullRefresh');
+    const txt = document.getElementById('pullRefreshText');
+    let startY = 0, startX = 0, pulling = false, refreshing = false;
+    const threshold = 85;
+
+    document.addEventListener('touchstart', e => {
+        if (refreshing || e.touches.length !== 1 || window.scrollY > 0) return;
+        if (document.getElementById('fullscreenMapOverlay').classList.contains('show')) return;
+        startY = e.touches[0].clientY;
+        startX = e.touches[0].clientX;
+        pulling = true;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', e => {
+        if (!pulling || refreshing) return;
+        if (document.getElementById('fullscreenMapOverlay').classList.contains('show')) { pulling = false; return; }
+        const dy = e.touches[0].clientY - startY;
+        const dx = Math.abs(e.touches[0].clientX - startX);
+        if (dy <= 0 || dx > dy || window.scrollY > 0) { pulling = false; return; }
+        const dist = Math.min(dy, 120);
+        el.classList.add('show');
+        el.style.transform = `translate(-50%, ${Math.min(dist * 0.35, 42)}px)`;
+        if (dist >= threshold) { el.classList.add('ready'); txt.textContent = 'Release to reload'; }
+        else { el.classList.remove('ready'); txt.textContent = 'Swipe down to reload'; }
+    }, { passive: true });
+
+    document.addEventListener('touchend', e => {
+        if (!pulling || refreshing) return;
+        const dy = e.changedTouches[0].clientY - startY;
+        pulling = false;
+        if (dy >= threshold && window.scrollY === 0 && !document.getElementById('fullscreenMapOverlay').classList.contains('show')) {
+            refreshing = true;
+            el.classList.add('show', 'ready', 'refreshing');
+            el.style.transform = 'translate(-50%, 42px)';
+            txt.textContent = 'Reloading...';
+            window.location.reload();
+            return;
+        }
+        el.classList.remove('show', 'ready');
+        el.style.transform = '';
+    }, { passive: true });
+
+    document.addEventListener('touchcancel', () => {
+        pulling = false;
+        if (!refreshing) { el.classList.remove('show', 'ready'); el.style.transform = ''; }
+    }, { passive: true });
+})();
 
 // ── Guest booking ─────────────────────────────────────────
 function updateGuestBtn() {
