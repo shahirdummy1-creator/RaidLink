@@ -1184,6 +1184,8 @@ def driver_logout(username):
 
 @app.route('/driver-home/<username>')
 def driver_home(username):
+    if username not in session.get('drivers', {}):
+        return redirect(url_for('driver_login'))
     driver = get_driver(username)
     if not driver:
         return redirect(url_for('driver_login'))
@@ -1246,6 +1248,8 @@ def driver_renew(username):
 
 @app.route('/driver-subscription/<username>')
 def driver_subscription(username):
+    if username not in session.get('drivers', {}):
+        return redirect(url_for('driver_login'))
     driver = get_driver(username)
     if not driver:
         return redirect(url_for('driver_login'))
@@ -1321,6 +1325,8 @@ def driver_cancel_trip():
 
 @app.route('/accept-trip/<username>', methods=['GET', 'POST'])
 def accept_trip(username):
+    if username not in session.get('drivers', {}):
+        return redirect(url_for('driver_login'))
     driver = get_driver(username)
     if not driver:
         return redirect(url_for('driver_login'))
@@ -1354,6 +1360,8 @@ def accept_trip(username):
 
 @app.route('/start-trip/<username>')
 def start_trip(username):
+    if username not in session.get('drivers', {}):
+        return redirect(url_for('driver_login'))
     driver = get_driver(username)
     if not driver:
         return redirect(url_for('driver_login'))
@@ -1445,6 +1453,8 @@ def update_driver_profile():
 @app.route('/driver-earnings')
 def driver_earnings():
     username = request.args.get('username', '')
+    if username not in session.get('drivers', {}):
+        return redirect(url_for('driver_login'))
     driver = get_driver(username)
     if not driver:
         return redirect(url_for('driver_login'))
@@ -1551,6 +1561,8 @@ def api_earnings_data(username):
 @app.route('/driver-trips')
 def driver_trips():
     username = request.args.get('username', '')
+    if username not in session.get('drivers', {}):
+        return redirect(url_for('driver_login'))
     driver = get_driver(username)
     if not driver:
         return redirect(url_for('driver_login'))
