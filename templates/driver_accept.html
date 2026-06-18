@@ -478,9 +478,8 @@ function verifyOTP() {
     .then(data => {
         if (data.valid) {
             if (watchId) navigator.geolocation.clearWatch(watchId);
-            bootstrap.Modal.getInstance(document.getElementById('otpModal')).hide();
             if (window.payanumShowLoader) window.payanumShowLoader();
-            document.getElementById('startTripForm').submit();
+            setTimeout(() => document.getElementById('startTripForm').submit(), 100);
         } else {
             const inp = document.getElementById('otpInput');
             inp.classList.add('is-invalid');
