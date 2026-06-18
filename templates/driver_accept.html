@@ -242,7 +242,8 @@
         <button class="btn-start" onclick="new bootstrap.Modal(document.getElementById('otpModal')).show()">
             <i class="bi bi-play-circle-fill"></i> Enter OTP & Start Trip
         </button>
-        <form method="POST" action="{{ url_for('driver_cancel_trip') }}" style="margin:0;">
+        <form method="POST" action="{{ url_for('driver_cancel_trip') }}" style="margin:0;"
+              onsubmit="if(window.payanumShowLoader) window.payanumShowLoader();">
             <input type="hidden" name="trip_id" value="{{ booking.id if booking else '' }}">
             <input type="hidden" name="driver_name" value="{{ driver_name }}">
             <button type="submit" class="btn-cancel" onclick="return confirm('Cancel this trip?')">
@@ -478,6 +479,7 @@ function verifyOTP() {
         if (data.valid) {
             if (watchId) navigator.geolocation.clearWatch(watchId);
             bootstrap.Modal.getInstance(document.getElementById('otpModal')).hide();
+            if (window.payanumShowLoader) window.payanumShowLoader();
             document.getElementById('startTripForm').submit();
         } else {
             const inp = document.getElementById('otpInput');

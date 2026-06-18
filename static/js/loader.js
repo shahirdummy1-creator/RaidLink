@@ -7,6 +7,7 @@
     document.body.appendChild(overlay);
 
     function showLoader() { overlay.classList.add('active'); }
+    window.payanumShowLoader = showLoader;
 
     // Exclude: toggle-password, nav links, logout (instant redirect is fine),
     // dropdown toggles, close buttons, and driver-home JS-only buttons (accept/decline handled separately)
