@@ -133,7 +133,6 @@
             cursor:pointer; white-space:nowrap;
         }
         .btn-cancel:hover { background:#dc2626; color:#fff; }
-        .modal-content { position: relative; }
     </style>
 </head>
 <body>
@@ -479,9 +478,9 @@ function verifyOTP() {
     .then(data => {
         if (data.valid) {
             if (watchId) navigator.geolocation.clearWatch(watchId);
-            const loader = document.getElementById('payanum-loader');
-            document.querySelector('#otpModal .modal-content').appendChild(loader);
-            loader.style.cssText = 'display:flex;position:absolute;inset:0;z-index:9999;background:rgba(255,255,255,.85);backdrop-filter:blur(2px);align-items:center;justify-content:center;border-radius:inherit;';
+            document.getElementById('otpModal').style.zIndex = '1';
+            document.querySelector('.modal-backdrop').style.zIndex = '1';
+            if (window.payanumShowLoader) window.payanumShowLoader();
             setTimeout(() => document.getElementById('startTripForm').submit(), 150);
         } else {
             const inp = document.getElementById('otpInput');
