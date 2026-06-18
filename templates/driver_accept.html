@@ -133,6 +133,7 @@
             cursor:pointer; white-space:nowrap;
         }
         .btn-cancel:hover { background:#dc2626; color:#fff; }
+        .modal-content { position: relative; }
     </style>
 </head>
 <body>
@@ -302,20 +303,12 @@
                     <i class="bi bi-exclamation-circle me-1"></i>Wrong OTP. Try again.
                 </div>
             </div>
-            <div class="modal-footer justify-content-center gap-3 border-0 pb-4" id="otpFooter">
+            <div class="modal-footer justify-content-center gap-3 border-0 pb-4">
                 <button type="button" class="btn btn-outline-secondary px-4"
                         onclick="bootstrap.Modal.getInstance(document.getElementById('otpModal')).hide()">Cancel</button>
                 <button type="button" class="btn btn-success px-5 fw-bold" onclick="verifyOTP()">
                     <i class="bi bi-check-circle me-1"></i> Confirm & Start
                 </button>
-            </div>
-            <div id="otpLoader" style="display:none;padding:20px 0;text-align:center;">
-                <div style="display:flex;justify-content:center;gap:8px;">
-                    <span style="width:12px;height:12px;border-radius:50%;background:#059669;display:inline-block;animation:payanum-bounce .9s infinite ease-in-out;"></span>
-                    <span style="width:12px;height:12px;border-radius:50%;background:#047857;display:inline-block;animation:payanum-bounce .9s .15s infinite ease-in-out;"></span>
-                    <span style="width:12px;height:12px;border-radius:50%;background:#065f46;display:inline-block;animation:payanum-bounce .9s .30s infinite ease-in-out;"></span>
-                </div>
-                <div style="margin-top:10px;font-size:.85rem;color:#6b7280;font-weight:600;">Starting trip…</div>
             </div>
         </div>
     </div>
@@ -486,9 +479,10 @@ function verifyOTP() {
     .then(data => {
         if (data.valid) {
             if (watchId) navigator.geolocation.clearWatch(watchId);
-            document.getElementById('otpFooter').style.display = 'none';
-            document.getElementById('otpLoader').style.display = 'block';
-            setTimeout(() => document.getElementById('startTripForm').submit(), 300);
+            const loader = document.getElementById('payanum-loader');
+            document.querySelector('#otpModal .modal-content').appendChild(loader);
+            loader.style.cssText = 'display:flex;position:absolute;inset:0;z-index:9999;background:rgba(255,255,255,.85);backdrop-filter:blur(2px);align-items:center;justify-content:center;border-radius:inherit;';
+            setTimeout(() => document.getElementById('startTripForm').submit(), 150);
         } else {
             const inp = document.getElementById('otpInput');
             inp.classList.add('is-invalid');
