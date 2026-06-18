@@ -44,7 +44,7 @@
         if (btn.type === 'button' && !btn.form && !btn.getAttribute('href')) {
             const oc = btn.getAttribute('onclick') || '';
             // Allow accept/cancel booking actions
-            if (!oc.includes('acceptBooking') && !oc.includes('cancelBooking') && !oc.includes('verifyOtp') && !oc.includes('verifyOTP') && !oc.includes('sendOtp') && !oc.includes('resendOtp') && !oc.includes('verifyOtp') && !oc.includes('confirmFareCollected')) return;
+            if (!oc.includes('acceptBooking') && !oc.includes('cancelBooking') && !oc.includes('sendOtp') && !oc.includes('resendOtp') && !oc.includes('confirmFareCollected')) return;
         }
 
         // For anchor buttons — only show loader if href is a real page (not # or javascript:)
