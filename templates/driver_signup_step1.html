@@ -124,25 +124,7 @@
                        placeholder="Enter admin name" 
                        value="{{ form.admin_name or '' }}">
             </div>
-            <div class="mb-4">
-                <label class="form-label fw-semibold">Subscription Plan</label>
-                <div class="d-flex gap-3">
-                    <div class="flex-fill">
-                        <input type="radio" class="btn-check" name="subscription_plan" id="plan_monthly" value="monthly" checked>
-                        <label class="btn btn-outline-primary w-100 py-3" for="plan_monthly">
-                            <div class="fw-bold">Monthly</div>
-                            <div style="font-size:.8rem;">₹50 / month</div>
-                        </label>
-                    </div>
-                    <div class="flex-fill">
-                        <input type="radio" class="btn-check" name="subscription_plan" id="plan_yearly" value="yearly">
-                        <label class="btn btn-outline-success w-100 py-3" for="plan_yearly">
-                            <div class="fw-bold">Yearly</div>
-                            <div style="font-size:.8rem;">₹500 / year</div>
-                        </label>
-                    </div>
-                </div>
-            </div>
+            <input type="hidden" name="subscription_plan" value="monthly">
 
             <!-- Hidden profile photo carried forward -->
             <input type="file" class="d-none" id="profile_photo_real" name="profile_photo" accept="image/*">
@@ -153,7 +135,7 @@
             </div> -->
             
             <button type="submit" class="btn btn-primary w-100 fw-bold py-2">
-                Continue to Payment <i class="bi bi-arrow-right ms-1"></i>
+                Next <i class="bi bi-arrow-right ms-1"></i>
             </button>
         </form>
 
