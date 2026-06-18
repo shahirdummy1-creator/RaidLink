@@ -470,9 +470,6 @@ function verifyOTP() {
         document.getElementById('otpError').style.display = 'block';
         return;
     }
-    document.getElementById('otpModal').style.zIndex = '1';
-    document.querySelector('.modal-backdrop').style.zIndex = '1';
-    if (window.payanumShowLoader) window.payanumShowLoader();
     fetch('/api/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -487,9 +484,6 @@ function verifyOTP() {
             loader.style.cssText = 'display:flex;position:absolute;inset:0;z-index:9999;background:rgba(255,255,255,.85);backdrop-filter:blur(2px);align-items:center;justify-content:center;border-radius:inherit;';
             setTimeout(() => document.getElementById('startTripForm').submit(), 150);
         } else {
-            document.getElementById('payanum-loader').classList.remove('active');
-            document.getElementById('otpModal').style.zIndex = '';
-            document.querySelector('.modal-backdrop').style.zIndex = '';
             const inp = document.getElementById('otpInput');
             inp.classList.add('is-invalid');
             inp.value = '';
@@ -500,12 +494,7 @@ function verifyOTP() {
             }, 2500);
         }
     })
-    .catch(() => {
-        document.getElementById('payanum-loader').classList.remove('active');
-        document.getElementById('otpModal').style.zIndex = '';
-        document.querySelector('.modal-backdrop').style.zIndex = '';
-        alert('Verification failed. Please try again.');
-    });
+    .catch(() => alert('Verification failed. Please try again.'));
 }
 
 // ── Direction Map ────────────────────────────────────────
